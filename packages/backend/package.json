@@ -1,0 +1,23 @@
+{
+  "name": "@eigen/backend",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --experimental-strip-types src/index.ts",
+    "build": "tsc --build"
+  },
+  "dependencies": {
+    "@eigen/shared-types": "*",
+    "fastify": "^4.28.0",
+    "@fastify/multipart": "^8.3.0",
+    "@fastify/cors": "^9.0.1",
+    "@fastify/static": "^7.0.4",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^22.0.0",
+    "@types/uuid": "^9.0.7"
+  }
+}

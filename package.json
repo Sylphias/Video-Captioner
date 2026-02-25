@@ -1,0 +1,7 @@
+{
+  "name": "eigen-video-editor",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}
