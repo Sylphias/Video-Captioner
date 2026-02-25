@@ -50,6 +50,9 @@ Recent decisions affecting current work:
 - [01-01]: Frontend tsconfig uses module:ESNext + moduleResolution:bundler (required by Vite); backend uses NodeNext
 - [01-01]: TypeScript composite + project references for incremental cross-package builds
 - [01-01]: Node 22 LTS pinned in .nvmrc
+- [01-02]: fastify-plugin (fp()) required to break Fastify encapsulation so fastify.jobs decorator is visible across route plugins
+- [01-02]: normalizeVideo accepts optional durationMs for progress % calculation via FFmpeg -progress pipe:1 out_time_ms output
+- [01-02]: FFmpeg installed via brew install ffmpeg — absolute paths /opt/homebrew/bin/ffmpeg used to avoid PATH issues
 - [01-03]: Dark mode is the only mode — dark styles applied directly to :root/body, no class-based toggle
 - [01-03]: Co-located .css files per component (not CSS modules, not styled-components) — keeps tooling minimal
 - [01-03]: Single Subtitles tab only — no placeholder/coming-soon slots per user decision
