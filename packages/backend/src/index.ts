@@ -6,6 +6,8 @@ import { mkdirSync } from 'node:fs'
 import corsPlugin from './plugins/cors.ts'
 import multipartPlugin from './plugins/multipart.ts'
 import jobStorePlugin from './services/jobStore.ts'
+import uploadRoutes from './routes/upload.ts'
+import jobRoutes from './routes/jobs.ts'
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url)
@@ -21,10 +23,14 @@ const fastify = Fastify({
   logger: { level: 'info' },
 })
 
-// Register plugins in order: cors → multipart → jobStore
+// Register plugins in order: cors → multipart → jobStore → routes
 await fastify.register(corsPlugin)
 await fastify.register(multipartPlugin)
 await fastify.register(jobStorePlugin)
+
+// Register route plugins after store is decorated
+await fastify.register(uploadRoutes)
+await fastify.register(jobRoutes)
 
 // Health check endpoint
 fastify.get('/api/health', async (_request, _reply) => {
