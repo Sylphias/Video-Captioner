@@ -85,34 +85,34 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLAT-01 | — | Pending |
-| PLAT-02 | — | Pending |
-| INGST-01 | — | Pending |
-| INGST-02 | — | Pending |
-| INGST-03 | — | Pending |
-| TRANS-01 | — | Pending |
-| TRANS-02 | — | Pending |
-| TRANS-03 | — | Pending |
-| EDIT-01 | — | Pending |
-| EDIT-02 | — | Pending |
-| GROUP-01 | — | Pending |
-| GROUP-02 | — | Pending |
-| RENDER-01 | — | Pending |
-| RENDER-02 | — | Pending |
-| STYLE-01 | — | Pending |
-| STYLE-02 | — | Pending |
-| STYLE-03 | — | Pending |
-| STYLE-04 | — | Pending |
-| STYLE-05 | — | Pending |
-| OUTPUT-01 | — | Pending |
-| OUTPUT-02 | — | Pending |
-| OUTPUT-03 | — | Pending |
+| PLAT-01 | Phase 1 | Pending |
+| PLAT-02 | Phase 1 | Pending |
+| INGST-01 | Phase 1 | Pending |
+| INGST-02 | Phase 1 | Pending |
+| INGST-03 | Phase 1 | Pending |
+| TRANS-01 | Phase 2 | Pending |
+| TRANS-02 | Phase 2 | Pending |
+| TRANS-03 | Phase 2 | Pending |
+| EDIT-01 | Phase 4 | Pending |
+| EDIT-02 | Phase 4 | Pending |
+| GROUP-01 | Phase 4 | Pending |
+| GROUP-02 | Phase 4 | Pending |
+| RENDER-01 | Phase 3 | Pending |
+| RENDER-02 | Phase 3 | Pending |
+| STYLE-01 | Phase 6 | Pending |
+| STYLE-02 | Phase 6 | Pending |
+| STYLE-03 | Phase 6 | Pending |
+| STYLE-04 | Phase 6 | Pending |
+| STYLE-05 | Phase 6 | Pending |
+| OUTPUT-01 | Phase 5 | Pending |
+| OUTPUT-02 | Phase 5 | Pending |
+| OUTPUT-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 22 total
-- Mapped to phases: 0
-- Unmapped: 22 ⚠️
+- Mapped to phases: 22
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-25*
-*Last updated: 2026-02-25 after initial definition*
+*Last updated: 2026-02-25 — traceability populated after roadmap creation*
