@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 1 of 6 (Foundation)
-Plan: 0 of 4 in current phase
-Status: Ready to plan
-Last activity: 2026-02-25 — Roadmap created, requirements mapped, STATE.md initialized
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-02-25 — Completed 01-01 (monorepo scaffold + shared types)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 4%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 1
+- Average duration: 3 min
+- Total execution time: 3 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation | 1 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: —
+- Last 5 plans: 3 min
 - Trend: —
 
 *Updated after each plan completion*
@@ -46,6 +46,10 @@ Recent decisions affecting current work:
 - [Pre-build]: faster-whisper chosen over whisper.cpp (inferior word timestamps) and openai/whisper (slow); validate `large-v3-turbo` at implementation time
 - [Pre-build]: Remotion composition must be a pure props-driven function — no `Date.now()`, no API calls inside; all timing via `useCurrentFrame() / fps`
 - [Pre-build]: VFR-to-CFR normalization must happen on upload in Phase 1; retrofitting is expensive
+- [01-01]: npm workspaces use `"*"` (not `"workspace:*"`) for intra-workspace deps — workspace: is pnpm/yarn only
+- [01-01]: Frontend tsconfig uses module:ESNext + moduleResolution:bundler (required by Vite); backend uses NodeNext
+- [01-01]: TypeScript composite + project references for incremental cross-package builds
+- [01-01]: Node 22 LTS pinned in .nvmrc
 
 ### Pending Todos
 
@@ -63,5 +67,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Roadmap created and STATE.md initialized. No plans created yet.
+Stopped at: Completed 01-01-PLAN.md — monorepo scaffold, npm workspaces, shared types, tsc --build verified
 Resume file: None
