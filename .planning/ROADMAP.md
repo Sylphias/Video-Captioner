@@ -32,13 +32,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can upload a video file through the web interface and receive confirmation it was received
   4. Uploaded video is normalized to CFR H.264 + AAC via FFmpeg before any downstream step sees it
   5. Video duration, fps, and resolution are extracted and available to subsequent pipeline steps
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 01-01: Monorepo scaffold (npm workspaces: frontend, backend, remotion-composition, shared-types)
-- [ ] 01-02: Backend foundation — Fastify server, job-ID folder structure, in-memory job state
-- [ ] 01-03: Video upload endpoint — streaming multipart upload, FFmpeg normalization (VFR-to-CFR, H.264), FFprobe metadata extraction
-- [ ] 01-04: Frontend shell — React + Vite SPA, tabbed navigation, upload UI wired to backend
+- [ ] 01-01-PLAN.md — Monorepo scaffold with npm workspaces, TypeScript project references, and shared types
+- [ ] 01-02-PLAN.md — Fastify backend server with plugins, in-memory job store, FFmpeg service wrappers
+- [ ] 01-03-PLAN.md — React + Vite frontend shell with dark theme, header, tab navigation
+- [ ] 01-04-PLAN.md — Upload pipeline end-to-end: upload route, SSE progress, UploadZone, completion UI
 
 ### Phase 2: Transcription
 
