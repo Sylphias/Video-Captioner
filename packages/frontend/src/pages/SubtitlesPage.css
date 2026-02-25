@@ -1,0 +1,12 @@
+.subtitles-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subtitles-page__placeholder {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  user-select: none;
+}
