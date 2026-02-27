@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — Transcription
 
 ## Current Position
 
-Phase: 1 of 6 (Foundation)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-02-25 — Completed 01-03 (React + Vite frontend shell, dark theme, Header, SubtitlesPage)
+Phase: 1 of 6 (Foundation) — COMPLETE
+Plan: 4 of 4 completed
+Status: Phase 1 complete — ready for Phase 2
+Last activity: 2026-02-28 — Completed 01-04 (upload pipeline end-to-end: multipart POST, FFmpeg normalization, SSE progress, UploadZone, SubtitlesPage)
 
-Progress: [██░░░░░░░░] 12%
+Progress: [███░░░░░░░] 17%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 2.3 min
-- Total execution time: 7 min
+- Total plans completed: 4
+- Average duration: 13.5 min
+- Total execution time: 52 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 3 | 7 min | 2.3 min |
+| 01-foundation | 4 | 52 min | 13 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 2 min, 2 min
-- Trend: Stable ~2 min
+- Last 5 plans: 3 min, 2 min, 2 min, 45 min
+- Trend: Variable (01-04 included end-to-end testing + bug fixing)
 
 *Updated after each plan completion*
 
@@ -57,10 +57,15 @@ Recent decisions affecting current work:
 - [01-03]: Co-located .css files per component (not CSS modules, not styled-components) — keeps tooling minimal
 - [01-03]: Single Subtitles tab only — no placeholder/coming-soon slots per user decision
 - [01-03]: global.css @imports tokens.css to enforce token-first load order independent of JS import sequence
+- [01-04]: @fastify/multipart fileSize: 0 means 0-byte limit (not unlimited) — must use explicit byte count (10GB)
+- [01-04]: Fastify default bodyLimit is 1MB — must set bodyLimit: 10GB in constructor for video upload tool
+- [01-04]: Vite proxy target must use 127.0.0.1 (not localhost) — Node.js resolves localhost to IPv6 ::1 on macOS; Fastify binds IPv4 only
+- [01-04]: Manual SSE on reply.raw used instead of @fastify/sse plugin — more reliable, API uncertainty confirmed at runtime
+- [01-04]: XHR used for upload phase (not fetch) — only XHR exposes xhr.upload.onprogress for real per-byte upload progress
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
@@ -73,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25
-Stopped at: Completed 01-03-PLAN.md — React + Vite frontend shell, dark theme tokens, Header/TabNav/SubtitlesPage
+Last session: 2026-02-28
+Stopped at: Completed 01-04-PLAN.md — upload pipeline end-to-end, Phase 1 complete
 Resume file: None
