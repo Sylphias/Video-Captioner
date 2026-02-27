@@ -21,6 +21,7 @@ mkdirSync(DATA_ROOT, { recursive: true })
 
 const fastify = Fastify({
   logger: { level: 'info' },
+  bodyLimit: 10 * 1024 * 1024 * 1024, // 10GB — video processing tool, no upload limit
 })
 
 // Register plugins in order: cors → multipart → jobStore → routes

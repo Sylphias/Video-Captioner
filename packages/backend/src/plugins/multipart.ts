@@ -5,7 +5,7 @@ import type { FastifyInstance } from 'fastify'
 async function multipartPlugin(fastify: FastifyInstance): Promise<void> {
   await fastify.register(multipart, {
     limits: {
-      fileSize: 0, // 0 = unlimited per user decision "no file size limit"
+      fileSize: 10 * 1024 * 1024 * 1024, // 10GB
       files: 1,
       parts: 10,
     },
