@@ -1,7 +1,9 @@
 import fp from 'fastify-plugin'
 import type { FastifyInstance } from 'fastify'
 import { createReadStream } from 'node:fs'
-import { access } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
+
+import { killTranscription } from './transcribe.ts'
 
 async function jobRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/jobs/:jobId/status — Server-Sent Events stream of job progress
@@ -30,10 +32,14 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
         return
       }
 
-      reply.raw.write(`data: ${JSON.stringify(job)}\n\n`)
+      // Strip internal server filesystem paths before broadcasting to client
+      const { transcriptPath, thumbnailPath, ...safeJob } = job
+      reply.raw.write(`data: ${JSON.stringify(safeJob)}\n\n`)
 
-      // Close when terminal state reached
-      if (job.status === 'ready' || job.status === 'failed') {
+      // Close only on truly terminal states: transcribed or failed
+      // 'ready' is NOT terminal — SSE stays open through transcription lifecycle
+      // Lifecycle: uploading -> normalizing -> ready -> transcribing -> transcribed
+      if (job.status === 'transcribed' || job.status === 'failed') {
         clearInterval(interval)
         reply.raw.end()
       }
@@ -42,6 +48,8 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
     // Clean up interval if client disconnects early
     req.raw.on('close', () => {
       clearInterval(interval)
+      // Kill transcription subprocess if still running (prevents zombie — Pitfall 4)
+      killTranscription(jobId)
     })
   })
 
@@ -67,6 +75,28 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
 
     reply.header('Content-Type', 'image/jpeg')
     return reply.send(createReadStream(job.thumbnailPath))
+  })
+
+  // GET /api/jobs/:jobId/transcript — Serve transcript JSON content (not the file path)
+  fastify.get('/api/jobs/:jobId/transcript', async (req, reply) => {
+    const { jobId } = req.params as { jobId: string }
+    const job = fastify.jobs.get(jobId)
+
+    if (!job) {
+      return reply.code(404).send({ error: 'Job not found' })
+    }
+    if (!job.transcriptPath) {
+      return reply.code(404).send({ error: 'Transcript not yet available' })
+    }
+
+    // Read and serve the transcript file content
+    try {
+      const content = await readFile(job.transcriptPath, 'utf-8')
+      reply.header('Content-Type', 'application/json')
+      return reply.send(content)
+    } catch {
+      return reply.code(404).send({ error: 'Transcript file not found on disk' })
+    }
   })
 }
 
