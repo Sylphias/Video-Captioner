@@ -50,13 +50,13 @@ Plans:
   2. Transcription completes and produces a word-level timestamped transcript (each word has start time, end time, confidence)
   3. Transcription runs entirely on the M4 Mac Mini without any external API calls
   4. VAD filtering is active by default, reducing hallucinations on silence and non-speech audio
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 02-01: Python faster-whisper spike — validate on Apple Silicon, benchmark `large-v3-turbo` (or fallback), evaluate word timestamp accuracy with real test video
-- [ ] 02-02: Transcription subprocess + JSON output — Python script producing `transcript.json` with word-level timestamps
-- [ ] 02-03: Backend transcription endpoint — invoke subprocess, stream SSE progress, store transcript.json per job
-- [ ] 02-04: Frontend progress UI — display transcription progress, load and display raw transcript on completion
+- [ ] 02-01-PLAN.md — Python venv setup with faster-whisper, validation spike, production transcription script
+- [ ] 02-02-PLAN.md — Extended shared types (transcription statuses) and Node.js transcription service module
+- [ ] 02-03-PLAN.md — Backend transcription endpoint, SSE extension, transcript delivery endpoint
+- [ ] 02-04-PLAN.md — Frontend transcription UI: useTranscribe hook, TranscriptView, SubtitlesPage integration
 
 ### Phase 3: Composition and Preview
 
