@@ -12,7 +12,7 @@ A personal video subtitle tool built as a local web service on an M4 Mac Mini. T
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Monorepo scaffold, platform shell with tab nav, and the video ingestion pipeline (upload, FFmpeg normalization, metadata extraction)
+- [x] **Phase 1: Foundation** - Monorepo scaffold, platform shell with tab nav, and the video ingestion pipeline (upload, FFmpeg normalization, metadata extraction)
 - [ ] **Phase 2: Transcription** - Validate faster-whisper on Apple Silicon, build subprocess + API endpoint, stream progress to frontend
 - [ ] **Phase 3: Composition and Preview** - Build the Remotion composition as a pure props-driven component; embed browser preview with karaoke rendering
 - [ ] **Phase 4: Transcript Editor and Grouping** - Connect transcription output to editable UI; auto-group words into subtitle phrases with manual override
@@ -35,10 +35,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Monorepo scaffold with npm workspaces, TypeScript project references, and shared types
-- [ ] 01-02-PLAN.md — Fastify backend server with plugins, in-memory job store, FFmpeg service wrappers
-- [ ] 01-03-PLAN.md — React + Vite frontend shell with dark theme, header, tab navigation
-- [ ] 01-04-PLAN.md — Upload pipeline end-to-end: upload route, SSE progress, UploadZone, completion UI
+- [x] 01-01-PLAN.md — Monorepo scaffold with npm workspaces, TypeScript project references, and shared types
+- [x] 01-02-PLAN.md — Fastify backend server with plugins, in-memory job store, FFmpeg service wrappers
+- [x] 01-03-PLAN.md — React + Vite frontend shell with dark theme, header, tab navigation
+- [x] 01-04-PLAN.md — Upload pipeline end-to-end: upload route, SSE progress, UploadZone, completion UI
 
 ### Phase 2: Transcription
 
@@ -134,7 +134,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/4 | Not started | - |
+| 1. Foundation | 4/4 | ✓ Complete | 2026-02-28 |
 | 2. Transcription | 0/4 | Not started | - |
 | 3. Composition and Preview | 0/2 | Not started | - |
 | 4. Transcript Editor and Grouping | 0/4 | Not started | - |
