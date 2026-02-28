@@ -57,7 +57,7 @@ export function normalizeVideo(
         if (line.startsWith('out_time_ms=') && durationMs && onProgress) {
           const outTimeMs = parseInt(line.split('=')[1], 10)
           if (!isNaN(outTimeMs) && durationMs > 0) {
-            const percent = Math.min(100, Math.round((outTimeMs / 1000 / durationMs) * 100 * 1000))
+            const percent = Math.min(100, Math.round((outTimeMs / durationMs) * 100 / 1000))
             onProgress(percent)
           }
         }
