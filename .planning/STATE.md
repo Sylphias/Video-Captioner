@@ -9,29 +9,30 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 1 of 6 (Foundation) — COMPLETE
-Plan: 4 of 4 completed
-Status: Phase 1 complete — ready for Phase 2
-Last activity: 2026-02-28 — Completed 01-04 (upload pipeline end-to-end: multipart POST, FFmpeg normalization, SSE progress, UploadZone, SubtitlesPage)
+Phase: 2 of 6 (Transcription) — IN PROGRESS
+Plan: 1 of 3 completed
+Status: Phase 2 Plan 1 complete — Python env validated, transcription script ready
+Last activity: 2026-02-28 — Completed 02-01 (Python venv, faster-whisper, WhisperModel turbo validated, scripts/transcribe.py)
 
-Progress: [███░░░░░░░] 17%
+Progress: [████░░░░░░] 22%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 13.5 min
-- Total execution time: 52 min
+- Total plans completed: 5
+- Average duration: 11 min
+- Total execution time: 55 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 52 min | 13 min |
+| 02-transcription | 1 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 2 min, 2 min, 45 min
-- Trend: Variable (01-04 included end-to-end testing + bug fixing)
+- Last 5 plans: 3 min, 2 min, 2 min, 45 min, 3 min
+- Trend: Variable
 
 *Updated after each plan completion*
 
@@ -62,6 +63,10 @@ Recent decisions affecting current work:
 - [01-04]: Vite proxy target must use 127.0.0.1 (not localhost) — Node.js resolves localhost to IPv6 ::1 on macOS; Fastify binds IPv4 only
 - [01-04]: Manual SSE on reply.raw used instead of @fastify/sse plugin — more reliable, API uncertainty confirmed at runtime
 - [01-04]: XHR used for upload phase (not fetch) — only XHR exposes xhr.upload.onprogress for real per-byte upload progress
+- [02-01]: WhisperModel('turbo', device='cpu', compute_type='int8') confirmed working on Apple Silicon — 'turbo' maps to Systran/faster-whisper-large-v3-turbo; no fallback needed
+- [02-01]: Python subprocess per job (not persistent daemon) — simpler, no IPC; revisit if model load time is a UX problem
+- [02-01]: VAD min_silence_duration_ms=500 chosen over 2000ms default — less aggressive silence suppression
+- [02-01]: Pass normalized.mp4 path directly to Python — PyAV handles audio extraction from mp4 internally
 
 ### Pending Todos
 
@@ -69,8 +74,7 @@ None.
 
 ### Blockers/Concerns
 
-- [Phase 2]: Verify `large-v3-turbo` availability in faster-whisper at implementation time; fall back to `large-v3` if missing
-- [Phase 2]: Run real benchmark with test video to confirm word timestamp accuracy is acceptable; evaluate WhisperX if drift is unacceptable
+- [Phase 2]: Run real benchmark with test video to confirm word timestamp accuracy and transcription speed are acceptable; evaluate WhisperX if drift is unacceptable (blocker resolved: large-v3-turbo confirmed available as "turbo")
 - [Phase 3]: Verify React 19 / Remotion 4.x compatibility before pinning versions; may need to pin React 18.x
 - [Phase 3]: Verify `<Player>` props API and `@remotion/google-fonts` API against current remotion.dev/docs before Phase 3
 - [Phase 5]: Verify `renderMedia()` API signature and `onProgress` callback shape against current remotion.dev/docs before Phase 5
@@ -79,5 +83,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 01-04-PLAN.md — upload pipeline end-to-end, Phase 1 complete
+Stopped at: Completed 02-01-PLAN.md — Python venv, faster-whisper validation, scripts/transcribe.py
 Resume file: None
