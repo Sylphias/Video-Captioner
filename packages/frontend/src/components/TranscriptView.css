@@ -1,0 +1,46 @@
+.transcript-view {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.transcript-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.transcript-view__language {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-transform: capitalize;
+}
+
+.transcript-view__word-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.transcript-view__words {
+  max-height: 300px;
+  overflow-y: auto;
+  line-height: 1.8;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  padding: var(--spacing-sm) 0;
+}
+
+.transcript-view__word {
+  display: inline;
+  cursor: default;
+  border-radius: 2px;
+  padding: 1px 2px;
+  transition: background-color var(--transition-fast);
+}
+
+.transcript-view__word:hover {
+  background-color: var(--color-bg-hover);
+}
