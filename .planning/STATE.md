@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 2 of 6 (Transcription) — COMPLETE
-Plan: 3 of 3 completed
-Status: Phase 2 complete — All transcription plans done; transcribe route, SSE extended, transcript endpoint ready
-Last activity: 2026-02-28 — Completed 02-03 (POST transcribe endpoint, SSE lifecycle extension, GET transcript, zombie prevention)
+Phase: 2 of 6 (Transcription) — IN PROGRESS
+Plan: 4 of 4 — Tasks 1-2 complete, awaiting human verification (Task 3 checkpoint)
+Status: 02-04 paused at human-verify checkpoint — useTranscribe hook, TranscriptView component, SubtitlesPage extended
+Last activity: 2026-02-28 — 02-04 Tasks 1-2 committed; waiting for end-to-end verification
 
 Progress: [██████░░░░] 33%
 
@@ -88,5 +88,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 02-03-PLAN.md — Transcription route, SSE extended to full lifecycle, GET transcript endpoint, zombie prevention
+Stopped at: 02-04 Task 3 checkpoint:human-verify — useTranscribe hook, TranscriptView, SubtitlesPage extended; pending end-to-end verification
 Resume file: None
