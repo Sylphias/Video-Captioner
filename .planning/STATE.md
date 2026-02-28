@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 2 of 6 (Transcription) — IN PROGRESS
-Plan: 1 of 3 completed
-Status: Phase 2 Plan 1 complete — Python env validated, transcription script ready
-Last activity: 2026-02-28 — Completed 02-01 (Python venv, faster-whisper, WhisperModel turbo validated, scripts/transcribe.py)
+Plan: 2 of 3 completed
+Status: Phase 2 Plan 2 complete — Shared types extended, transcription service module created
+Last activity: 2026-02-28 — Completed 02-02 (JobStatus extended, transcriptPath, TranscriptWord/Transcript types, runTranscription service)
 
-Progress: [████░░░░░░] 22%
+Progress: [█████░░░░░] 28%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 11 min
-- Total execution time: 55 min
+- Total plans completed: 6
+- Average duration: 10 min
+- Total execution time: 59 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 52 min | 13 min |
-| 02-transcription | 1 | 3 min | 3 min |
+| 02-transcription | 2 | 7 min | 3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 2 min, 2 min, 45 min, 3 min
-- Trend: Variable
+- Last 5 plans: 4 min, 3 min, 2 min, 2 min, 2 min
+- Trend: Fast
 
 *Updated after each plan completion*
 
@@ -67,6 +67,8 @@ Recent decisions affecting current work:
 - [02-01]: Python subprocess per job (not persistent daemon) — simpler, no IPC; revisit if model load time is a UX problem
 - [02-01]: VAD min_silence_duration_ms=500 chosen over 2000ms default — less aggressive silence suppression
 - [02-01]: Pass normalized.mp4 path directly to Python — PyAV handles audio extraction from mp4 internally
+- [02-02]: runTranscription returns { promise, process } — exposes ChildProcess handle for zombie subprocess cleanup on client disconnect
+- [02-02]: transcriptPath is internal-only in Job type — route layer in 02-03 must strip before SSE broadcast to avoid exposing server filesystem paths
 
 ### Pending Todos
 
@@ -83,5 +85,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 02-01-PLAN.md — Python venv, faster-whisper validation, scripts/transcribe.py
+Stopped at: Completed 02-02-PLAN.md — Extended shared types with transcribing/transcribed, transcription service module
 Resume file: None
