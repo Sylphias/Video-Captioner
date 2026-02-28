@@ -9,29 +9,29 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 2 of 6 (Transcription) — IN PROGRESS
-Plan: 2 of 3 completed
-Status: Phase 2 Plan 2 complete — Shared types extended, transcription service module created
-Last activity: 2026-02-28 — Completed 02-02 (JobStatus extended, transcriptPath, TranscriptWord/Transcript types, runTranscription service)
+Phase: 2 of 6 (Transcription) — COMPLETE
+Plan: 3 of 3 completed
+Status: Phase 2 complete — All transcription plans done; transcribe route, SSE extended, transcript endpoint ready
+Last activity: 2026-02-28 — Completed 02-03 (POST transcribe endpoint, SSE lifecycle extension, GET transcript, zombie prevention)
 
-Progress: [█████░░░░░] 28%
+Progress: [██████░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 10 min
-- Total execution time: 59 min
+- Total plans completed: 7
+- Average duration: 9 min
+- Total execution time: 61 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 52 min | 13 min |
-| 02-transcription | 2 | 7 min | 3.5 min |
+| 02-transcription | 3 | 9 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 3 min, 2 min, 2 min, 2 min
+- Last 5 plans: 3 min, 2 min, 2 min, 2 min, 2 min
 - Trend: Fast
 
 *Updated after each plan completion*
@@ -69,6 +69,9 @@ Recent decisions affecting current work:
 - [02-01]: Pass normalized.mp4 path directly to Python — PyAV handles audio extraction from mp4 internally
 - [02-02]: runTranscription returns { promise, process } — exposes ChildProcess handle for zombie subprocess cleanup on client disconnect
 - [02-02]: transcriptPath is internal-only in Job type — route layer in 02-03 must strip before SSE broadcast to avoid exposing server filesystem paths
+- [Phase 02-transcription]: SSE 'ready' state no longer terminal — stream stays open through transcribing -> transcribed for frontend to monitor full lifecycle
+- [Phase 02-transcription]: transcriptionProcesses Map is module-level in transcribe.ts — ChildProcess not JSON-serializable, kept separate from job store
+- [Phase 02-transcription]: jobs.ts imports killTranscription from transcribe.ts (not vice versa) — one-directional import avoids circular dependency
 
 ### Pending Todos
 
@@ -85,5 +88,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 02-02-PLAN.md — Extended shared types with transcribing/transcribed, transcription service module
+Stopped at: Completed 02-03-PLAN.md — Transcription route, SSE extended to full lifecycle, GET transcript endpoint, zombie prevention
 Resume file: None
