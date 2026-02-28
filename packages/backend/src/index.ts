@@ -8,6 +8,7 @@ import multipartPlugin from './plugins/multipart.ts'
 import jobStorePlugin from './services/jobStore.ts'
 import uploadRoutes from './routes/upload.ts'
 import jobRoutes from './routes/jobs.ts'
+import transcribeRoutes from './routes/transcribe.ts'
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url)
@@ -32,6 +33,7 @@ await fastify.register(jobStorePlugin)
 // Register route plugins after store is decorated
 await fastify.register(uploadRoutes)
 await fastify.register(jobRoutes)
+await fastify.register(transcribeRoutes)
 
 // Health check endpoint
 fastify.get('/api/health', async (_request, _reply) => {
