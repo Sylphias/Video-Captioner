@@ -6,12 +6,13 @@ from faster_whisper import WhisperModel
 
 
 def main():
-    if len(sys.argv) != 3:
-        print(json.dumps({"type": "error", "message": "Usage: transcribe.py <audio_path> <output_path>"}), flush=True)
+    if len(sys.argv) < 3:
+        print(json.dumps({"type": "error", "message": "Usage: transcribe.py <audio_path> <output_path> [language]"}), flush=True)
         sys.exit(1)
 
     audio_path = sys.argv[1]
     output_path = sys.argv[2]
+    language = sys.argv[3] if len(sys.argv) > 3 else "en"
 
     # Emit loading status (model may take seconds to load from cache)
     print(json.dumps({"type": "progress", "percent": 0, "status": "loading_model"}), flush=True)
@@ -22,6 +23,7 @@ def main():
 
     segments_gen, info = model.transcribe(
         audio_path,
+        language=language,
         word_timestamps=True,
         vad_filter=True,
         vad_parameters={"min_silence_duration_ms": 500},

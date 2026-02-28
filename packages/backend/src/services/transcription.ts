@@ -24,8 +24,9 @@ export function runTranscription(
   audioPath: string,
   outputPath: string,
   onProgress?: (percent: number) => void,
+  language: string = 'en',
 ): { promise: Promise<void>; process: ChildProcess } {
-  const proc = spawn(PYTHON, ['-u', SCRIPT, audioPath, outputPath], {
+  const proc = spawn(PYTHON, ['-u', SCRIPT, audioPath, outputPath, language], {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
