@@ -17,7 +17,7 @@ def main():
     # Emit loading status (model may take seconds to load from cache)
     print(json.dumps({"type": "progress", "percent": 0, "status": "loading_model"}), flush=True)
 
-    model = WhisperModel("turbo", device="cpu", compute_type="int8")
+    model = WhisperModel("large-v3", device="cpu", compute_type="float16")
 
     print(json.dumps({"type": "progress", "percent": 0, "status": "transcribing"}), flush=True)
 
