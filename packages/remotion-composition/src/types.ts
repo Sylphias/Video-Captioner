@@ -1,4 +1,4 @@
-import type { TranscriptWord } from '@eigen/shared-types'
+import type { TranscriptPhrase } from '@eigen/shared-types'
 
 export interface StyleProps {
   highlightColor: string   // e.g. '#FFFF00'
@@ -9,6 +9,6 @@ export interface StyleProps {
 
 export interface SubtitleCompositionProps {
   videoSrc: string                    // HTTP URL e.g. /api/jobs/{jobId}/video
-  words: TranscriptWord[]
+  phrases: TranscriptPhrase[]
   style: StyleProps
 }

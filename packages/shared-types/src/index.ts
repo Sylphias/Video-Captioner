@@ -31,3 +31,7 @@ export interface Transcript {
   language: string
   words: TranscriptWord[]
 }
+
+export interface TranscriptPhrase {
+  words: TranscriptWord[]
+}
