@@ -68,11 +68,11 @@ Plans:
   2. Word highlighting advances in sync with video playback without drift
   3. Preview updates live when transcript or style props change (no page reload required)
   4. The same Remotion composition that drives the browser preview can be invoked for server-side render without modification
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 03-01: Remotion composition — `SubtitleComposition.tsx` as a pure props-driven component with frame-based word activation (binary search, `useCurrentFrame() / fps`), karaoke rendering mode
-- [ ] 03-02: Frontend preview panel — embed `@remotion/player`, connect to transcript and style props via Zustand, verify frame-timing correctness with a fixture transcript
+- [ ] 03-01-PLAN.md — Remotion composition: install dependencies, create SubtitleComposition with OffthreadVideo + SubtitleOverlay, binary search word activation, gap-based phrase grouping
+- [ ] 03-02-PLAN.md — Frontend preview panel: backend video route, Zustand store, PreviewPanel with @remotion/player, SubtitlesPage integration
 
 ### Phase 4: Transcript Editor and Grouping
 
