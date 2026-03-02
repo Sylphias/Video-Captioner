@@ -1,14 +1,20 @@
-import { useState, useEffect } from 'react'
-import { Player } from '@remotion/player'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Player, type PlayerRef } from '@remotion/player'
 import { SubtitleComposition } from '@eigen/remotion-composition'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
 import './PreviewPanel.css'
 
-export function PreviewPanel() {
+interface PreviewPanelProps {
+  onSeekReady?: (seekFn: (timeSec: number) => void) => void
+}
+
+export function PreviewPanel({ onSeekReady }: PreviewPanelProps) {
   const jobId = useSubtitleStore((s) => s.jobId)
-  const transcript = useSubtitleStore((s) => s.transcript)
+  const session = useSubtitleStore((s) => s.session)
   const videoMetadata = useSubtitleStore((s) => s.videoMetadata)
   const style = useSubtitleStore((s) => s.style)
+
+  const playerRef = useRef<PlayerRef>(null)
 
   // Fit player to 65% of viewport height, derive width from aspect ratio
   const [maxWidth, setMaxWidth] = useState<number | undefined>(undefined)
@@ -24,7 +30,17 @@ export function PreviewPanel() {
     return () => window.removeEventListener('resize', update)
   }, [videoMetadata])
 
-  if (!jobId || !transcript || !videoMetadata) {
+  const seekToTime = useCallback((timeSec: number) => {
+    if (!playerRef.current || !videoMetadata) return
+    playerRef.current.seekTo(Math.floor(timeSec * videoMetadata.fps))
+  }, [videoMetadata])
+
+  // Expose seekToTime to parent once it's stable
+  useEffect(() => {
+    if (onSeekReady) onSeekReady(seekToTime)
+  }, [onSeekReady, seekToTime])
+
+  if (!jobId || !session || !videoMetadata) {
     return null
   }
 
@@ -34,6 +50,7 @@ export function PreviewPanel() {
   return (
     <div className="preview-panel" style={{ maxWidth }}>
       <Player
+        ref={playerRef}
         component={SubtitleComposition}
         durationInFrames={durationInFrames}
         compositionWidth={videoMetadata.width}
@@ -44,7 +61,7 @@ export function PreviewPanel() {
         style={{ width: '100%' }}
         inputProps={{
           videoSrc,
-          words: transcript.words,
+          phrases: session.phrases.map((p) => ({ words: p.words })),
           style,
         }}
         acknowledgeRemotionLicense
