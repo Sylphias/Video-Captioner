@@ -27,7 +27,7 @@ export function TranscriptView({ transcript }: TranscriptViewProps) {
           <span
             key={i}
             className="transcript-view__word"
-            title={`${formatTime(w.start)}–${formatTime(w.end)} (${Math.round(w.confidence * 100)}%)`}
+            data-tooltip={`${formatTime(w.start)}–${formatTime(w.end)} (${Math.round(w.confidence * 100)}%)`}
           >
             {w.word}{' '}
           </span>
