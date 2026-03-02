@@ -84,13 +84,11 @@ Plans:
   2. User can adjust the start and end timestamp of any word in the transcript
   3. System automatically groups words into subtitle phrases based on silence gaps, and the grouping is visible in the editor
   4. User can manually split a phrase at any word boundary or merge two adjacent phrases into one
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 04-01: Zustand transcript store — separate immutable Whisper output from mutable session state; define word and segment data models
-- [ ] 04-02: Transcript editor UI — editable word list with word text and timestamps; inline text correction and timestamp adjustment
-- [ ] 04-03: Auto-grouping — silence-gap segmentation algorithm (gap threshold, max words, max duration, punctuation signals)
-- [ ] 04-04: Manual grouping overrides — split and merge controls in the editor UI; segmentation changes flow to composition props
+- [ ] 04-01-PLAN.md — Store refactor and composition rewiring: extract grouping to lib, two-layer Zustand store (original + session), composition receives pre-computed phrases
+- [ ] 04-02-PLAN.md — Transcript editor UI: inline word editing, timestamp adjustment, phrase split/merge controls, word-click-to-seek, SubtitlesPage integration
 
 ### Phase 5: Server Render and Output
 
@@ -137,6 +135,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Foundation | 4/4 | ✓ Complete | 2026-02-28 |
 | 2. Transcription | 4/4 | ✓ Complete | 2026-03-02 |
 | 3. Composition and Preview | 2/2 | ✓ Complete | 2026-03-03 |
-| 4. Transcript Editor and Grouping | 0/4 | Not started | - |
+| 4. Transcript Editor and Grouping | 0/2 | In Progress | - |
 | 5. Server Render and Output | 0/3 | Not started | - |
 | 6. Styling | 0/3 | Not started | - |
