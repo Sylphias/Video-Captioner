@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useUpload } from '../hooks/useUpload.ts'
 import { useTranscribe } from '../hooks/useTranscribe.ts'
 import { UploadZone } from '../components/UploadZone.tsx'
-import { TranscriptView } from '../components/TranscriptView.tsx'
+import { TranscriptEditor } from '../components/TranscriptEditor/TranscriptEditor.tsx'
 import { PreviewPanel } from '../components/PreviewPanel.tsx'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
 import './SubtitlesPage.css'
@@ -16,6 +16,7 @@ function formatDuration(seconds: number): string {
 export function SubtitlesPage() {
   const { state: uploadState, upload, reset: resetUpload } = useUpload()
   const { state: transcribeState, transcribe, reset: resetTranscribe } = useTranscribe()
+  const [seekToTime, setSeekToTime] = useState<((timeSec: number) => void) | null>(null)
 
   const resetAll = () => {
     resetUpload()
@@ -123,14 +124,14 @@ export function SubtitlesPage() {
     )
   }
 
-  // State: transcribed — show video preview with karaoke subtitles + transcript below
+  // State: transcribed — show video preview with karaoke subtitles + transcript editor below
   if (transcribeState.status === 'transcribed' && transcribeState.transcript) {
     return (
       <div className="subtitles-page subtitles-page--preview">
-        <PreviewPanel />
+        <PreviewPanel onSeekReady={(fn) => setSeekToTime(() => fn)} />
 
-        <div className="subtitles-page__transcript-section">
-          <TranscriptView transcript={transcribeState.transcript} />
+        <div className="subtitles-page__editor-section">
+          <TranscriptEditor seekToTime={seekToTime ?? (() => {})} />
         </div>
 
         <button

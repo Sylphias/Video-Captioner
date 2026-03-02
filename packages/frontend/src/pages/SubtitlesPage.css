@@ -173,15 +173,13 @@
   max-width: 240px;
 }
 
-/* ---- Transcript section ---- */
-.subtitles-page__transcript-section {
+/* ---- Editor section ---- */
+.subtitles-page__editor-section {
   width: 100%;
   padding: var(--spacing-md);
   background-color: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  max-height: 200px;
-  overflow-y: auto;
 }
 
 /* ---- Upload another link ---- */
