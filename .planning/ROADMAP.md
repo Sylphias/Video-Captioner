@@ -13,7 +13,7 @@ A personal video subtitle tool built as a local web service on an M4 Mac Mini. T
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Monorepo scaffold, platform shell with tab nav, and the video ingestion pipeline (upload, FFmpeg normalization, metadata extraction)
-- [ ] **Phase 2: Transcription** - Validate faster-whisper on Apple Silicon, build subprocess + API endpoint, stream progress to frontend
+- [x] **Phase 2: Transcription** - Validate faster-whisper on Apple Silicon, build subprocess + API endpoint, stream progress to frontend
 - [ ] **Phase 3: Composition and Preview** - Build the Remotion composition as a pure props-driven component; embed browser preview with karaoke rendering
 - [ ] **Phase 4: Transcript Editor and Grouping** - Connect transcription output to editable UI; auto-group words into subtitle phrases with manual override
 - [ ] **Phase 5: Server Render and Output** - Render final MP4 in a worker thread, stream progress via SSE, deliver download
@@ -53,10 +53,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Python venv setup with faster-whisper, validation spike, production transcription script
-- [ ] 02-02-PLAN.md — Extended shared types (transcription statuses) and Node.js transcription service module
-- [ ] 02-03-PLAN.md — Backend transcription endpoint, SSE extension, transcript delivery endpoint
-- [ ] 02-04-PLAN.md — Frontend transcription UI: useTranscribe hook, TranscriptView, SubtitlesPage integration
+- [x] 02-01-PLAN.md — Python venv setup with faster-whisper, validation spike, production transcription script
+- [x] 02-02-PLAN.md — Extended shared types (transcription statuses) and Node.js transcription service module
+- [x] 02-03-PLAN.md — Backend transcription endpoint, SSE extension, transcript delivery endpoint
+- [x] 02-04-PLAN.md — Frontend transcription UI: useTranscribe hook, TranscriptView, SubtitlesPage integration
 
 ### Phase 3: Composition and Preview
 
@@ -135,7 +135,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | ✓ Complete | 2026-02-28 |
-| 2. Transcription | 0/4 | Not started | - |
+| 2. Transcription | 4/4 | ✓ Complete | 2026-03-02 |
 | 3. Composition and Preview | 0/2 | Not started | - |
 | 4. Transcript Editor and Grouping | 0/4 | Not started | - |
 | 5. Server Render and Output | 0/3 | Not started | - |

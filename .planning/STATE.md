@@ -79,7 +79,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None.
+- [Phase 4]: SRT import + word alignment — Import SRT from DaVinci Resolve, align with Whisper word timestamps using rough timestamp matching. SRT provides accurate text, Whisper provides per-word timing. Merge to get accurate text with word-level timestamps.
 
 ### Blockers/Concerns
 
