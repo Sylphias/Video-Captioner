@@ -6,9 +6,10 @@ import './PreviewPanel.css'
 
 interface PreviewPanelProps {
   onSeekReady?: (seekFn: (timeSec: number) => void) => void
+  onGetTimeReady?: (getTimeFn: () => number) => void
 }
 
-export function PreviewPanel({ onSeekReady }: PreviewPanelProps) {
+export function PreviewPanel({ onSeekReady, onGetTimeReady }: PreviewPanelProps) {
   const jobId = useSubtitleStore((s) => s.jobId)
   const session = useSubtitleStore((s) => s.session)
   const videoMetadata = useSubtitleStore((s) => s.videoMetadata)
@@ -35,10 +36,19 @@ export function PreviewPanel({ onSeekReady }: PreviewPanelProps) {
     playerRef.current.seekTo(Math.floor(timeSec * videoMetadata.fps))
   }, [videoMetadata])
 
-  // Expose seekToTime to parent once it's stable
+  const getCurrentTimeSec = useCallback(() => {
+    if (!playerRef.current || !videoMetadata) return 0
+    return playerRef.current.getCurrentFrame() / videoMetadata.fps
+  }, [videoMetadata])
+
+  // Expose seekToTime and getCurrentTimeSec to parent once stable
   useEffect(() => {
     if (onSeekReady) onSeekReady(seekToTime)
   }, [onSeekReady, seekToTime])
+
+  useEffect(() => {
+    if (onGetTimeReady) onGetTimeReady(getCurrentTimeSec)
+  }, [onGetTimeReady, getCurrentTimeSec])
 
   if (!jobId || !session || !videoMetadata) {
     return null

@@ -8,7 +8,7 @@ interface TranscriptEditorProps {
 
 export function TranscriptEditor({ seekToTime }: TranscriptEditorProps) {
   const session = useSubtitleStore((s) => s.session)
-  const { updateWord, splitPhrase, mergePhrase } = useSubtitleStore()
+  const { updateWord, splitPhrase, mergePhrase, addWord, addPhrase, deleteWord } = useSubtitleStore()
 
   if (!session) return null
 
@@ -45,9 +45,17 @@ export function TranscriptEditor({ seekToTime }: TranscriptEditorProps) {
             onUpdateTimestamp={handleUpdateTimestamp}
             onSplit={splitPhrase}
             onMerge={mergePhrase}
+            onAddWord={addWord}
+            onDeleteWord={deleteWord}
             onSeek={seekToTime}
           />
         ))}
+        <button
+          className="transcript-editor__add-phrase-btn"
+          onClick={() => addPhrase(session.phrases.length - 1)}
+        >
+          + Add phrase
+        </button>
       </div>
     </div>
   )

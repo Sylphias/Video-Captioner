@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useUpload } from '../hooks/useUpload.ts'
 import { useTranscribe } from '../hooks/useTranscribe.ts'
 import { UploadZone } from '../components/UploadZone.tsx'
@@ -17,6 +17,36 @@ export function SubtitlesPage() {
   const { state: uploadState, upload, reset: resetUpload } = useUpload()
   const { state: transcribeState, transcribe, reset: resetTranscribe } = useTranscribe()
   const [seekToTime, setSeekToTime] = useState<((timeSec: number) => void) | null>(null)
+  const [getCurrentTime, setGetCurrentTime] = useState<(() => number) | null>(null)
+
+  const handleGoToSubtitle = useCallback(() => {
+    if (!getCurrentTime) return
+    const timeSec = getCurrentTime()
+    const session = useSubtitleStore.getState().session
+    if (!session) return
+
+    // Binary search for the word active at timeSec
+    const words = session.words
+    let lo = 0, hi = words.length - 1, bestIdx = 0
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1
+      if (words[mid].start <= timeSec) {
+        bestIdx = mid
+        lo = mid + 1
+      } else {
+        hi = mid - 1
+      }
+    }
+
+    // Scroll that word into view
+    const el = document.querySelector(`[data-word-index="${bestIdx}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Brief highlight flash
+      el.classList.add('word-cell--flash')
+      setTimeout(() => el.classList.remove('word-cell--flash'), 1000)
+    }
+  }, [getCurrentTime])
 
   const resetAll = () => {
     resetUpload()
@@ -128,7 +158,17 @@ export function SubtitlesPage() {
   if (transcribeState.status === 'transcribed' && transcribeState.transcript) {
     return (
       <div className="subtitles-page subtitles-page--preview">
-        <PreviewPanel onSeekReady={(fn) => setSeekToTime(() => fn)} />
+        <PreviewPanel
+          onSeekReady={(fn) => setSeekToTime(() => fn)}
+          onGetTimeReady={(fn) => setGetCurrentTime(() => fn)}
+        />
+
+        <button
+          className="subtitles-page__goto-btn"
+          onClick={handleGoToSubtitle}
+        >
+          Go to subtitle
+        </button>
 
         <div className="subtitles-page__editor-section">
           <TranscriptEditor seekToTime={seekToTime ?? (() => {})} />

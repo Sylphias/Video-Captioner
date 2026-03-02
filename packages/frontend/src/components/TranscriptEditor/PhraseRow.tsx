@@ -10,6 +10,8 @@ interface PhraseRowProps {
   onUpdateTimestamp: (wordIndex: number, field: 'start' | 'end', value: number) => void
   onSplit: (phraseIndex: number, splitBeforeWordIndex: number) => void
   onMerge: (phraseIndex: number) => void
+  onAddWord: (phraseIndex: number) => void
+  onDeleteWord: (wordIndex: number) => void
   onSeek: (timeSec: number) => void
 }
 
@@ -22,6 +24,8 @@ export function PhraseRow({
   onUpdateTimestamp,
   onSplit,
   onMerge,
+  onAddWord,
+  onDeleteWord,
   onSeek,
 }: PhraseRowProps) {
   const rowClass = [
@@ -31,7 +35,13 @@ export function PhraseRow({
 
   return (
     <div className={rowClass}>
-      <span className="phrase-row__label">#{phraseIndex + 1}</span>
+      <span
+        className="phrase-row__label"
+        onClick={() => onSeek(phrase.words[0].start)}
+        title={`Seek to ${phrase.words[0].start.toFixed(2)}s`}
+      >
+        #{phraseIndex + 1}
+      </span>
       <div className="phrase-row__words">
         {phrase.words.map((word, localIndex) => (
           <span key={`${globalWordOffset + localIndex}-${word.word}`} className="phrase-row__word-group">
@@ -50,10 +60,18 @@ export function PhraseRow({
               wordIndex={globalWordOffset + localIndex}
               onUpdateText={onUpdateText}
               onUpdateTimestamp={onUpdateTimestamp}
+              onDeleteWord={onDeleteWord}
               onSeek={onSeek}
             />
           </span>
         ))}
+        <button
+          className="phrase-row__add-word-btn"
+          title="Add word to this phrase"
+          onClick={() => onAddWord(phraseIndex)}
+        >
+          +
+        </button>
       </div>
       {!isLast && (
         <button

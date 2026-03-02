@@ -25,6 +25,9 @@ interface SubtitleStore {
   updateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
   splitPhrase: (phraseIndex: number, splitBeforeWordIndex: number) => void
   mergePhrase: (phraseIndex: number) => void
+  addWord: (phraseIndex: number) => void
+  addPhrase: (afterPhraseIndex: number) => void
+  deleteWord: (wordIndex: number) => void
   resetSession: () => void
   setStyle: (partial: Partial<StyleProps>) => void
   reset: () => void
@@ -148,6 +151,128 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       manualSplitWordIndices.delete(splitWordIdx)
       phrases.splice(phraseIndex, 2, merged)
       return { session: { ...state.session, phrases, manualSplitWordIndices } }
+    })
+  },
+
+  addWord: (phraseIndex) => {
+    set((state) => {
+      if (!state.session) return state
+      const phrase = state.session.phrases[phraseIndex]
+      if (!phrase || phrase.words.length === 0) return state
+
+      const lastWord = phrase.words[phrase.words.length - 1]
+      const DEFAULT_WORD_DURATION = 0.3
+
+      // Find the next word's start to cap the new word's end time
+      let nextWordStart = lastWord.end + DEFAULT_WORD_DURATION
+      // Check if there's a next phrase with words
+      if (phraseIndex < state.session.phrases.length - 1) {
+        const nextPhrase = state.session.phrases[phraseIndex + 1]
+        if (nextPhrase.words.length > 0) {
+          nextWordStart = Math.min(nextWordStart, nextPhrase.words[0].start)
+        }
+      }
+
+      const newWord: SessionWord = {
+        word: '...',
+        start: lastWord.end,
+        end: Math.min(lastWord.end + DEFAULT_WORD_DURATION, nextWordStart),
+        confidence: 1,
+      }
+
+      // Compute global index for insertion (after last word of this phrase)
+      let globalIdx = 0
+      for (let i = 0; i <= phraseIndex; i++) {
+        globalIdx += state.session.phrases[i].words.length
+      }
+
+      const words = [...state.session.words]
+      words.splice(globalIdx, 0, newWord)
+
+      // Shift manual split indices that are >= globalIdx
+      const manualSplitWordIndices = new Set<number>()
+      for (const idx of state.session.manualSplitWordIndices) {
+        manualSplitWordIndices.add(idx >= globalIdx ? idx + 1 : idx)
+      }
+
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      return { session: { words, phrases, manualSplitWordIndices } }
+    })
+  },
+
+  addPhrase: (afterPhraseIndex) => {
+    set((state) => {
+      if (!state.session) return state
+      const DEFAULT_WORD_DURATION = 0.5
+
+      // Determine timing for the new phrase's word
+      let newStart: number
+      let newEnd: number
+      if (state.session.phrases.length === 0) {
+        newStart = 0
+        newEnd = DEFAULT_WORD_DURATION
+      } else {
+        const prevPhrase = state.session.phrases[Math.min(afterPhraseIndex, state.session.phrases.length - 1)]
+        const lastWord = prevPhrase.words[prevPhrase.words.length - 1]
+        newStart = lastWord ? lastWord.end : 0
+
+        // Cap at next phrase's first word if it exists
+        let cap = newStart + DEFAULT_WORD_DURATION
+        if (afterPhraseIndex + 1 < state.session.phrases.length) {
+          const nextPhrase = state.session.phrases[afterPhraseIndex + 1]
+          if (nextPhrase.words.length > 0) {
+            cap = Math.min(cap, nextPhrase.words[0].start)
+          }
+        }
+        newEnd = cap
+      }
+
+      const newWord: SessionWord = {
+        word: '...',
+        start: newStart,
+        end: newEnd,
+        confidence: 1,
+      }
+
+      // Compute global index: after all words in phrases up to and including afterPhraseIndex
+      let globalIdx = 0
+      for (let i = 0; i <= afterPhraseIndex && i < state.session.phrases.length; i++) {
+        globalIdx += state.session.phrases[i].words.length
+      }
+
+      const words = [...state.session.words]
+      words.splice(globalIdx, 0, newWord)
+
+      // Shift manual split indices and add a split at the new word's position
+      const manualSplitWordIndices = new Set<number>()
+      for (const idx of state.session.manualSplitWordIndices) {
+        manualSplitWordIndices.add(idx >= globalIdx ? idx + 1 : idx)
+      }
+      manualSplitWordIndices.add(globalIdx)
+
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      return { session: { words, phrases, manualSplitWordIndices } }
+    })
+  },
+
+  deleteWord: (wordIndex) => {
+    set((state) => {
+      if (!state.session) return state
+      if (wordIndex < 0 || wordIndex >= state.session.words.length) return state
+      // Don't allow deleting the last word entirely
+      if (state.session.words.length <= 1) return state
+
+      const words = state.session.words.filter((_, i) => i !== wordIndex)
+
+      // Shift manual split indices
+      const manualSplitWordIndices = new Set<number>()
+      for (const idx of state.session.manualSplitWordIndices) {
+        if (idx === wordIndex) continue // remove split at deleted word
+        manualSplitWordIndices.add(idx > wordIndex ? idx - 1 : idx)
+      }
+
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
 

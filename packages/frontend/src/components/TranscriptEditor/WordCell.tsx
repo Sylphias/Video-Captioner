@@ -6,10 +6,11 @@ interface WordCellProps {
   wordIndex: number           // global index in session.words
   onUpdateText: (wordIndex: number, newText: string) => void
   onUpdateTimestamp: (wordIndex: number, field: 'start' | 'end', value: number) => void
+  onDeleteWord: (wordIndex: number) => void
   onSeek: (timeSec: number) => void
 }
 
-export function WordCell({ word, wordIndex, onUpdateText, onUpdateTimestamp, onSeek }: WordCellProps) {
+export function WordCell({ word, wordIndex, onUpdateText, onUpdateTimestamp, onDeleteWord, onSeek }: WordCellProps) {
   const [text, setText] = useState(word.word)
   const [startStr, setStartStr] = useState(word.start.toFixed(2))
   const [endStr, setEndStr] = useState(word.end.toFixed(2))
@@ -48,7 +49,14 @@ export function WordCell({ word, wordIndex, onUpdateText, onUpdateTimestamp, onS
   }
 
   return (
-    <div className="word-cell" onClick={() => onSeek(word.start)}>
+    <div className="word-cell" data-word-index={wordIndex} onClick={() => onSeek((word.start + word.end) / 2)}>
+      <button
+        className="word-cell__delete-btn"
+        title="Delete word"
+        onClick={(e) => { e.stopPropagation(); onDeleteWord(wordIndex) }}
+      >
+        &times;
+      </button>
       <input
         className="word-cell__text"
         type="text"
