@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 3 of 6 (Subtitles) — NOT STARTED
-Plan: 0 of 4 — Phase 2 complete
-Status: Phase 2 fully complete — ready to begin Phase 3
-Last activity: 2026-03-02 — 02-04 complete (useTranscribe hook, TranscriptView, SubtitlesPage, model accuracy fixes, CSS tooltips); verified end-to-end
+Phase: 3 of 6 (Subtitles) — IN PROGRESS
+Plan: 1 of 4 — 03-01 complete (Remotion composition package)
+Status: 03-01 complete — @eigen/remotion-composition package built; ready for 03-02 (Player integration)
+Last activity: 2026-03-02 — 03-01 complete (SubtitleComposition, SubtitleOverlay, types, Remotion 4.0.379 exact pins)
 
-Progress: [████████░░] 50%
+Progress: [█████████░] 55%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 16 min
-- Total execution time: 121 min
+- Total plans completed: 9
+- Average duration: 15 min
+- Total execution time: 124 min
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [████████░░] 50%
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 52 min | 13 min |
 | 02-transcription | 4 | 69 min | 17 min |
+| 03-composition-and-preview | 1 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 60 min, 3 min, 2 min, 2 min, 2 min
-- Trend: Mixed (02-04 extended across 2 sessions with end-to-end verification and post-checkpoint fixes)
+- Last 5 plans: 3 min, 60 min, 3 min, 2 min, 2 min
+- Trend: Fast execution for pure package/component creation plans
 
 *Updated after each plan completion*
 
@@ -76,6 +77,11 @@ Recent decisions affecting current work:
 - [02-04]: Model switched from large-v3-turbo to large-v3 with int8_float32 — turbo accuracy insufficient at e2e verification; mlx-whisper tried and reverted (hallucinated output on MP4)
 - [02-04]: CSS tooltips (data-tooltip + ::after) preferred over native title attribute — native has ~1s delay; CSS tooltips appear instantly on hover
 - [02-04]: useTranscribe is a separate hook from useUpload — each lifecycle phase owns its own focused state machine
+- [03-01]: remotion@4.0.379 pinned with exact (no ^) in both remotion-composition and frontend — all remotion packages must match exactly
+- [03-01]: No react in remotion-composition/package.json dependencies — peer dep only, avoids duplicate React in monorepo
+- [03-01]: allowImportingTsExtensions + noEmit in frontend and backend tsconfigs — both runtimes (Vite, Node --experimental-strip-types) handle TS natively; tsc used for type-check only
+- [03-01]: Binary search word activation holds highlight during intra-phrase gaps (no -1 return) — prevents karaoke flicker UX
+- [03-01]: PHRASE_GAP_SEC = 1.5s for phrase splitting and active phrase display window extension
 
 ### Pending Todos
 
@@ -85,13 +91,13 @@ Recent decisions affecting current work:
 
 - [Phase 2 — RESOLVED]: Transcription accuracy verified end-to-end with large-v3 int8_float32; language detection fixed by forcing 'en'; word timestamp quality approved by user
 - [Phase 2 — ongoing]: Transcription speed with large-v3 is slower than turbo; if UX becomes a problem in Phase 3+, consider VAD pre-filtering or chunking
-- [Phase 3]: Verify React 19 / Remotion 4.x compatibility before pinning versions; may need to pin React 18.x
-- [Phase 3]: Verify `<Player>` props API and `@remotion/google-fonts` API against current remotion.dev/docs before Phase 3
+- [Phase 3 — PARTIALLY RESOLVED]: React 18.3.x confirmed compatible with Remotion 4.0.379 (installation succeeded without conflicts)
+- [Phase 3]: Verify `<Player>` props API against current remotion.dev/docs before Phase 3 Plan 02
 - [Phase 5]: Verify `renderMedia()` API signature and `onProgress` callback shape against current remotion.dev/docs before Phase 5
 - [Phase 6]: Verify Tailwind 4 + shadcn/ui compatibility; fall back to Tailwind 3 if incompatible
 
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 02-04 — Phase 2 (Transcription) fully complete; ready to begin Phase 3 (Subtitles)
+Stopped at: Completed 03-01 — @eigen/remotion-composition package built with SubtitleComposition and SubtitleOverlay; ready for 03-02 (Player integration)
 Resume file: None
