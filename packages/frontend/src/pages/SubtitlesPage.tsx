@@ -1,7 +1,10 @@
+import { useEffect } from 'react'
 import { useUpload } from '../hooks/useUpload.ts'
 import { useTranscribe } from '../hooks/useTranscribe.ts'
 import { UploadZone } from '../components/UploadZone.tsx'
 import { TranscriptView } from '../components/TranscriptView.tsx'
+import { PreviewPanel } from '../components/PreviewPanel.tsx'
+import { useSubtitleStore } from '../store/subtitleStore.ts'
 import './SubtitlesPage.css'
 
 function formatDuration(seconds: number): string {
@@ -17,7 +20,18 @@ export function SubtitlesPage() {
   const resetAll = () => {
     resetUpload()
     resetTranscribe()
+    useSubtitleStore.getState().reset()
   }
+
+  // Push job data into Zustand store when transcription completes so PreviewPanel can consume it
+  useEffect(() => {
+    if (transcribeState.status !== 'transcribed') return
+    const jobId = uploadState.jobId
+    const transcript = transcribeState.transcript
+    const metadata = uploadState.job?.metadata
+    if (!jobId || !transcript || !metadata) return
+    useSubtitleStore.getState().setJob(jobId, transcript, metadata)
+  }, [transcribeState.status, uploadState.jobId, transcribeState.transcript, uploadState.job])
 
   // State: idle — show upload zone
   if (uploadState.status === 'idle') {
@@ -109,42 +123,26 @@ export function SubtitlesPage() {
     )
   }
 
-  // State: transcribed — show video info + transcript view
+  // State: transcribed — show video preview with karaoke subtitles + transcript below
   if (transcribeState.status === 'transcribed' && transcribeState.transcript) {
-    const { job, jobId } = uploadState
-
     return (
-      <div className="subtitles-page subtitles-page--centered">
-        <div className="subtitles-page__ready-card">
-          {jobId && (
-            <img
-              className="subtitles-page__thumbnail"
-              src={`/api/jobs/${jobId}/thumbnail`}
-              alt="Video thumbnail"
-            />
-          )}
+      <div className="subtitles-page subtitles-page--preview">
+        <PreviewPanel />
 
-          <div className="subtitles-page__meta">
-            {job?.originalFilename && (
-              <p className="subtitles-page__meta-filename">{job.originalFilename}</p>
-            )}
-          </div>
-
-          <div className="subtitles-page__transcript-section">
-            <TranscriptView transcript={transcribeState.transcript} />
-          </div>
-
-          <button
-            className="subtitles-page__transcribe-btn"
-            onClick={() => transcribe(uploadState.jobId!)}
-          >
-            Re-transcribe
-          </button>
-
-          <button className="subtitles-page__reset-btn" onClick={resetAll}>
-            Upload another video
-          </button>
+        <div className="subtitles-page__transcript-section">
+          <TranscriptView transcript={transcribeState.transcript} />
         </div>
+
+        <button
+          className="subtitles-page__transcribe-btn subtitles-page__transcribe-btn--narrow"
+          onClick={() => transcribe(uploadState.jobId!)}
+        >
+          Re-transcribe
+        </button>
+
+        <button className="subtitles-page__reset-btn" onClick={resetAll}>
+          Upload another video
+        </button>
       </div>
     )
   }
