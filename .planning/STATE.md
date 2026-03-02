@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 3 of 6 (Composition and Preview) — COMPLETE
-Plan: 2 of 2 — Phase 3 complete
-Status: Phase 3 fully verified — ready to begin Phase 4
-Last activity: 2026-03-03 — 03-02 complete (PreviewPanel, Zustand store, video route, viewport-fit sizing, conversation phrase grouping)
+Phase: 4 of 6 (Transcript Editor and Grouping) — IN PROGRESS
+Plan: 1 of 2 — 04-01 complete, 04-02 pending
+Status: 04-01 complete — data layer refactor done; ready for 04-02 transcript editor UI
+Last activity: 2026-03-03 — 04-01 complete (two-layer store, grouping lib, phrases[] in composition, PlayerRef)
 
-Progress: [██████████] 60%
+Progress: [████████████] 64%
 
 ## Performance Metrics
 
@@ -30,10 +30,11 @@ Progress: [██████████] 60%
 | 01-foundation | 4 | 52 min | 13 min |
 | 02-transcription | 4 | 69 min | 17 min |
 | 03-composition-and-preview | 2 | 11 min | 6 min |
+| 04-transcript-editor-and-grouping | 1 (of 2) | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 8 min, 3 min, 60 min, 3 min, 2 min
-- Trend: Phase 3 fast — composition + preview wiring with checkpoint fixes
+- Last 5 plans: 3 min, 60 min, 3 min, 2 min, 3 min
+- Trend: Phase 4 data layer fast — pure TypeScript refactor, no new dependencies
 
 *Updated after each plan completion*
 
@@ -86,6 +87,10 @@ Recent decisions affecting current work:
 - [03-02]: Phrase grouping: 0.3s gap + punctuation splits + 8 word max — conversational audio has sub-second gaps
 - [03-02]: Viewport-fit Player: 65vh height constraint derived via aspect ratio, responsive to resize
 - [03-02]: useEffect bridges transcribe completion to Zustand setJob — runs when status transitions to 'transcribed'
+- [04-01]: SessionWord/SessionPhrase defined in grouping.ts (not store) to avoid circular import
+- [04-01]: manualSplitWordIndices: Set<number> of global word indices — survives phrase rebuilds triggered by timestamp edits
+- [04-01]: Text-only updateWord skips phrase rebuild — updates word in-place to prevent clobbering manual splits
+- [04-01]: phrases[] in composition replaces words[] — composition is now a pure renderer of pre-computed phrases
 
 ### Pending Todos
 
@@ -103,5 +108,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Phase 3 complete — Composition and Preview fully verified; ready to begin Phase 4 (Transcript Editor and Grouping)
+Stopped at: Completed 04-01-PLAN.md — data layer refactor complete; ready for 04-02 (TranscriptEditor UI component)
 Resume file: None
