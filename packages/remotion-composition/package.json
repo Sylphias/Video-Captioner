@@ -12,7 +12,8 @@
     }
   },
   "dependencies": {
-    "@eigen/shared-types": "*"
+    "@eigen/shared-types": "*",
+    "remotion": "4.0.379"
   },
   "devDependencies": {
     "typescript": "^5.4.0"
