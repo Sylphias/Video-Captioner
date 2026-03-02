@@ -1,8 +1,10 @@
 import fp from 'fastify-plugin'
 import type { FastifyInstance } from 'fastify'
+import path from 'node:path'
 import { createReadStream } from 'node:fs'
-import { access, readFile } from 'node:fs/promises'
+import { access, readFile, stat } from 'node:fs/promises'
 
+import { DATA_ROOT } from '../index.ts'
 import { killTranscription } from './transcribe.ts'
 
 async function jobRoutes(fastify: FastifyInstance): Promise<void> {
@@ -96,6 +98,51 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.send(content)
     } catch {
       return reply.code(404).send({ error: 'Transcript file not found on disk' })
+    }
+  })
+
+  // GET /api/jobs/:jobId/video — Serve normalized video with HTTP Range support for seeking
+  fastify.get('/api/jobs/:jobId/video', async (req, reply) => {
+    const { jobId } = req.params as { jobId: string }
+    const job = fastify.jobs.get(jobId)
+
+    // Only serve video once normalization is complete
+    if (!job || job.status === 'uploading' || job.status === 'normalizing') {
+      return reply.code(404).send({ error: 'Video not ready' })
+    }
+
+    const normalizedPath = path.join(DATA_ROOT, jobId, 'normalized.mp4')
+
+    // Verify file exists on disk
+    try {
+      await access(normalizedPath)
+    } catch {
+      return reply.code(404).send({ error: 'Video file not found on disk' })
+    }
+
+    const fileStat = await stat(normalizedPath)
+    const fileSize = fileStat.size
+    const rangeHeader = (req.headers as Record<string, string | undefined>)['range']
+
+    if (rangeHeader) {
+      // Partial content — Range request (browser seeking)
+      const [startStr, endStr] = rangeHeader.replace(/bytes=/, '').split('-')
+      const start = parseInt(startStr, 10)
+      const end = endStr ? parseInt(endStr, 10) : fileSize - 1
+      const chunkSize = end - start + 1
+
+      reply.code(206)
+      reply.header('Content-Range', `bytes ${start}-${end}/${fileSize}`)
+      reply.header('Accept-Ranges', 'bytes')
+      reply.header('Content-Length', chunkSize)
+      reply.header('Content-Type', 'video/mp4')
+      return reply.send(createReadStream(normalizedPath, { start, end }))
+    } else {
+      // Full file request
+      reply.header('Content-Type', 'video/mp4')
+      reply.header('Accept-Ranges', 'bytes')
+      reply.header('Content-Length', fileSize)
+      return reply.send(createReadStream(normalizedPath))
     }
   })
 }
