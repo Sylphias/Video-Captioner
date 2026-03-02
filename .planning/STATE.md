@@ -5,34 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 2 — Transcription
+**Current focus:** Phase 3 — Subtitles
 
 ## Current Position
 
-Phase: 2 of 6 (Transcription) — IN PROGRESS
-Plan: 4 of 4 — Tasks 1-2 complete, awaiting human verification (Task 3 checkpoint)
-Status: 02-04 paused at human-verify checkpoint — useTranscribe hook, TranscriptView component, SubtitlesPage extended
-Last activity: 2026-02-28 — 02-04 Tasks 1-2 committed; waiting for end-to-end verification
+Phase: 3 of 6 (Subtitles) — NOT STARTED
+Plan: 0 of 4 — Phase 2 complete
+Status: Phase 2 fully complete — ready to begin Phase 3
+Last activity: 2026-03-02 — 02-04 complete (useTranscribe hook, TranscriptView, SubtitlesPage, model accuracy fixes, CSS tooltips); verified end-to-end
 
-Progress: [██████░░░░] 33%
+Progress: [████████░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 9 min
-- Total execution time: 61 min
+- Total plans completed: 8
+- Average duration: 16 min
+- Total execution time: 121 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 52 min | 13 min |
-| 02-transcription | 3 | 9 min | 3 min |
+| 02-transcription | 4 | 69 min | 17 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 2 min, 2 min, 2 min, 2 min
-- Trend: Fast
+- Last 5 plans: 60 min, 3 min, 2 min, 2 min, 2 min
+- Trend: Mixed (02-04 extended across 2 sessions with end-to-end verification and post-checkpoint fixes)
 
 *Updated after each plan completion*
 
@@ -72,6 +72,10 @@ Recent decisions affecting current work:
 - [Phase 02-transcription]: SSE 'ready' state no longer terminal — stream stays open through transcribing -> transcribed for frontend to monitor full lifecycle
 - [Phase 02-transcription]: transcriptionProcesses Map is module-level in transcribe.ts — ChildProcess not JSON-serializable, kept separate from job store
 - [Phase 02-transcription]: jobs.ts imports killTranscription from transcribe.ts (not vice versa) — one-directional import avoids circular dependency
+- [02-04]: Language forced to 'en' by default in Whisper — auto-detect misidentified English as Malay causing hallucinated output; CLI override retained
+- [02-04]: Model switched from large-v3-turbo to large-v3 with int8_float32 — turbo accuracy insufficient at e2e verification; mlx-whisper tried and reverted (hallucinated output on MP4)
+- [02-04]: CSS tooltips (data-tooltip + ::after) preferred over native title attribute — native has ~1s delay; CSS tooltips appear instantly on hover
+- [02-04]: useTranscribe is a separate hook from useUpload — each lifecycle phase owns its own focused state machine
 
 ### Pending Todos
 
@@ -79,7 +83,8 @@ None.
 
 ### Blockers/Concerns
 
-- [Phase 2]: Run real benchmark with test video to confirm word timestamp accuracy and transcription speed are acceptable; evaluate WhisperX if drift is unacceptable (blocker resolved: large-v3-turbo confirmed available as "turbo")
+- [Phase 2 — RESOLVED]: Transcription accuracy verified end-to-end with large-v3 int8_float32; language detection fixed by forcing 'en'; word timestamp quality approved by user
+- [Phase 2 — ongoing]: Transcription speed with large-v3 is slower than turbo; if UX becomes a problem in Phase 3+, consider VAD pre-filtering or chunking
 - [Phase 3]: Verify React 19 / Remotion 4.x compatibility before pinning versions; may need to pin React 18.x
 - [Phase 3]: Verify `<Player>` props API and `@remotion/google-fonts` API against current remotion.dev/docs before Phase 3
 - [Phase 5]: Verify `renderMedia()` API signature and `onProgress` callback shape against current remotion.dev/docs before Phase 5
@@ -87,6 +92,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Stopped at: 02-04 Task 3 checkpoint:human-verify — useTranscribe hook, TranscriptView, SubtitlesPage extended; pending end-to-end verification
+Last session: 2026-03-02
+Stopped at: Completed 02-04 — Phase 2 (Transcription) fully complete; ready to begin Phase 3 (Subtitles)
 Resume file: None
