@@ -15,7 +15,7 @@ frontend:
 # Set up Python venv with transcription dependencies
 setup-python:
     python3 -m venv .venv
-    .venv/bin/pip install mlx-whisper
+    .venv/bin/pip install faster-whisper
 
 # Start both services (backend in background, frontend in foreground)
 dev:

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Transcribe audio/video using mlx-whisper (Apple Silicon GPU), emitting JSON-line progress to stdout."""
+"""Transcribe audio/video using faster-whisper, emitting JSON-line progress to stdout."""
 import sys
 import json
-import mlx_whisper
+from faster_whisper import WhisperModel
 
 
 def main():
@@ -14,40 +14,48 @@ def main():
     output_path = sys.argv[2]
     language = sys.argv[3] if len(sys.argv) > 3 else "en"
 
-    # Emit loading status (model download + load may take minutes on first run)
+    # Emit loading status (model may take seconds to load from cache)
     print(json.dumps({"type": "progress", "percent": 0, "status": "loading_model"}), flush=True)
 
-    # mlx-whisper runs on Apple Silicon GPU via MLX framework
-    # transcribe() loads the model and transcribes in one call
-    print(json.dumps({"type": "progress", "percent": 5, "status": "transcribing"}), flush=True)
+    model = WhisperModel("large-v3", device="cpu", compute_type="int8_float32")
 
-    result = mlx_whisper.transcribe(
+    print(json.dumps({"type": "progress", "percent": 0, "status": "transcribing"}), flush=True)
+
+    segments_gen, info = model.transcribe(
         audio_path,
-        path_or_hf_repo="mlx-community/whisper-large-v3-mlx",
         language=language,
         word_timestamps=True,
+        vad_filter=True,
+        vad_parameters={"min_silence_duration_ms": 500},
     )
 
-    # Extract words from segments
     words = []
-    for segment in result.get("segments", []):
-        for w in segment.get("words", []):
-            words.append({
-                "word": w["word"].strip(),
-                "start": round(w["start"], 3),
-                "end": round(w["end"], 3),
-                "confidence": round(w.get("probability", w.get("confidence", 0.0)), 3),
-            })
+    last_percent = -1
+    for segment in segments_gen:
+        # Progress: segment.end / info.duration -> 0.0-1.0
+        percent = min(99, int(segment.end / info.duration * 100))
+        if percent > last_percent:
+            print(json.dumps({"type": "progress", "percent": percent}), flush=True)
+            last_percent = percent
+
+        if segment.words:
+            for w in segment.words:
+                words.append({
+                    "word": w.word.strip(),
+                    "start": round(w.start, 3),
+                    "end": round(w.end, 3),
+                    "confidence": round(w.probability, 3),
+                })
 
     # Write transcript JSON to output file
     transcript = {
-        "language": result.get("language", language),
+        "language": info.language,
         "words": words,
     }
     with open(output_path, "w") as f:
         json.dump(transcript, f, indent=2)
 
-    print(json.dumps({"type": "done", "percent": 100, "language": transcript["language"], "word_count": len(words)}), flush=True)
+    print(json.dumps({"type": "done", "percent": 100, "language": info.language, "word_count": len(words)}), flush=True)
 
 
 if __name__ == "__main__":
