@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 3 — Subtitles
+**Current focus:** Phase 4 — Transcript Editor and Grouping
 
 ## Current Position
 
-Phase: 3 of 6 (Subtitles) — IN PROGRESS
-Plan: 1 of 4 — 03-01 complete (Remotion composition package)
-Status: 03-01 complete — @eigen/remotion-composition package built; ready for 03-02 (Player integration)
-Last activity: 2026-03-02 — 03-01 complete (SubtitleComposition, SubtitleOverlay, types, Remotion 4.0.379 exact pins)
+Phase: 3 of 6 (Composition and Preview) — COMPLETE
+Plan: 2 of 2 — Phase 3 complete
+Status: Phase 3 fully verified — ready to begin Phase 4
+Last activity: 2026-03-03 — 03-02 complete (PreviewPanel, Zustand store, video route, viewport-fit sizing, conversation phrase grouping)
 
-Progress: [█████████░] 55%
+Progress: [██████████] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 15 min
-- Total execution time: 124 min
+- Total plans completed: 10
+- Average duration: 14 min
+- Total execution time: 132 min
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [█████████░] 55%
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 52 min | 13 min |
 | 02-transcription | 4 | 69 min | 17 min |
-| 03-composition-and-preview | 1 | 3 min | 3 min |
+| 03-composition-and-preview | 2 | 11 min | 6 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 60 min, 3 min, 2 min, 2 min
-- Trend: Fast execution for pure package/component creation plans
+- Last 5 plans: 8 min, 3 min, 60 min, 3 min, 2 min
+- Trend: Phase 3 fast — composition + preview wiring with checkpoint fixes
 
 *Updated after each plan completion*
 
@@ -82,6 +82,10 @@ Recent decisions affecting current work:
 - [03-01]: allowImportingTsExtensions + noEmit in frontend and backend tsconfigs — both runtimes (Vite, Node --experimental-strip-types) handle TS natively; tsc used for type-check only
 - [03-01]: Binary search word activation holds highlight during intra-phrase gaps (no -1 return) — prevents karaoke flicker UX
 - [03-01]: PHRASE_GAP_SEC = 1.5s for phrase splitting and active phrase display window extension
+- [03-02]: Video (not OffthreadVideo) for browser Player — OffthreadVideo is server-render only
+- [03-02]: Phrase grouping: 0.3s gap + punctuation splits + 8 word max — conversational audio has sub-second gaps
+- [03-02]: Viewport-fit Player: 65vh height constraint derived via aspect ratio, responsive to resize
+- [03-02]: useEffect bridges transcribe completion to Zustand setJob — runs when status transitions to 'transcribed'
 
 ### Pending Todos
 
@@ -91,13 +95,13 @@ Recent decisions affecting current work:
 
 - [Phase 2 — RESOLVED]: Transcription accuracy verified end-to-end with large-v3 int8_float32; language detection fixed by forcing 'en'; word timestamp quality approved by user
 - [Phase 2 — ongoing]: Transcription speed with large-v3 is slower than turbo; if UX becomes a problem in Phase 3+, consider VAD pre-filtering or chunking
-- [Phase 3 — PARTIALLY RESOLVED]: React 18.3.x confirmed compatible with Remotion 4.0.379 (installation succeeded without conflicts)
-- [Phase 3]: Verify `<Player>` props API against current remotion.dev/docs before Phase 3 Plan 02
+- [Phase 3 — RESOLVED]: React 18.3.x confirmed compatible with Remotion 4.0.379; Player API verified working
+- [Phase 3 — RESOLVED]: Backend needs restart after code changes (no file watcher); user must Ctrl+C and re-run `just dev`
 - [Phase 5]: Verify `renderMedia()` API signature and `onProgress` callback shape against current remotion.dev/docs before Phase 5
 - [Phase 6]: Verify Tailwind 4 + shadcn/ui compatibility; fall back to Tailwind 3 if incompatible
 
 ## Session Continuity
 
-Last session: 2026-03-02
-Stopped at: Completed 03-01 — @eigen/remotion-composition package built with SubtitleComposition and SubtitleOverlay; ready for 03-02 (Player integration)
+Last session: 2026-03-03
+Stopped at: Phase 3 complete — Composition and Preview fully verified; ready to begin Phase 4 (Transcript Editor and Grouping)
 Resume file: None
