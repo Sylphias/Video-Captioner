@@ -2,7 +2,8 @@ import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { TranscriptWord } from '@eigen/shared-types'
 import type { StyleProps } from './types'
 
-const PHRASE_GAP_SEC = 1.5
+const PHRASE_GAP_SEC = 0.3
+const MAX_WORDS_PER_PHRASE = 8
 
 /**
  * Binary search: find the index of the last word whose start <= currentTimeSec.
@@ -29,9 +30,16 @@ export function findActiveWordIndex(words: TranscriptWord[], currentTimeSec: num
   return result
 }
 
+/** Returns true if the word text ends with sentence-ending punctuation. */
+function endsWithPunctuation(word: string): boolean {
+  return /[.?!]$/.test(word)
+}
+
 /**
- * Group words into phrases by splitting at gaps > PHRASE_GAP_SEC (1.5 seconds)
- * between consecutive words (gap measured from word[i-1].end to word[i].start).
+ * Group words into subtitle-sized phrases. Splits on:
+ * 1. Silence gaps > PHRASE_GAP_SEC (0.3s)
+ * 2. Sentence-ending punctuation (. ? !)
+ * 3. Max word count per phrase
  */
 export function groupIntoPhrases(words: TranscriptWord[]): TranscriptWord[][] {
   if (words.length === 0) return []
@@ -41,7 +49,10 @@ export function groupIntoPhrases(words: TranscriptWord[]): TranscriptWord[][] {
 
   for (let i = 1; i < words.length; i++) {
     const gap = words[i].start - words[i - 1].end
-    if (gap > PHRASE_GAP_SEC) {
+    const prevEndsPunctuation = endsWithPunctuation(words[i - 1].word)
+    const atMaxWords = currentPhrase.length >= MAX_WORDS_PER_PHRASE
+
+    if (gap > PHRASE_GAP_SEC || prevEndsPunctuation || atMaxWords) {
       phrases.push(currentPhrase)
       currentPhrase = [words[i]]
     } else {
@@ -65,11 +76,12 @@ export function SubtitleOverlay({ words, style }: SubtitleOverlayProps) {
   const currentTimeSec = frame / fps
   const phrases = groupIntoPhrases(words)
 
-  // Find the active phrase: one where current time is within the phrase window
-  // (slightly after last word ends, for readability)
+  // Find the active phrase: one where current time falls within the phrase window.
+  // Keep phrase visible for 0.5s after last word ends for readability.
+  const LINGER_SEC = 0.5
   const activePhrase = phrases.find((phrase) => {
     const phraseStart = phrase[0].start
-    const phraseEnd = phrase[phrase.length - 1].end + PHRASE_GAP_SEC
+    const phraseEnd = phrase[phrase.length - 1].end + LINGER_SEC
     return currentTimeSec >= phraseStart && currentTimeSec <= phraseEnd
   }) ?? null
 

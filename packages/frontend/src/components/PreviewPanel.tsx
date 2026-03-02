@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Player } from '@remotion/player'
 import { SubtitleComposition } from '@eigen/remotion-composition'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
@@ -9,6 +10,20 @@ export function PreviewPanel() {
   const videoMetadata = useSubtitleStore((s) => s.videoMetadata)
   const style = useSubtitleStore((s) => s.style)
 
+  // Fit player to 65% of viewport height, derive width from aspect ratio
+  const [maxWidth, setMaxWidth] = useState<number | undefined>(undefined)
+  useEffect(() => {
+    if (!videoMetadata) return
+    const update = () => {
+      const targetHeight = window.innerHeight * 0.65
+      const aspect = videoMetadata.width / videoMetadata.height
+      setMaxWidth(Math.floor(targetHeight * aspect))
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [videoMetadata])
+
   if (!jobId || !transcript || !videoMetadata) {
     return null
   }
@@ -17,7 +32,7 @@ export function PreviewPanel() {
   const videoSrc = `/api/jobs/${jobId}/video`
 
   return (
-    <div className="preview-panel">
+    <div className="preview-panel" style={{ maxWidth }}>
       <Player
         component={SubtitleComposition}
         durationInFrames={durationInFrames}
