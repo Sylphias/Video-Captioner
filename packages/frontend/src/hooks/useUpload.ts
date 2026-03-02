@@ -80,7 +80,7 @@ export function useUpload() {
 
           setState((prev) => ({
             ...prev,
-            status: job.status,
+            status: job.status as UploadState['status'],
             progress: job.progress,
             job,
           }))
