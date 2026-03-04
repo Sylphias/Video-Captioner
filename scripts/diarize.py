@@ -25,6 +25,7 @@ def main():
     try:
         from pyannote.audio import Pipeline
         import torch
+        import torchaudio
     except ImportError as e:
         print(json.dumps({"type": "error", "message": f"Import failed: {e}. Run: just setup-python"}), flush=True)
         sys.exit(1)
@@ -32,7 +33,7 @@ def main():
     try:
         pipeline = Pipeline.from_pretrained(
             "pyannote/speaker-diarization-3.1",
-            use_auth_token=hf_token,  # use_auth_token works in pyannote-audio 3.3.2
+            token=hf_token,
         )
         # NEVER use MPS — known accuracy regression with pyannote on Apple Silicon
         pipeline.to(torch.device("cpu"))
@@ -52,17 +53,43 @@ def main():
 
     words = transcript.get("words", [])
 
-    # Run pyannote diarization
+    # Extract audio to WAV for torchaudio (can't decode mp4 without torchcodec)
+    import subprocess, tempfile, os
+    wav_path = os.path.join(os.path.dirname(audio_path), ".diarize_temp.wav")
     try:
-        diarization = pipeline(audio_path)
+        subprocess.run(
+            ["/opt/homebrew/bin/ffmpeg", "-y", "-i", audio_path, "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1", wav_path],
+            capture_output=True, check=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(json.dumps({"type": "error", "message": f"FFmpeg audio extraction failed: {e.stderr.decode()}"}), flush=True)
+        sys.exit(1)
+
+    # Pre-load audio with torchaudio to bypass torchcodec compatibility issues
+    # pyannote 4.x accepts {"waveform": tensor, "sample_rate": int} dict
+    try:
+        waveform, sample_rate = torchaudio.load(wav_path)
+        os.remove(wav_path)
+    except Exception as e:
+        if os.path.exists(wav_path):
+            os.remove(wav_path)
+        print(json.dumps({"type": "error", "message": f"Failed to load audio: {e}"}), flush=True)
+        sys.exit(1)
+
+    # Run pyannote diarization with pre-loaded waveform
+    try:
+        diarization = pipeline({"waveform": waveform, "sample_rate": sample_rate})
     except Exception as e:
         print(json.dumps({"type": "error", "message": f"Diarization failed: {e}"}), flush=True)
         sys.exit(1)
 
     # Collect speaker segments
+    # pyannote 4.x returns DiarizeOutput with .speaker_diarization attribute;
+    # pyannote 3.x returned Annotation directly with .itertracks()
+    annotation = getattr(diarization, 'speaker_diarization', diarization)
     segments = [
         (turn.start, turn.end, speaker)
-        for turn, _, speaker in diarization.itertracks(yield_label=True)
+        for turn, _, speaker in annotation.itertracks(yield_label=True)
     ]
 
     # Assign speakers to words using max-overlap algorithm

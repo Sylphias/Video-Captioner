@@ -1,5 +1,7 @@
 # Eigen Video Editor
 
+set dotenv-load
+
 # Install all workspace dependencies
 install-deps:
     npm install
@@ -15,7 +17,7 @@ frontend:
 # Set up Python venv with transcription and diarization dependencies
 setup-python:
     python3 -m venv .venv
-    .venv/bin/pip install faster-whisper "pyannote-audio==3.3.2"
+    .venv/bin/pip install faster-whisper "pyannote-audio==4.0.4"
 
 # Start both services (backend in background, frontend in foreground)
 dev:
