@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 4.1 of 6 (Multi-Speaker Diarization and Speaker Lanes)
-Plan: 1 of ? — 04.1-01 paused at Task 3 (human-verify checkpoint)
-Status: Awaiting human verification of backend diarization pipeline end-to-end
-Last activity: 2026-03-04 — 04.1-01 Tasks 1+2 complete (diarize.py, diarization service, POST /api/jobs/:jobId/diarize)
+Plan: 2 of 2 — 04.1-02 paused at Task 3 (human-verify checkpoint)
+Status: Awaiting human verification of speaker lane UI end-to-end
+Last activity: 2026-03-04 — 04.1-02 Tasks 1+2 complete (speaker fields, useDiarize hook, colored phrase borders, speaker badges, rename/reassign, video preview)
 
 Progress: [█████████████] 70%
 
@@ -100,6 +100,11 @@ Recent decisions affecting current work:
 - [04.1-01]: Diarization lifecycle returns to 'transcribed' on success — enriches transcript in place, no new terminal state needed
 - [04.1-01]: pyannote-audio pinned to exactly 3.3.2 to avoid torch 2.8.0 incompatibility in 4.x
 - [04.1-01]: HUGGINGFACE_TOKEN read from process.env at pipeline execution time — fails gracefully with descriptive error if missing
+- [04.1-02]: Speaker color index: parseInt(SPEAKER_XX.replace('SPEAKER_', ''), 10) % 8 — works for arbitrary speaker IDs, wraps at 8 colors
+- [04.1-02]: Phrase reassign assigns ALL words in phrase to new speaker — simpler UX, whole-phrase assignment semantics
+- [04.1-02]: useDiarize reloads store via useSubtitleStore.getState().setJob() inside the hook on 'transcribed' SSE event
+- [04.1-02]: Video preview uses existing /api/jobs/:jobId/video endpoint in 'ready' state for pre-transcription preview
+- [04.1-02]: reassignWordSpeaker updates phrase in-place (no full rebuild) to preserve manual splits (research Pitfall #4)
 
 ### Roadmap Evolution
 
@@ -123,5 +128,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: 04.1-01 Tasks 1+2 complete — paused at Task 3 checkpoint (human-verify: run just setup-python, set HUGGINGFACE_TOKEN, accept pyannote model license, then POST /api/jobs/:jobId/diarize and verify words have speaker fields)
+Stopped at: 04.1-02 Tasks 1+2 complete — paused at Task 3 checkpoint (human-verify: run just dev, upload multi-speaker video, transcribe, verify speaker lanes, badges, rename, reassign, Re-detect all work)
 Resume file: None
