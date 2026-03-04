@@ -12,6 +12,7 @@ export interface SessionWord {
   start: number
   end: number
   confidence: number
+  speaker?: string
 }
 
 /**
@@ -22,6 +23,22 @@ export interface SessionWord {
 export interface SessionPhrase {
   words: SessionWord[]
   isManualSplit: boolean
+  dominantSpeaker?: string
+}
+
+/**
+ * Compute the dominant speaker for a phrase by majority word count.
+ * In case of a tie, the first word's speaker wins.
+ */
+export function computeDominantSpeaker(words: SessionWord[]): string | undefined {
+  const counts: Record<string, number> = {}
+  for (const w of words) {
+    if (w.speaker) counts[w.speaker] = (counts[w.speaker] ?? 0) + 1
+  }
+  const speakers = Object.keys(counts)
+  if (speakers.length === 0) return undefined
+  // Tie-break: speaker with highest count wins; if tied, first word's speaker wins
+  return speakers.reduce((a, b) => counts[a] >= counts[b] ? a : b)
 }
 
 /** Returns true if the word text ends with sentence-ending punctuation. */
@@ -98,7 +115,7 @@ export function buildSessionPhrases(
     const isSplitPoint = i > 0 && (autoSplitBoundaries.has(i) || manualSplitWordIndices.has(i))
 
     if (isSplitPoint) {
-      result.push({ words: current, isManualSplit })
+      result.push({ words: current, isManualSplit, dominantSpeaker: computeDominantSpeaker(current) })
       current = []
       isManualSplit = manualSplitWordIndices.has(i)
     }
@@ -107,7 +124,7 @@ export function buildSessionPhrases(
   }
 
   if (current.length > 0) {
-    result.push({ words: current, isManualSplit })
+    result.push({ words: current, isManualSplit, dominantSpeaker: computeDominantSpeaker(current) })
   }
 
   return result

@@ -5,6 +5,7 @@ import {
   type SessionWord,
   type SessionPhrase,
   buildSessionPhrases,
+  computeDominantSpeaker,
 } from '../lib/grouping.ts'
 
 export type { SessionWord, SessionPhrase }
@@ -19,6 +20,7 @@ interface SubtitleStore {
     manualSplitWordIndices: Set<number> // global word indices where user forced splits
   } | null
   style: StyleProps
+  speakerNames: Record<string, string> // maps raw speaker IDs to display names
 
   // Actions
   setJob: (jobId: string, transcript: Transcript, videoMetadata: VideoMetadata) => void
@@ -31,6 +33,8 @@ interface SubtitleStore {
   resetSession: () => void
   setStyle: (partial: Partial<StyleProps>) => void
   reset: () => void
+  renameSpeaker: (speakerId: string, displayName: string) => void
+  reassignWordSpeaker: (wordIndex: number, speakerId: string) => void
 }
 
 const DEFAULT_STYLE: StyleProps = {
@@ -46,15 +50,22 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   videoMetadata: null,
   session: null,
   style: DEFAULT_STYLE,
+  speakerNames: {},
 
   setJob: (jobId, transcript, videoMetadata) => {
     const words: SessionWord[] = transcript.words.map((w) => ({ ...w }))
     const phrases = buildSessionPhrases(words, new Set())
+    // Initialize speakerNames from unique speakers found in words
+    const uniqueSpeakers = new Set<string>()
+    for (const w of words) { if (w.speaker) uniqueSpeakers.add(w.speaker) }
+    const speakerNames: Record<string, string> = {}
+    for (const s of uniqueSpeakers) { speakerNames[s] = s } // default display name = raw ID
     set({
       jobId,
       original: transcript,
       videoMetadata,
       session: { words, phrases, manualSplitWordIndices: new Set() },
+      speakerNames,
     })
   },
 
@@ -281,11 +292,57 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       if (!state.original) return state
       const words: SessionWord[] = state.original.words.map((w) => ({ ...w }))
       const phrases = buildSessionPhrases(words, new Set())
-      return { session: { words, phrases, manualSplitWordIndices: new Set() } }
+      // Re-initialize speakerNames from original transcript
+      const uniqueSpeakers = new Set<string>()
+      for (const w of words) { if (w.speaker) uniqueSpeakers.add(w.speaker) }
+      const speakerNames: Record<string, string> = {}
+      for (const s of uniqueSpeakers) { speakerNames[s] = s }
+      return { session: { words, phrases, manualSplitWordIndices: new Set() }, speakerNames }
     })
   },
 
   setStyle: (partial) => set((state) => ({ style: { ...state.style, ...partial } })),
 
-  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE }),
+  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, speakerNames: {} }),
+
+  renameSpeaker: (speakerId, displayName) => {
+    set((state) => ({
+      speakerNames: { ...state.speakerNames, [speakerId]: displayName }
+    }))
+  },
+
+  reassignWordSpeaker: (wordIndex, speakerId) => {
+    set((state) => {
+      if (!state.session) return state
+      const word = state.session.words[wordIndex]
+      if (!word) return state
+
+      // Update the word's speaker in the flat words array
+      const words = state.session.words.map((w, i) =>
+        i === wordIndex ? { ...w, speaker: speakerId } : w
+      )
+
+      // Update the word's speaker within the existing phrase structure (no rebuild!)
+      // and recompute dominantSpeaker for the affected phrase only
+      const phrases = state.session.phrases.map((p) => {
+        const phraseHasWord = p.words.some(
+          (pw) => pw.start === word.start && pw.end === word.end
+        )
+        if (!phraseHasWord) return p
+        const updatedWords = p.words.map((pw) =>
+          pw.start === word.start && pw.end === word.end
+            ? { ...pw, speaker: speakerId }
+            : pw
+        )
+        return { ...p, words: updatedWords, dominantSpeaker: computeDominantSpeaker(updatedWords) }
+      })
+
+      // Ensure the new speaker is in speakerNames
+      const speakerNames = state.speakerNames[speakerId]
+        ? state.speakerNames
+        : { ...state.speakerNames, [speakerId]: speakerId }
+
+      return { session: { ...state.session, words, phrases }, speakerNames }
+    })
+  },
 }))
