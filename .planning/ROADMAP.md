@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Monorepo scaffold, platform shell with tab nav, and the video ingestion pipeline (upload, FFmpeg normalization, metadata extraction)
 - [x] **Phase 2: Transcription** - Validate faster-whisper on Apple Silicon, build subprocess + API endpoint, stream progress to frontend
 - [x] **Phase 3: Composition and Preview** - Build the Remotion composition as a pure props-driven component; embed browser preview with karaoke rendering
-- [ ] **Phase 4: Transcript Editor and Grouping** - Connect transcription output to editable UI; auto-group words into subtitle phrases with manual override
+- [x] **Phase 4: Transcript Editor and Grouping** - Connect transcription output to editable UI; auto-group words into subtitle phrases with manual override
 - [ ] **Phase 5: Server Render and Output** - Render final MP4 in a worker thread, stream progress via SSE, deliver download
 - [ ] **Phase 6: Styling** - Add font, color, stroke, and position controls; connect style state to composition props and render props
 
@@ -87,8 +87,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Store refactor and composition rewiring: extract grouping to lib, two-layer Zustand store (original + session), composition receives pre-computed phrases
-- [ ] 04-02-PLAN.md — Transcript editor UI: inline word editing, timestamp adjustment, phrase split/merge controls, word-click-to-seek, SubtitlesPage integration
+- [x] 04-01-PLAN.md — Store refactor and composition rewiring: extract grouping to lib, two-layer Zustand store (original + session), composition receives pre-computed phrases
+- [x] 04-02-PLAN.md — Transcript editor UI: inline word editing, timestamp adjustment, phrase split/merge controls, word-click-to-seek, SubtitlesPage integration
 
 ### Phase 5: Server Render and Output
 
@@ -135,6 +135,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Foundation | 4/4 | ✓ Complete | 2026-02-28 |
 | 2. Transcription | 4/4 | ✓ Complete | 2026-03-02 |
 | 3. Composition and Preview | 2/2 | ✓ Complete | 2026-03-03 |
-| 4. Transcript Editor and Grouping | 0/2 | In Progress | - |
+| 4. Transcript Editor and Grouping | 2/2 | ✓ Complete | 2026-03-04 |
 | 5. Server Render and Output | 0/3 | Not started | - |
 | 6. Styling | 0/3 | Not started | - |
