@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 4 — Transcript Editor and Grouping
+**Current focus:** Phase 5 — Render
 
 ## Current Position
 
-Phase: 4 of 6 (Transcript Editor and Grouping) — IN PROGRESS
-Plan: 1 of 2 — 04-01 complete, 04-02 pending
-Status: 04-01 complete — data layer refactor done; ready for 04-02 transcript editor UI
-Last activity: 2026-03-03 — 04-01 complete (two-layer store, grouping lib, phrases[] in composition, PlayerRef)
+Phase: 5 of 6 (Render) — PENDING
+Plan: 0 of ? — Phase 4 complete, starting Phase 5
+Status: Phase 4 complete — transcript editor human-verified; all four editing requirements satisfied
+Last activity: 2026-03-04 — 04-02 complete (TranscriptEditor UI, word editing, split/merge, seek, go-to-subtitle)
 
-Progress: [████████████] 64%
+Progress: [█████████████] 70%
 
 ## Performance Metrics
 
@@ -30,11 +30,10 @@ Progress: [████████████] 64%
 | 01-foundation | 4 | 52 min | 13 min |
 | 02-transcription | 4 | 69 min | 17 min |
 | 03-composition-and-preview | 2 | 11 min | 6 min |
-| 04-transcript-editor-and-grouping | 1 (of 2) | 3 min | 3 min |
+| 04-transcript-editor-and-grouping | 2 | ~1 day | — |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 60 min, 3 min, 2 min, 3 min
-- Trend: Phase 4 data layer fast — pure TypeScript refactor, no new dependencies
+- Phase 4 complete — data layer (04-01) fast; editor UI (04-02) included human verification checkpoint
 
 *Updated after each plan completion*
 
@@ -91,10 +90,17 @@ Recent decisions affecting current work:
 - [04-01]: manualSplitWordIndices: Set<number> of global word indices — survives phrase rebuilds triggered by timestamp edits
 - [04-01]: Text-only updateWord skips phrase rebuild — updates word in-place to prevent clobbering manual splits
 - [04-01]: phrases[] in composition replaces words[] — composition is now a pure renderer of pre-computed phrases
+- [04-02]: seekToTime stored as ((timeSec) => void) | null in useState — wrapped in arrow on set to prevent React calling it as initializer
+- [04-02]: WordCell click seeks to word.start (not midpoint) — clicking signals intent to play from word's beginning
+- [04-02]: addWord/deleteWord/addPhrase added to store beyond plan spec — transcript editor without CRUD is not functionally usable
+- [04-02]: go-to-subtitle uses data-word-index DOM attribute for scroll target — avoids React ref arrays, consistent with existing pattern
+- [04-02]: Split button opacity:0 by default, revealed on .phrase-row:hover — avoids visual clutter on dense transcripts
 
 ### Pending Todos
 
-- [Phase 4]: SRT import + word alignment — Import SRT from DaVinci Resolve, align with Whisper word timestamps using rough timestamp matching. SRT provides accurate text, Whisper provides per-word timing. Merge to get accurate text with word-level timestamps.
+- [Phase 4 — deferred UX]: Drag-to-adjust timestamps on WordCell — more ergonomic than typing timestamp values
+- [Phase 4 — deferred UX]: Split button hit area too small when words are close — wider hit area or alternative interaction
+- [Phase 5+]: SRT import + word alignment — Import SRT from DaVinci Resolve, align with Whisper word timestamps using rough timestamp matching. SRT provides accurate text, Whisper provides per-word timing. Merge to get accurate text with word-level timestamps.
 
 ### Blockers/Concerns
 
@@ -107,6 +113,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-03
-Stopped at: Completed 04-01-PLAN.md — data layer refactor complete; ready for 04-02 (TranscriptEditor UI component)
+Last session: 2026-03-04
+Stopped at: Completed 04-02-PLAN.md — transcript editor UI human-verified; Phase 4 complete; ready for Phase 5 (Render)
 Resume file: None
