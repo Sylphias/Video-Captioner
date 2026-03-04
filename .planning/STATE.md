@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 5 — Render
+**Current focus:** Phase 4.1 — Multi-Speaker Diarization and Speaker Lanes
 
 ## Current Position
 
-Phase: 5 of 6 (Render) — PENDING
-Plan: 0 of ? — Phase 4 complete, starting Phase 5
-Status: Phase 4 complete — transcript editor human-verified; all four editing requirements satisfied
-Last activity: 2026-03-04 — 04-02 complete (TranscriptEditor UI, word editing, split/merge, seek, go-to-subtitle)
+Phase: 4.1 of 6 (Multi-Speaker Diarization and Speaker Lanes)
+Plan: 1 of ? — 04.1-01 paused at Task 3 (human-verify checkpoint)
+Status: Awaiting human verification of backend diarization pipeline end-to-end
+Last activity: 2026-03-04 — 04.1-01 Tasks 1+2 complete (diarize.py, diarization service, POST /api/jobs/:jobId/diarize)
 
 Progress: [█████████████] 70%
 
@@ -95,6 +95,15 @@ Recent decisions affecting current work:
 - [04-02]: addWord/deleteWord/addPhrase added to store beyond plan spec — transcript editor without CRUD is not functionally usable
 - [04-02]: go-to-subtitle uses data-word-index DOM attribute for scroll target — avoids React ref arrays, consistent with existing pattern
 - [04-02]: Split button opacity:0 by default, revealed on .phrase-row:hover — avoids visual clutter on dense transcripts
+- [04.1-01]: Diarization is opt-in via separate POST endpoint — transcription does not auto-trigger it
+- [04.1-01]: NEVER use MPS device for pyannote — known accuracy regression on Apple Silicon; always CPU
+- [04.1-01]: Diarization lifecycle returns to 'transcribed' on success — enriches transcript in place, no new terminal state needed
+- [04.1-01]: pyannote-audio pinned to exactly 3.3.2 to avoid torch 2.8.0 incompatibility in 4.x
+- [04.1-01]: HUGGINGFACE_TOKEN read from process.env at pipeline execution time — fails gracefully with descriptive error if missing
+
+### Roadmap Evolution
+
+- Phase 04.1 inserted after Phase 4: Multi-Speaker Diarization and Speaker Lanes (URGENT) — auto-detect speakers via pyannote.audio, propagate speaker labels through types/grouping/store/composition, add speaker lanes to editor UI with manual override
 
 ### Pending Todos
 
@@ -114,5 +123,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed 04-02-PLAN.md — transcript editor UI human-verified; Phase 4 complete; ready for Phase 5 (Render)
+Stopped at: 04.1-01 Tasks 1+2 complete — paused at Task 3 checkpoint (human-verify: run just setup-python, set HUGGINGFACE_TOKEN, accept pyannote model license, then POST /api/jobs/:jobId/diarize and verify words have speaker fields)
 Resume file: None
