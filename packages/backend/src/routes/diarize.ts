@@ -26,6 +26,7 @@ async function diarizeRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /api/jobs/:jobId/diarize — trigger background speaker diarization
   fastify.post('/api/jobs/:jobId/diarize', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
+    const { numSpeakers } = (req.body as { numSpeakers?: number }) ?? {}
 
     const job = fastify.jobs.get(jobId)
 
@@ -48,7 +49,7 @@ async function diarizeRoutes(fastify: FastifyInstance): Promise<void> {
 
     // Fire-and-forget: background diarization pipeline
     const jobDir = path.join(DATA_ROOT, jobId)
-    void runDiarizationPipeline(fastify, jobId, jobDir)
+    void runDiarizationPipeline(fastify, jobId, jobDir, numSpeakers)
   })
 }
 
@@ -56,6 +57,7 @@ async function runDiarizationPipeline(
   fastify: FastifyInstance,
   jobId: string,
   jobDir: string,
+  numSpeakers?: number,
 ): Promise<void> {
   const hfToken = process.env.HUGGINGFACE_TOKEN
 
@@ -79,6 +81,7 @@ async function runDiarizationPipeline(
       (percent) => {
         updateJob(fastify.jobs, jobId, { progress: percent })
       },
+      numSpeakers,
     )
 
     // Store process handle for zombie prevention

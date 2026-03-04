@@ -27,8 +27,11 @@ export function runDiarization(
   transcriptPath: string,
   hfToken: string,
   onProgress?: (percent: number) => void,
+  numSpeakers?: number,
 ): { promise: Promise<void>; process: ChildProcess } {
-  const proc = spawn(PYTHON, ['-u', SCRIPT, audioPath, transcriptPath, hfToken], {
+  const args = ['-u', SCRIPT, audioPath, transcriptPath, hfToken]
+  if (numSpeakers !== undefined) args.push(String(numSpeakers))
+  const proc = spawn(PYTHON, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 

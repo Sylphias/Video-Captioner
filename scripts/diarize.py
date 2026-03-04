@@ -5,12 +5,13 @@ import json
 
 def main():
     if len(sys.argv) < 3:
-        print(json.dumps({"type": "error", "message": "Usage: diarize.py <audio_path> <transcript_path> [hf_token]"}), flush=True)
+        print(json.dumps({"type": "error", "message": "Usage: diarize.py <audio_path> <transcript_path> [hf_token] [num_speakers]"}), flush=True)
         sys.exit(1)
 
     audio_path = sys.argv[1]
     transcript_path = sys.argv[2]
     hf_token = sys.argv[3] if len(sys.argv) > 3 else None
+    num_speakers = int(sys.argv[4]) if len(sys.argv) > 4 else None
 
     if not hf_token:
         print(json.dumps({
@@ -78,7 +79,10 @@ def main():
 
     # Run pyannote diarization with pre-loaded waveform
     try:
-        diarization = pipeline({"waveform": waveform, "sample_rate": sample_rate})
+        pipeline_kwargs = {"waveform": waveform, "sample_rate": sample_rate}
+        if num_speakers is not None:
+            pipeline_kwargs["num_speakers"] = num_speakers
+        diarization = pipeline(pipeline_kwargs)
     except Exception as e:
         print(json.dumps({"type": "error", "message": f"Diarization failed: {e}"}), flush=True)
         sys.exit(1)
