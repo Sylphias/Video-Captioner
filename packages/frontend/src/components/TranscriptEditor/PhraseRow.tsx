@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { WordCell } from './WordCell.tsx'
 import type { SessionPhrase } from '../../store/subtitleStore.ts'
 
@@ -13,6 +14,13 @@ interface PhraseRowProps {
   onAddWord: (phraseIndex: number) => void
   onDeleteWord: (wordIndex: number) => void
   onSeek: (timeSec: number) => void
+  // Speaker props (optional — omit for single-speaker transcripts)
+  dominantSpeaker?: string
+  speakerDisplayName?: string
+  allSpeakers: string[]
+  speakerNames?: Record<string, string>
+  speakerIndex?: number
+  onReassignSpeaker?: (wordIndex: number, speakerId: string) => void
 }
 
 export function PhraseRow({
@@ -27,14 +35,38 @@ export function PhraseRow({
   onAddWord,
   onDeleteWord,
   onSeek,
+  dominantSpeaker,
+  speakerDisplayName,
+  allSpeakers,
+  speakerNames,
+  speakerIndex,
+  onReassignSpeaker,
 }: PhraseRowProps) {
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLSpanElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!showDropdown) return
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [showDropdown])
+
   const rowClass = [
     'phrase-row',
     phrase.isManualSplit ? 'phrase-row--manual' : '',
   ].filter(Boolean).join(' ')
 
   return (
-    <div className={rowClass}>
+    <div
+      className={rowClass}
+      {...(speakerIndex !== undefined ? { 'data-speaker-index': speakerIndex } : {})}
+    >
       <span
         className="phrase-row__label"
         onClick={() => onSeek(phrase.words[0].start)}
@@ -42,6 +74,35 @@ export function PhraseRow({
       >
         #{phraseIndex + 1}
       </span>
+      {dominantSpeaker && (
+        <span
+          ref={dropdownRef}
+          className="phrase-row__speaker-badge"
+          onClick={() => setShowDropdown(!showDropdown)}
+        >
+          {speakerDisplayName ?? dominantSpeaker}
+          {showDropdown && (
+            <div className="phrase-row__speaker-dropdown">
+              {allSpeakers.map((sid) => (
+                <button
+                  key={sid}
+                  className={`phrase-row__speaker-option ${sid === dominantSpeaker ? 'phrase-row__speaker-option--active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    // Reassign ALL words in this phrase to the selected speaker
+                    phrase.words.forEach((_, localIdx) => {
+                      onReassignSpeaker?.(globalWordOffset + localIdx, sid)
+                    })
+                    setShowDropdown(false)
+                  }}
+                >
+                  {speakerNames?.[sid] ?? sid}
+                </button>
+              ))}
+            </div>
+          )}
+        </span>
+      )}
       <div className="phrase-row__words">
         {phrase.words.map((word, localIndex) => (
           <span key={`${globalWordOffset + localIndex}-${word.word}`} className="phrase-row__word-group">

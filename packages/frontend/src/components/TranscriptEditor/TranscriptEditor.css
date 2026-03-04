@@ -1,3 +1,125 @@
+/* Speaker lane colors */
+:root {
+  --speaker-color-0: #4A90D9;
+  --speaker-color-1: #E67E22;
+  --speaker-color-2: #27AE60;
+  --speaker-color-3: #9B59B6;
+  --speaker-color-4: #E74C3C;
+  --speaker-color-5: #1ABC9C;
+  --speaker-color-6: #F39C12;
+  --speaker-color-7: #95A5A6;
+}
+
+/* Speaker lane border coloring via data attribute */
+.phrase-row[data-speaker-index="0"] { border-left-color: var(--speaker-color-0); border-left-width: 3px; }
+.phrase-row[data-speaker-index="1"] { border-left-color: var(--speaker-color-1); border-left-width: 3px; }
+.phrase-row[data-speaker-index="2"] { border-left-color: var(--speaker-color-2); border-left-width: 3px; }
+.phrase-row[data-speaker-index="3"] { border-left-color: var(--speaker-color-3); border-left-width: 3px; }
+.phrase-row[data-speaker-index="4"] { border-left-color: var(--speaker-color-4); border-left-width: 3px; }
+.phrase-row[data-speaker-index="5"] { border-left-color: var(--speaker-color-5); border-left-width: 3px; }
+.phrase-row[data-speaker-index="6"] { border-left-color: var(--speaker-color-6); border-left-width: 3px; }
+.phrase-row[data-speaker-index="7"] { border-left-color: var(--speaker-color-7); border-left-width: 3px; }
+
+/* Speaker badge */
+.phrase-row__speaker-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-bg-surface) 80%, transparent);
+  border: 1px solid var(--color-border);
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+  user-select: none;
+  position: relative;
+}
+
+.phrase-row__speaker-badge:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+/* Speaker reassign dropdown */
+.phrase-row__speaker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 4px 0;
+  min-width: 140px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.phrase-row__speaker-option {
+  display: block;
+  width: 100%;
+  padding: 4px 12px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.phrase-row__speaker-option:hover {
+  background: var(--color-bg-hover);
+}
+
+.phrase-row__speaker-option--active {
+  color: var(--color-accent-green);
+}
+
+/* Speaker legend */
+.transcript-editor__speaker-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+}
+
+.transcript-editor__speaker-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.transcript-editor__speaker-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.transcript-editor__speaker-tag[data-speaker-index="0"] .transcript-editor__speaker-swatch { background: var(--speaker-color-0); }
+.transcript-editor__speaker-tag[data-speaker-index="1"] .transcript-editor__speaker-swatch { background: var(--speaker-color-1); }
+.transcript-editor__speaker-tag[data-speaker-index="2"] .transcript-editor__speaker-swatch { background: var(--speaker-color-2); }
+.transcript-editor__speaker-tag[data-speaker-index="3"] .transcript-editor__speaker-swatch { background: var(--speaker-color-3); }
+.transcript-editor__speaker-tag[data-speaker-index="4"] .transcript-editor__speaker-swatch { background: var(--speaker-color-4); }
+.transcript-editor__speaker-tag[data-speaker-index="5"] .transcript-editor__speaker-swatch { background: var(--speaker-color-5); }
+.transcript-editor__speaker-tag[data-speaker-index="6"] .transcript-editor__speaker-swatch { background: var(--speaker-color-6); }
+.transcript-editor__speaker-tag[data-speaker-index="7"] .transcript-editor__speaker-swatch { background: var(--speaker-color-7); }
+
+.transcript-editor__speaker-name-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  padding: 1px 2px;
+  outline: none;
+  width: 80px;
+}
+
+.transcript-editor__speaker-name-input:focus {
+  border-bottom-color: var(--color-accent-green);
+}
+
 /* ---- TranscriptEditor container ---- */
 .transcript-editor {
   display: flex;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useUpload } from '../hooks/useUpload.ts'
 import { useTranscribe } from '../hooks/useTranscribe.ts'
+import { useDiarize } from '../hooks/useDiarize.ts'
 import { UploadZone } from '../components/UploadZone.tsx'
 import { TranscriptEditor } from '../components/TranscriptEditor/TranscriptEditor.tsx'
 import { PreviewPanel } from '../components/PreviewPanel.tsx'
@@ -16,8 +17,10 @@ function formatDuration(seconds: number): string {
 export function SubtitlesPage() {
   const { state: uploadState, upload, reset: resetUpload } = useUpload()
   const { state: transcribeState, transcribe, reset: resetTranscribe } = useTranscribe()
+  const { state: diarizeState, diarize, reset: resetDiarize } = useDiarize()
   const [seekToTime, setSeekToTime] = useState<((timeSec: number) => void) | null>(null)
   const [getCurrentTime, setGetCurrentTime] = useState<(() => number) | null>(null)
+  const [numSpeakers, setNumSpeakers] = useState<number | undefined>(undefined)
 
   const handleGoToSubtitle = useCallback(() => {
     if (!getCurrentTime) return
@@ -51,6 +54,7 @@ export function SubtitlesPage() {
   const resetAll = () => {
     resetUpload()
     resetTranscribe()
+    resetDiarize()
     useSubtitleStore.getState().reset()
   }
 
@@ -170,6 +174,36 @@ export function SubtitlesPage() {
           Go to subtitle
         </button>
 
+        <div className="subtitles-page__diarize-controls">
+          <label className="subtitles-page__speakers-label">
+            Speakers
+            <input
+              type="number"
+              className="subtitles-page__speakers-input"
+              min={1}
+              max={20}
+              placeholder="Auto"
+              value={numSpeakers ?? ''}
+              onChange={(e) => setNumSpeakers(e.target.value ? Number(e.target.value) : undefined)}
+            />
+          </label>
+          <button
+            className="subtitles-page__diarize-btn"
+            onClick={() => diarize(uploadState.jobId!, numSpeakers)}
+            disabled={diarizeState.status === 'diarizing'}
+          >
+            {diarizeState.status === 'diarizing'
+              ? `Detecting speakers... ${diarizeState.progress}%`
+              : diarizeState.status === 'done'
+                ? 'Re-detect speakers'
+                : 'Detect speakers'}
+          </button>
+        </div>
+
+        {diarizeState.status === 'failed' && diarizeState.error && (
+          <p className="subtitles-page__diarize-error">{diarizeState.error}</p>
+        )}
+
         <div className="subtitles-page__editor-section">
           <TranscriptEditor seekToTime={seekToTime ?? (() => {})} />
         </div>
@@ -188,7 +222,7 @@ export function SubtitlesPage() {
     )
   }
 
-  // State: ready — show video info and enabled Transcribe button
+  // State: ready — show video info, video preview, and enabled Transcribe button
   const { job, jobId } = uploadState
   const meta = job?.metadata
 
@@ -224,6 +258,16 @@ export function SubtitlesPage() {
             </dl>
           )}
         </div>
+
+        {jobId && (
+          <div className="subtitles-page__video-preview">
+            <video
+              className="subtitles-page__preview-video"
+              src={`/api/jobs/${jobId}/video`}
+              controls
+            />
+          </div>
+        )}
 
         <button
           className="subtitles-page__transcribe-btn"

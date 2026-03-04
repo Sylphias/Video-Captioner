@@ -200,6 +200,100 @@
   border-radius: 6px;
 }
 
+/* Video preview (post-upload, pre-transcribe) */
+.subtitles-page__video-preview {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-md) 0;
+  width: 100%;
+}
+
+.subtitles-page__preview-video {
+  max-width: 100%;
+  max-height: 50vh;
+  border-radius: 6px;
+  background: var(--color-bg-surface);
+}
+
+/* Diarization controls group */
+.subtitles-page__diarize-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+  align-self: flex-start;
+}
+
+.subtitles-page__speakers-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.subtitles-page__speakers-input {
+  width: 60px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs);
+  text-align: center;
+  outline: none;
+}
+
+.subtitles-page__speakers-input:focus {
+  border-color: var(--color-accent-green);
+}
+
+.subtitles-page__speakers-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+/* Remove number input spinners */
+.subtitles-page__speakers-input::-webkit-inner-spin-button,
+.subtitles-page__speakers-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.subtitles-page__speakers-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.subtitles-page__diarize-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.subtitles-page__diarize-btn:hover:not(:disabled) {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+.subtitles-page__diarize-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.subtitles-page__diarize-error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) 0;
+  margin: 0;
+  align-self: flex-start;
+}
+
 /* ---- Upload another link ---- */
 .subtitles-page__reset-btn {
   background: transparent;
