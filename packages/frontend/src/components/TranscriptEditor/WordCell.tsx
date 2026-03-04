@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import type { SessionWord } from '../../store/subtitleStore.ts'
 
 interface WordCellProps {
@@ -14,6 +14,7 @@ export function WordCell({ word, wordIndex, onUpdateText, onUpdateTimestamp, onD
   const [text, setText] = useState(word.word)
   const [startStr, setStartStr] = useState(word.start.toFixed(2))
   const [endStr, setEndStr] = useState(word.end.toFixed(2))
+  const dragRef = useRef(false)
 
   const handleTextBlur = () => {
     const trimmed = text.trim()
@@ -48,6 +49,46 @@ export function WordCell({ word, wordIndex, onUpdateText, onUpdateTimestamp, onD
     }
   }
 
+  // Scrubby drag: mousedown+drag on timestamp inputs adjusts value by horizontal movement
+  // Click without drag focuses the input for typing as normal
+  const handleTimeMouseDown = (field: 'start' | 'end') => (e: React.MouseEvent<HTMLInputElement>) => {
+    // Don't interfere if already focused (user is typing)
+    if (document.activeElement === e.currentTarget) return
+
+    const startX = e.clientX
+    const startVal = field === 'start' ? word.start : word.end
+    const setStr = field === 'start' ? setStartStr : setEndStr
+    dragRef.current = false
+
+    const onMove = (moveE: MouseEvent) => {
+      const deltaX = moveE.clientX - startX
+      if (!dragRef.current && Math.abs(deltaX) < 3) return // dead zone
+      dragRef.current = true
+      document.body.style.cursor = 'ew-resize'
+      const newVal = Math.max(0, startVal + deltaX * 0.01)
+      setStr(newVal.toFixed(2))
+    }
+
+    const onUp = (upE: MouseEvent) => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+
+      if (dragRef.current) {
+        // Compute final value from drag delta (same formula as onMove)
+        const deltaX = upE.clientX - startX
+        const newVal = Math.max(0, startVal + deltaX * 0.01)
+        setStr(newVal.toFixed(2))
+        onUpdateTimestamp(wordIndex, field, parseFloat(newVal.toFixed(2)))
+        // Blur to prevent accidental typing after drag
+        e.currentTarget.blur()
+      }
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
   return (
     <div className="word-cell" data-word-index={wordIndex} onClick={() => onSeek((word.start + word.end) / 2)}>
       <button
@@ -76,6 +117,7 @@ export function WordCell({ word, wordIndex, onUpdateText, onUpdateTimestamp, onD
           value={startStr}
           onChange={(e) => setStartStr(e.target.value)}
           onBlur={handleStartBlur}
+          onMouseDown={handleTimeMouseDown('start')}
           onClick={(e) => e.stopPropagation()}
         />
         <input
@@ -86,6 +128,7 @@ export function WordCell({ word, wordIndex, onUpdateText, onUpdateTimestamp, onD
           value={endStr}
           onChange={(e) => setEndStr(e.target.value)}
           onBlur={handleEndBlur}
+          onMouseDown={handleTimeMouseDown('end')}
           onClick={(e) => e.stopPropagation()}
         />
       </div>

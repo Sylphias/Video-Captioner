@@ -79,24 +79,31 @@
 
 /* ---- Split button ---- */
 .split-btn {
-  width: 2px;
-  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  min-width: 16px;
+  height: 24px;
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0 4px;
-  color: transparent;
+  padding: 0;
+  color: var(--color-text-secondary);
   opacity: 0;
-  transition: opacity var(--transition-fast), background-color var(--transition-fast);
-  font-size: 0;
+  transition: opacity var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+  font-size: 11px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .phrase-row:hover .split-btn {
-  opacity: 1;
+  opacity: 0.5;
 }
 
 .split-btn:hover {
-  background-color: var(--color-accent-green);
+  opacity: 1 !important;
+  background-color: color-mix(in srgb, var(--color-accent-green) 20%, transparent);
   color: var(--color-accent-green);
 }
 
@@ -236,11 +243,13 @@
   border-radius: 2px;
   outline: none;
   font-family: inherit;
+  cursor: ew-resize;
   transition: border-color var(--transition-fast);
 }
 
 .word-cell__time-input:focus {
   border-color: var(--color-border-focus);
+  cursor: text;
 }
 
 /* Remove number input spinners */
