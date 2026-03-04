@@ -6,6 +6,7 @@ import { access, readFile, stat } from 'node:fs/promises'
 
 import { DATA_ROOT } from '../index.ts'
 import { killTranscription } from './transcribe.ts'
+import { killDiarization } from './diarize.ts'
 
 async function jobRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/jobs/:jobId/status — Server-Sent Events stream of job progress
@@ -52,6 +53,8 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
       clearInterval(interval)
       // Kill transcription subprocess if still running (prevents zombie — Pitfall 4)
       killTranscription(jobId)
+      // Kill diarization subprocess if still running (prevents zombie)
+      killDiarization(jobId)
     })
   })
 

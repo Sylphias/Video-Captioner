@@ -9,6 +9,7 @@ import jobStorePlugin from './services/jobStore.ts'
 import uploadRoutes from './routes/upload.ts'
 import jobRoutes from './routes/jobs.ts'
 import transcribeRoutes from './routes/transcribe.ts'
+import diarizeRoutes from './routes/diarize.ts'
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url)
@@ -34,6 +35,7 @@ await fastify.register(jobStorePlugin)
 await fastify.register(uploadRoutes)
 await fastify.register(jobRoutes)
 await fastify.register(transcribeRoutes)
+await fastify.register(diarizeRoutes)
 
 // Health check endpoint
 fastify.get('/api/health', async (_request, _reply) => {
