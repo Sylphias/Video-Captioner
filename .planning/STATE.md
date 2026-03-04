@@ -98,7 +98,12 @@ Recent decisions affecting current work:
 - [04.1-01]: Diarization is opt-in via separate POST endpoint — transcription does not auto-trigger it
 - [04.1-01]: NEVER use MPS device for pyannote — known accuracy regression on Apple Silicon; always CPU
 - [04.1-01]: Diarization lifecycle returns to 'transcribed' on success — enriches transcript in place, no new terminal state needed
-- [04.1-01]: pyannote-audio pinned to exactly 3.3.2 to avoid torch 2.8.0 incompatibility in 4.x
+- [04.1-01]: pyannote-audio 4.0.4 (not 3.3.2) — 3.3.2 use_auth_token incompatible with current huggingface_hub; torch 2.8.0 pinned
+- [04.1-01]: Audio pre-loaded as WAV via ffmpeg→torchaudio — torchcodec broken with brew ffmpeg on macOS
+- [04.1-01]: DiarizeOutput.speaker_diarization.itertracks() — pyannote 4.x changed pipeline return type
+- [04.1-01]: numSpeakers optional param on POST body and CLI — constrains pyannote speaker count
+- [04.1-01]: Three HuggingFace model licenses required: speaker-diarization-3.1, segmentation-3.0, speaker-diarization-community-1
+- [04.1-01]: set dotenv-load in justfile — auto-loads .env for HUGGINGFACE_TOKEN
 - [04.1-01]: HUGGINGFACE_TOKEN read from process.env at pipeline execution time — fails gracefully with descriptive error if missing
 - [04.1-02]: Speaker color index: parseInt(SPEAKER_XX.replace('SPEAKER_', ''), 10) % 8 — works for arbitrary speaker IDs, wraps at 8 colors
 - [04.1-02]: Phrase reassign assigns ALL words in phrase to new speaker — simpler UX, whole-phrase assignment semantics
@@ -128,5 +133,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: 04.1-02 Tasks 1+2 complete — paused at Task 3 checkpoint (human-verify: run just dev, upload multi-speaker video, transcribe, verify speaker lanes, badges, rename, reassign, Re-detect all work)
+Stopped at: 04.1-02 Tasks 1+2 complete — paused at Task 3 human-verify checkpoint. User needs to: run `just dev`, upload multi-speaker video, preview video, transcribe, set speaker count, click Detect speakers, verify colored lanes/badges/rename/reassign/re-detect all work. Then type "approved" to complete phase 4.1.
+Resume with: `/gsd:execute-phase 4.1` (will skip completed plans, resume at verification checkpoint)
 Resume file: None
