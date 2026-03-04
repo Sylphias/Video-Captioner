@@ -12,10 +12,10 @@ backend:
 frontend:
     cd packages/frontend && npx vite --host
 
-# Set up Python venv with transcription dependencies
+# Set up Python venv with transcription and diarization dependencies
 setup-python:
     python3 -m venv .venv
-    .venv/bin/pip install faster-whisper
+    .venv/bin/pip install faster-whisper "pyannote-audio==3.3.2"
 
 # Start both services (backend in background, frontend in foreground)
 dev:

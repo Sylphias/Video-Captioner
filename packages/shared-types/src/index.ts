@@ -1,4 +1,4 @@
-export type JobStatus = 'uploading' | 'normalizing' | 'ready' | 'transcribing' | 'transcribed' | 'failed'
+export type JobStatus = 'uploading' | 'normalizing' | 'ready' | 'transcribing' | 'transcribed' | 'diarizing' | 'failed'
 
 export interface VideoMetadata {
   duration: number     // seconds
@@ -25,6 +25,7 @@ export interface TranscriptWord {
   start: number    // seconds
   end: number      // seconds
   confidence: number  // 0.0-1.0
+  speaker?: string    // e.g. "SPEAKER_00", "SPEAKER_01" — undefined if diarization not run
 }
 
 export interface Transcript {
