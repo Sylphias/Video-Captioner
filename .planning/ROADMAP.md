@@ -90,6 +90,16 @@ Plans:
 - [x] 04-01-PLAN.md — Store refactor and composition rewiring: extract grouping to lib, two-layer Zustand store (original + session), composition receives pre-computed phrases
 - [x] 04-02-PLAN.md — Transcript editor UI: inline word editing, timestamp adjustment, phrase split/merge controls, word-click-to-seek, SubtitlesPage integration
 
+### Phase 04.1: Multi-Speaker Diarization and Speaker Lanes (INSERTED)
+
+**Goal:** Users can detect speakers via pyannote diarization, see speaker-differentiated lanes in the transcript editor with color-coded borders and badges, and manually rename or reassign speakers
+**Depends on:** Phase 4
+**Plans:** 2 plans
+
+Plans:
+- [ ] 04.1-01-PLAN.md — Backend diarization pipeline: diarize.py with pyannote-audio, service module, Fastify route, shared-types speaker field
+- [ ] 04.1-02-PLAN.md — Frontend speaker lanes: type propagation, store extensions, useDiarize hook, speaker badges/colors/rename/reassign in TranscriptEditor
+
 ### Phase 5: Server Render and Output
 
 **Goal**: Users can render a final MP4 with burned-in subtitles and download it
