@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 6 (Server Render and Output)
-Plan: 1 of 3 — 05-01 complete
-Status: Executing Phase 5
-Last activity: 2026-03-05 — Phase 05-01 complete (render pipeline backend implemented)
+Plan: 2 of 3 — 05-02 auto tasks complete, awaiting human-verify checkpoint
+Status: Executing Phase 5 — checkpoint: human-verify render end-to-end
+Last activity: 2026-03-05 — Phase 05-02 Task 1 complete (render UI: useRender hook, render button, progress bar, download link)
 
-Progress: [████████████████] 80%
+Progress: [████████████████] 83%
 
 ## Performance Metrics
 
@@ -36,6 +36,7 @@ Progress: [████████████████] 80%
 
 **Recent Trend:**
 - Phase 05-01 complete — Remotion SSR pipeline implemented cleanly; bundle() verified working with 1.2s startup; TypeScript type workaround needed for Composition generic constraint
+- Phase 05-02 Task 1 complete (8 min) — useRender hook + render UI; awaiting human verification of end-to-end render flow
 
 *Updated after each plan completion*
 
@@ -121,6 +122,8 @@ Recent decisions affecting current work:
 - [05-01]: Composition as any cast in Root.tsx — Remotion Composition generic requires Record<string,unknown> which SubtitleCompositionProps doesn't satisfy (no index signature)
 - [05-01]: videoSrc must be HTTP URL in render inputProps — headless Chrome cannot access filesystem paths
 - [05-01]: durationInFrames = Math.floor(duration * fps) — must be integer, not float
+- [05-02]: useRender reads store via useSubtitleStore.getState() inside render() callback — accesses current store at trigger time without stale closure
+- [05-02]: Download MP4 uses <a href download> anchor — browser handles Content-Disposition natively without JS file handling
 
 ### Roadmap Evolution
 
@@ -144,6 +147,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Phase 05-01 complete. Backend render pipeline done. Ready for 05-02 (render UI).
+Stopped at: Phase 05-02 Task 1 complete. Render UI implemented. At human-verify checkpoint (Task 2) — waiting for user to test end-to-end render.
 Resume with: `/gsd:execute-phase 5`
 Resume file: None
