@@ -16,6 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Transcription** - Validate faster-whisper on Apple Silicon, build subprocess + API endpoint, stream progress to frontend
 - [x] **Phase 3: Composition and Preview** - Build the Remotion composition as a pure props-driven component; embed browser preview with karaoke rendering
 - [x] **Phase 4: Transcript Editor and Grouping** - Connect transcription output to editable UI; auto-group words into subtitle phrases with manual override
+- [x] **Phase 4.1: Multi-Speaker Diarization and Speaker Lanes** (INSERTED) - Speaker detection via pyannote, color-coded speaker lanes, rename/reassign UI
 - [ ] **Phase 5: Server Render and Output** - Render final MP4 in a worker thread, stream progress via SSE, deliver download
 - [ ] **Phase 6: Styling** - Add font, color, stroke, and position controls; connect style state to composition props and render props
 
@@ -97,8 +98,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 04.1-01-PLAN.md — Backend diarization pipeline: diarize.py with pyannote-audio, service module, Fastify route, shared-types speaker field
-- [ ] 04.1-02-PLAN.md — Frontend speaker lanes: type propagation, store extensions, useDiarize hook, speaker badges/colors/rename/reassign in TranscriptEditor
+- [x] 04.1-01-PLAN.md — Backend diarization pipeline: diarize.py with pyannote-audio, service module, Fastify route, shared-types speaker field
+- [x] 04.1-02-PLAN.md — Frontend speaker lanes: type propagation, store extensions, useDiarize hook, speaker badges/colors/rename/reassign in TranscriptEditor
 
 ### Phase 5: Server Render and Output
 
@@ -110,12 +111,11 @@ Plans:
   2. User sees a render progress bar that updates in real time while the video is being rendered
   3. User can download the completed MP4 file after render completes
   4. The rendered video's subtitle timing and highlighting matches what the browser preview showed
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 05-01: Render worker — `renderMedia()` in a Node.js worker thread with `onProgress` callback; verify `renderMedia()` API against current remotion.dev/docs before implementing
-- [ ] 05-02: Render endpoint + SSE progress — serialize render props to `render-props.json`, dispatch to worker, stream progress via SSE
-- [ ] 05-03: Download endpoint + frontend render UI — trigger render, display progress bar, serve `output.mp4`, download button on completion
+- [ ] 05-01-PLAN.md — Backend render infrastructure: shared types, Remotion entry point, bundle service, render worker, render/download routes, SSE update
+- [ ] 05-02-PLAN.md — Frontend render UI: useRender hook, render button, progress bar, download button, human verification
 
 ### Phase 6: Styling
 
@@ -146,5 +146,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Transcription | 4/4 | ✓ Complete | 2026-03-02 |
 | 3. Composition and Preview | 2/2 | ✓ Complete | 2026-03-03 |
 | 4. Transcript Editor and Grouping | 2/2 | ✓ Complete | 2026-03-04 |
-| 5. Server Render and Output | 0/3 | Not started | - |
+| 4.1 Multi-Speaker Diarization | 2/2 | ✓ Complete | 2026-03-05 |
+| 5. Server Render and Output | 0/2 | Not started | - |
 | 6. Styling | 0/3 | Not started | - |
