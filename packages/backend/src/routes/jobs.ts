@@ -36,13 +36,13 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       // Strip internal server filesystem paths before broadcasting to client
-      const { transcriptPath, thumbnailPath, ...safeJob } = job
+      const { transcriptPath, thumbnailPath, outputPath, ...safeJob } = job
       reply.raw.write(`data: ${JSON.stringify(safeJob)}\n\n`)
 
-      // Close only on truly terminal states: transcribed or failed
+      // Close only on truly terminal states: transcribed, rendered, or failed
       // 'ready' is NOT terminal — SSE stays open through transcription lifecycle
-      // Lifecycle: uploading -> normalizing -> ready -> transcribing -> transcribed
-      if (job.status === 'transcribed' || job.status === 'failed') {
+      // Lifecycle: uploading -> normalizing -> ready -> transcribing -> transcribed -> rendering -> rendered
+      if (job.status === 'transcribed' || job.status === 'rendered' || job.status === 'failed') {
         clearInterval(interval)
         reply.raw.end()
       }

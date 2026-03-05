@@ -10,6 +10,8 @@ import uploadRoutes from './routes/upload.ts'
 import jobRoutes from './routes/jobs.ts'
 import transcribeRoutes from './routes/transcribe.ts'
 import diarizeRoutes from './routes/diarize.ts'
+import renderRoutes from './routes/render.ts'
+import { initBundle } from './services/render.ts'
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url)
@@ -36,11 +38,17 @@ await fastify.register(uploadRoutes)
 await fastify.register(jobRoutes)
 await fastify.register(transcribeRoutes)
 await fastify.register(diarizeRoutes)
+await fastify.register(renderRoutes)
 
 // Health check endpoint
 fastify.get('/api/health', async (_request, _reply) => {
   return { status: 'ok' }
 })
+
+// Bundle Remotion composition once at startup (before listen — takes several seconds)
+const bundleStart = Date.now()
+await initBundle()
+console.log(`Remotion bundle ready in ${Date.now() - bundleStart}ms`)
 
 // Start server — must bind to 0.0.0.0 for LAN access (PLAT-02)
 try {
