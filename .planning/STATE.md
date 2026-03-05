@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 4.1 — Multi-Speaker Diarization and Speaker Lanes
+**Current focus:** Phase 5 — Server Render and Output
 
 ## Current Position
 
-Phase: 4.1 of 6 (Multi-Speaker Diarization and Speaker Lanes)
-Plan: 2 of 2 — 04.1-02 paused at Task 3 (human-verify checkpoint)
-Status: Awaiting human verification of speaker lane UI end-to-end
-Last activity: 2026-03-04 — 04.1-02 Tasks 1+2 complete (speaker fields, useDiarize hook, colored phrase borders, speaker badges, rename/reassign, video preview)
+Phase: 5 of 6 (Server Render and Output)
+Plan: 1 of 3 — 05-01 complete
+Status: Executing Phase 5
+Last activity: 2026-03-05 — Phase 05-01 complete (render pipeline backend implemented)
 
-Progress: [█████████████] 70%
+Progress: [████████████████] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 12
 - Average duration: 14 min
-- Total execution time: 132 min
+- Total execution time: ~142 min
 
 **By Phase:**
 
@@ -31,9 +31,11 @@ Progress: [█████████████] 70%
 | 02-transcription | 4 | 69 min | 17 min |
 | 03-composition-and-preview | 2 | 11 min | 6 min |
 | 04-transcript-editor-and-grouping | 2 | ~1 day | — |
+| 04.1-multi-speaker-diarization | 2 | ~2 days | — |
+| 05-server-render-and-output | 1/3 | 10 min | — |
 
 **Recent Trend:**
-- Phase 4 complete — data layer (04-01) fast; editor UI (04-02) included human verification checkpoint
+- Phase 05-01 complete — Remotion SSR pipeline implemented cleanly; bundle() verified working with 1.2s startup; TypeScript type workaround needed for Composition generic constraint
 
 *Updated after each plan completion*
 
@@ -108,8 +110,17 @@ Recent decisions affecting current work:
 - [04.1-02]: Speaker color index: parseInt(SPEAKER_XX.replace('SPEAKER_', ''), 10) % 8 — works for arbitrary speaker IDs, wraps at 8 colors
 - [04.1-02]: Phrase reassign assigns ALL words in phrase to new speaker — simpler UX, whole-phrase assignment semantics
 - [04.1-02]: useDiarize reloads store via useSubtitleStore.getState().setJob() inside the hook on 'transcribed' SSE event
-- [04.1-02]: Video preview uses existing /api/jobs/:jobId/video endpoint in 'ready' state for pre-transcription preview
 - [04.1-02]: reassignWordSpeaker updates phrase in-place (no full rebuild) to preserve manual splits (research Pitfall #4)
+- [04.1-02]: Resizable preview/editor split via drag handle — 20%-75% range, PreviewPanel uses ResizeObserver for responsive sizing
+- [04.1-02]: Pre-transcribe video preview removed — not useful since speaker assessment happens after transcription
+- [04.1-02]: addWord preserves phrase boundary via manual split at globalIdx+1 — prevents auto-grouper from merging new word into next phrase
+- [04.1-02]: Timestamp drag clamped: start < end - 0.01, end > start + 0.01 — prevents invalid intermediate values during drag
+- [04.1-02]: Insert-phrase buttons between rows (opacity:0 on hover reveal) — supplements bottom-only "Add phrase" button
+- [05-01]: remotion-entry.ts named separately from index.ts as bundle() entry point — avoids collision with frontend package exports
+- [05-01]: OffthreadVideo during server render, Video during browser Player — useRemotionEnvironment().isRendering conditional
+- [05-01]: Composition as any cast in Root.tsx — Remotion Composition generic requires Record<string,unknown> which SubtitleCompositionProps doesn't satisfy (no index signature)
+- [05-01]: videoSrc must be HTTP URL in render inputProps — headless Chrome cannot access filesystem paths
+- [05-01]: durationInFrames = Math.floor(duration * fps) — must be integer, not float
 
 ### Roadmap Evolution
 
@@ -127,12 +138,12 @@ Recent decisions affecting current work:
 - [Phase 2 — ongoing]: Transcription speed with large-v3 is slower than turbo; if UX becomes a problem in Phase 3+, consider VAD pre-filtering or chunking
 - [Phase 3 — RESOLVED]: React 18.3.x confirmed compatible with Remotion 4.0.379; Player API verified working
 - [Phase 3 — RESOLVED]: Backend needs restart after code changes (no file watcher); user must Ctrl+C and re-run `just dev`
-- [Phase 5]: Verify `renderMedia()` API signature and `onProgress` callback shape against current remotion.dev/docs before Phase 5
+- [Phase 5 — RESOLVED]: renderMedia() API and onProgress shape verified in 05-RESEARCH.md and confirmed working in 05-01 implementation
 - [Phase 6]: Verify Tailwind 4 + shadcn/ui compatibility; fall back to Tailwind 3 if incompatible
 
 ## Session Continuity
 
-Last session: 2026-03-04
-Stopped at: 04.1-02 Tasks 1+2 complete — paused at Task 3 human-verify checkpoint. User needs to: run `just dev`, upload multi-speaker video, preview video, transcribe, set speaker count, click Detect speakers, verify colored lanes/badges/rename/reassign/re-detect all work. Then type "approved" to complete phase 4.1.
-Resume with: `/gsd:execute-phase 4.1` (will skip completed plans, resume at verification checkpoint)
+Last session: 2026-03-05
+Stopped at: Phase 05-01 complete. Backend render pipeline done. Ready for 05-02 (render UI).
+Resume with: `/gsd:execute-phase 5`
 Resume file: None
