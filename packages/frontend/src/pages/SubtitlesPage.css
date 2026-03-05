@@ -13,12 +13,69 @@
 .subtitles-page--preview {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
+  padding: 1rem 1.5rem;
+  height: 100%;
+  overflow: hidden;
+}
+
+.subtitles-page__top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.subtitles-page__top-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* ---- Resize handle ---- */
+.subtitles-page__resize-handle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 10px;
+  cursor: row-resize;
+  user-select: none;
+  position: relative;
+}
+
+.subtitles-page__resize-handle::before {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+.subtitles-page__resize-grip {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  transition: background var(--transition-fast);
+}
+
+.subtitles-page__resize-handle:hover .subtitles-page__resize-grip {
+  background: var(--color-text-secondary);
+}
+
+.subtitles-page__editor-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 0.5rem;
 }
 
 /* ---- Progress card ---- */
@@ -175,7 +232,6 @@
 
 /* ---- Go to subtitle button ---- */
 .subtitles-page__goto-btn {
-  align-self: flex-start;
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: 4px;
@@ -200,28 +256,12 @@
   border-radius: 6px;
 }
 
-/* Video preview (post-upload, pre-transcribe) */
-.subtitles-page__video-preview {
-  display: flex;
-  justify-content: center;
-  padding: var(--spacing-md) 0;
-  width: 100%;
-}
-
-.subtitles-page__preview-video {
-  max-width: 100%;
-  max-height: 50vh;
-  border-radius: 6px;
-  background: var(--color-bg-surface);
-}
-
 /* Diarization controls group */
 .subtitles-page__diarize-controls {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-xs) 0;
-  align-self: flex-start;
 }
 
 .subtitles-page__speakers-label {
@@ -265,7 +305,6 @@
 }
 
 .subtitles-page__diarize-btn {
-  align-self: flex-start;
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: 4px;
@@ -291,7 +330,64 @@
   font-size: var(--font-size-sm);
   padding: var(--spacing-xs) 0;
   margin: 0;
-  align-self: flex-start;
+}
+
+/* ---- Render controls ---- */
+.subtitles-page__render-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.subtitles-page__render-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.subtitles-page__render-btn:hover:not(:disabled) {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+.subtitles-page__render-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.subtitles-page__render-progress {
+  max-width: 300px;
+  width: 100%;
+}
+
+.subtitles-page__download-btn {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background-color: var(--color-accent-green);
+  border: none;
+  border-radius: 4px;
+  color: var(--color-accent-green-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+
+.subtitles-page__download-btn:hover {
+  background-color: var(--color-accent-green-dim);
+}
+
+.subtitles-page__render-error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) 0;
+  margin: 0;
 }
 
 /* ---- Upload another link ---- */
