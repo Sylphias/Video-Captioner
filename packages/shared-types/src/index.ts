@@ -1,4 +1,4 @@
-export type JobStatus = 'uploading' | 'normalizing' | 'ready' | 'transcribing' | 'transcribed' | 'diarizing' | 'failed'
+export type JobStatus = 'uploading' | 'normalizing' | 'ready' | 'transcribing' | 'transcribed' | 'diarizing' | 'rendering' | 'rendered' | 'failed'
 
 export interface VideoMetadata {
   duration: number     // seconds
@@ -16,6 +16,7 @@ export interface Job {
   metadata?: VideoMetadata
   thumbnailPath?: string
   transcriptPath?: string  // absolute path to transcript.json (internal only — not sent to client)
+  outputPath?: string      // absolute path to output.mp4 (internal only — not sent to client)
   error?: string
   createdAt: number        // Date.now()
 }
