@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 6 of 6 (Styling)
-Plan: 1 of 3 — complete
+Plan: 2 of 3 — complete (awaiting human verification of Task 3 checkpoint)
 Status: In progress
-Last activity: 2026-03-06 — Phase 06-01 complete (styling data layer)
+Last activity: 2026-03-06 — Phase 06-02 complete (style controls UI)
 
-Progress: [████████████████████] 91%
+Progress: [████████████████████] 94%
 
 ## Performance Metrics
 
@@ -33,12 +33,13 @@ Progress: [████████████████████] 91%
 | 04-transcript-editor-and-grouping | 2 | ~1 day | — |
 | 04.1-multi-speaker-diarization | 2 | ~2 days | — |
 | 05-server-render-and-output | 2/3 | ~18 min | — |
-| 06-styling | 1/3 | 5 min | — |
+| 06-styling | 2/3 | ~7 min | — |
 
 **Recent Trend:**
 - Phase 05-01 complete — Remotion SSR pipeline implemented cleanly; bundle() verified working with 1.2s startup; TypeScript type workaround needed for Composition generic constraint
 - Phase 05-02 complete (8 min) — useRender hook + render UI implemented and verified; user confirmed burned-in subtitles in downloaded MP4
 - Phase 06-01 complete (5 min) — Styling data layer: extended StyleProps, per-speaker overrides, 8 Google Fonts, full stack speakerStyles propagation
+- Phase 06-02 complete (~2 min) — Style Controls UI: StylePanel (7 controls), SpeakerStylePanel (per-speaker overrides + animation), Transcript/Style tab bar in SubtitlesPage
 
 *Updated after each plan completion*
 
@@ -130,6 +131,9 @@ Recent decisions affecting current work:
 - [06-01]: loadFont() called at module level in fonts.ts — Remotion handles delayRender/continueRender internally; no async handling needed in component code
 - [06-01]: SpeakerStyleOverride = Partial<StyleProps> & { animationType?: AnimationType } — allows selective override of any style field per speaker
 - [06-01]: dist folders must be rebuilt before dependent packages type-check against new types — inherent limitation of workspace setup
+- [06-02]: Individual Zustand selectors per style field (not whole style object) — minimizes re-renders during rapid color picker drag
+- [06-02]: Toggle-to-override pattern in SpeakerStylePanel — checkbox checked initializes with default, unchecked removes field from SpeakerStyleOverride entirely
+- [06-02]: Animation type selector unconditional per speaker; other override fields use opt-in checkboxes — animation is primary per-speaker customization
 
 ### Roadmap Evolution
 
@@ -154,6 +158,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-06
-Stopped at: Completed 06-01-PLAN.md — Styling data layer complete. Ready for 06-02 (Style Controls UI).
+Stopped at: Completed 06-02-PLAN.md Tasks 1-2 — awaiting human verification (Task 3 checkpoint). Style Controls UI built.
 Resume with: `/gsd:execute-phase 6`
 Resume file: None
