@@ -27,6 +27,9 @@ export function findActiveWordIndex(words: TranscriptWord[], currentTimeSec: num
   return result
 }
 
+/** Vertical offset (in percentage points) between simultaneous phrases */
+const OVERLAP_OFFSET_PCT = 8
+
 interface SubtitleOverlayProps {
   phrases: TranscriptPhrase[]
   style: StyleProps
@@ -38,56 +41,68 @@ export function SubtitleOverlay({ phrases, style, speakerStyles }: SubtitleOverl
   const { fps } = useVideoConfig()
 
   const currentTimeSec = frame / fps
+  const lingerSec = style.lingerDuration ?? 1.0
 
-  // Find the active phrase: one where current time falls within the phrase window.
-  // Keep phrase visible for 0.5s after last word ends for readability.
-  const LINGER_SEC = 0.5
-  const activePhrase = phrases.find((phrase) => {
+  // Find ALL active phrases — supports overlapping speakers
+  const activePhrases = phrases.filter((phrase) => {
     const phraseStart = phrase.words[0].start
-    const phraseEnd = phrase.words[phrase.words.length - 1].end + LINGER_SEC
+    const phraseEnd = phrase.words[phrase.words.length - 1].end + lingerSec
     return currentTimeSec >= phraseStart && currentTimeSec <= phraseEnd
-  }) ?? null
+  })
 
-  if (activePhrase === null) {
+  if (activePhrases.length === 0) {
     return null
   }
 
-  const activeWordIndex = findActiveWordIndex(activePhrase.words, currentTimeSec)
-
-  // Merge per-speaker style override with global style for the active phrase
-  const dominantSpeaker = activePhrase.dominantSpeaker
-  const override: SpeakerStyleOverride = dominantSpeaker ? (speakerStyles[dominantSpeaker] ?? {}) : {}
-  const effectiveStyle: StyleProps = { ...style, ...override }
+  // Render up to 2 simultaneous phrases (primary + secondary)
+  const visiblePhrases = activePhrases.slice(0, 2)
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: `${effectiveStyle.verticalPosition}%`,
-        transform: 'translateY(-50%)',
-        left: '5%',
-        right: '5%',
-        textAlign: 'center',
-        fontSize: effectiveStyle.fontSize,
-        fontFamily: effectiveStyle.fontFamily,
-        lineHeight: 1.4,
-        WebkitTextStroke: effectiveStyle.strokeWidth > 0
-          ? `${effectiveStyle.strokeWidth}px ${effectiveStyle.strokeColor}`
-          : undefined,
-      }}
-    >
-      {activePhrase.words.map((word, i) => (
-        <span
-          key={`${word.start}-${i}`}
-          style={{
-            color: i === activeWordIndex ? effectiveStyle.highlightColor : effectiveStyle.baseColor,
-            marginRight: '0.25em',
-            textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.9)',
-          }}
-        >
-          {word.word}
-        </span>
-      ))}
-    </div>
+    <>
+      {visiblePhrases.map((activePhrase, phraseIdx) => {
+        const activeWordIndex = findActiveWordIndex(activePhrase.words, currentTimeSec)
+
+        // Merge per-speaker style override with global style
+        const dominantSpeaker = activePhrase.dominantSpeaker
+        const override: SpeakerStyleOverride = dominantSpeaker ? (speakerStyles[dominantSpeaker] ?? {}) : {}
+        const effectiveStyle: StyleProps = { ...style, ...override }
+
+        // Secondary phrase renders below the primary
+        const positionOffset = phraseIdx * OVERLAP_OFFSET_PCT
+
+        return (
+          <div
+            key={`${activePhrase.words[0].start}-${phraseIdx}`}
+            style={{
+              position: 'absolute',
+              top: `${effectiveStyle.verticalPosition + positionOffset}%`,
+              transform: 'translateY(-50%)',
+              left: '5%',
+              right: '5%',
+              textAlign: 'center',
+              fontSize: effectiveStyle.fontSize,
+              fontFamily: effectiveStyle.fontFamily,
+              lineHeight: 1.4,
+              WebkitTextStroke: effectiveStyle.strokeWidth > 0
+                ? `${effectiveStyle.strokeWidth}px ${effectiveStyle.strokeColor}`
+                : undefined,
+            }}
+          >
+            {activePhrase.words.map((word, i) => (
+              <span
+                key={`${word.start}-${i}`}
+                style={{
+                  color: i === activeWordIndex ? effectiveStyle.highlightColor : effectiveStyle.baseColor,
+                  marginRight: '0.25em',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.9)',
+                }}
+              >
+                {word.word}
+              </span>
+            ))}
+          </div>
+        )
+      })}
+    </>
   )
 }

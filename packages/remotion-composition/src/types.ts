@@ -8,6 +8,7 @@ export interface StyleProps {
   strokeColor: string      // e.g. '#000000' — outline color for text stroke
   strokeWidth: number      // px — 0 means no stroke
   verticalPosition: number // 0-100 percentage from top of frame
+  lingerDuration: number   // seconds a phrase stays visible after last word ends
 }
 
 export type AnimationType = 'none' | 'pop' | 'slide-up' | 'bounce'

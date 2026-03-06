@@ -12,6 +12,7 @@ export function StylePanel() {
   const strokeWidth = useSubtitleStore((s) => s.style.strokeWidth)
   const strokeColor = useSubtitleStore((s) => s.style.strokeColor)
   const verticalPosition = useSubtitleStore((s) => s.style.verticalPosition)
+  const lingerDuration = useSubtitleStore((s) => s.style.lingerDuration)
   const setStyle = useSubtitleStore((s) => s.setStyle)
 
   return (
@@ -143,6 +144,22 @@ export function StylePanel() {
           step={1}
           value={verticalPosition}
           onChange={(e) => setStyle({ verticalPosition: Number(e.target.value) })}
+        />
+      </div>
+
+      {/* Linger duration slider */}
+      <div className="style-panel__section">
+        <label className="style-panel__label">
+          Linger duration <span className="style-panel__value">{lingerDuration.toFixed(1)}s</span>
+        </label>
+        <input
+          type="range"
+          className="style-panel__slider"
+          min={0}
+          max={3}
+          step={0.1}
+          value={lingerDuration}
+          onChange={(e) => setStyle({ lingerDuration: Number(e.target.value) })}
         />
       </div>
     </div>

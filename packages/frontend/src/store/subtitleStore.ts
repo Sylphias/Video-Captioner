@@ -48,6 +48,7 @@ const DEFAULT_STYLE: StyleProps = {
   strokeColor: '#000000',
   strokeWidth: 2,
   verticalPosition: 80,
+  lingerDuration: 1.0,
 }
 
 export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({

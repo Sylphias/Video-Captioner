@@ -15,6 +15,7 @@ const DEFAULT_PROPS: SubtitleCompositionProps = {
     strokeColor: '#000000',
     strokeWidth: 2,
     verticalPosition: 80,
+    lingerDuration: 1.0,
   },
   speakerStyles: {},
 }
