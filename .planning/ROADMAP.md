@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Composition and Preview** - Build the Remotion composition as a pure props-driven component; embed browser preview with karaoke rendering
 - [x] **Phase 4: Transcript Editor and Grouping** - Connect transcription output to editable UI; auto-group words into subtitle phrases with manual override
 - [x] **Phase 4.1: Multi-Speaker Diarization and Speaker Lanes** (INSERTED) - Speaker detection via pyannote, color-coded speaker lanes, rename/reassign UI
-- [ ] **Phase 5: Server Render and Output** - Render final MP4 in a worker thread, stream progress via SSE, deliver download
+- [x] **Phase 5: Server Render and Output** - Render final MP4 in a worker thread, stream progress via SSE, deliver download
 - [ ] **Phase 6: Styling** - Add font, color, stroke, and position controls; connect style state to composition props and render props
 
 ## Phase Details
@@ -114,8 +114,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Backend render infrastructure: shared types, Remotion entry point, bundle service, render worker, render/download routes, SSE update
-- [ ] 05-02-PLAN.md — Frontend render UI: useRender hook, render button, progress bar, download button, human verification
+- [x] 05-01-PLAN.md — Backend render infrastructure: shared types, Remotion entry point, bundle service, render worker, render/download routes, SSE update
+- [x] 05-02-PLAN.md — Frontend render UI: useRender hook, render button, progress bar, download button, human verification
 
 ### Phase 6: Styling
 
@@ -147,5 +147,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Composition and Preview | 2/2 | ✓ Complete | 2026-03-03 |
 | 4. Transcript Editor and Grouping | 2/2 | ✓ Complete | 2026-03-04 |
 | 4.1 Multi-Speaker Diarization | 2/2 | ✓ Complete | 2026-03-05 |
-| 5. Server Render and Output | 0/2 | Not started | - |
+| 5. Server Render and Output | 2/2 | ✓ Complete | 2026-03-06 |
 | 6. Styling | 0/3 | Not started | - |

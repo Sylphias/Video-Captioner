@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 5 — Server Render and Output
+**Current focus:** Phase 6 — Styling
 
 ## Current Position
 
-Phase: 5 of 6 (Server Render and Output)
-Plan: 3 of 3 — 05-02 complete (verified), ready for 05-03
-Status: Executing Phase 5
-Last activity: 2026-03-06 — Phase 05-02 complete; user verified burned-in subtitles in downloaded MP4
+Phase: 6 of 6 (Styling)
+Plan: 0 of 3 — not yet planned
+Status: Ready to plan Phase 6
+Last activity: 2026-03-06 — Phase 5 complete (verified, human-approved)
 
-Progress: [█████████████████] 87%
+Progress: [██████████████████] 87%
 
 ## Performance Metrics
 
