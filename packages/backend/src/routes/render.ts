@@ -4,7 +4,7 @@ import path from 'node:path'
 import { createReadStream } from 'node:fs'
 import { access } from 'node:fs/promises'
 import type { TranscriptPhrase } from '@eigen/shared-types'
-import type { StyleProps } from '@eigen/remotion-composition'
+import type { StyleProps, SpeakerStyleOverride } from '@eigen/remotion-composition'
 
 import { DATA_ROOT } from '../index.ts'
 import { updateJob } from '../services/jobStore.ts'
@@ -13,6 +13,7 @@ import { dispatchRender } from '../services/render.ts'
 interface RenderBody {
   phrases: TranscriptPhrase[]
   style: StyleProps
+  speakerStyles: Record<string, SpeakerStyleOverride>
 }
 
 async function renderRoutes(fastify: FastifyInstance): Promise<void> {
@@ -20,6 +21,7 @@ async function renderRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/api/jobs/:jobId/render', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
     const { phrases, style } = req.body as RenderBody
+    const speakerStyles = (req.body as RenderBody).speakerStyles ?? {}
 
     const job = fastify.jobs.get(jobId)
 
@@ -48,6 +50,7 @@ async function renderRoutes(fastify: FastifyInstance): Promise<void> {
       videoSrc: `http://localhost:3001/api/jobs/${jobId}/video`,
       phrases,
       style,
+      speakerStyles,
     }
 
     // Dispatch to worker thread (non-blocking — returns immediately)

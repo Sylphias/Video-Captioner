@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Player, type PlayerRef } from '@remotion/player'
 import { SubtitleComposition } from '@eigen/remotion-composition'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
@@ -14,21 +14,22 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady }: PreviewPanelProps)
   const session = useSubtitleStore((s) => s.session)
   const videoMetadata = useSubtitleStore((s) => s.videoMetadata)
   const style = useSubtitleStore((s) => s.style)
+  const speakerStyles = useSubtitleStore((s) => s.speakerStyles)
 
   const playerRef = useRef<PlayerRef>(null)
 
-  // Fit player to 65% of viewport height, derive width from aspect ratio
+  // Derive max width from container height to maintain aspect ratio
+  const containerRef = useRef<HTMLDivElement>(null)
   const [maxWidth, setMaxWidth] = useState<number | undefined>(undefined)
   useEffect(() => {
-    if (!videoMetadata) return
-    const update = () => {
-      const targetHeight = window.innerHeight * 0.65
+    if (!videoMetadata || !containerRef.current) return
+    const el = containerRef.current
+    const observer = new ResizeObserver(([entry]) => {
       const aspect = videoMetadata.width / videoMetadata.height
-      setMaxWidth(Math.floor(targetHeight * aspect))
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
+      setMaxWidth(Math.floor(entry.contentRect.height * aspect))
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
   }, [videoMetadata])
 
   const seekToTime = useCallback((timeSec: number) => {
@@ -50,15 +51,26 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady }: PreviewPanelProps)
     if (onGetTimeReady) onGetTimeReady(getCurrentTimeSec)
   }, [onGetTimeReady, getCurrentTimeSec])
 
-  if (!jobId || !session || !videoMetadata) {
+  // Memoize inputProps to prevent Player re-renders on unrelated state changes
+  const inputProps = useMemo(() => {
+    if (!jobId || !session) return null
+    const videoSrc = `/api/jobs/${jobId}/video`
+    return {
+      videoSrc,
+      phrases: session.phrases.map((p) => ({ words: p.words, dominantSpeaker: p.dominantSpeaker })),
+      style,
+      speakerStyles,
+    }
+  }, [jobId, session, style, speakerStyles])
+
+  if (!jobId || !session || !videoMetadata || !inputProps) {
     return null
   }
 
   const durationInFrames = Math.max(1, Math.floor(videoMetadata.duration * videoMetadata.fps))
-  const videoSrc = `/api/jobs/${jobId}/video`
 
   return (
-    <div className="preview-panel" style={{ maxWidth }}>
+    <div ref={containerRef} className="preview-panel" style={{ maxWidth }}>
       <Player
         ref={playerRef}
         component={SubtitleComposition}
@@ -69,11 +81,7 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady }: PreviewPanelProps)
         controls
         loop
         style={{ width: '100%' }}
-        inputProps={{
-          videoSrc,
-          phrases: session.phrases.map((p) => ({ words: p.words })),
-          style,
-        }}
+        inputProps={inputProps}
         acknowledgeRemotionLicense
       />
     </div>

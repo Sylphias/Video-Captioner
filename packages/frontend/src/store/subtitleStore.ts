@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Transcript, VideoMetadata } from '@eigen/shared-types'
-import type { StyleProps } from '@eigen/remotion-composition'
+import type { StyleProps, SpeakerStyleOverride } from '@eigen/remotion-composition'
 import {
   type SessionWord,
   type SessionPhrase,
@@ -20,7 +20,8 @@ interface SubtitleStore {
     manualSplitWordIndices: Set<number> // global word indices where user forced splits
   } | null
   style: StyleProps
-  speakerNames: Record<string, string> // maps raw speaker IDs to display names
+  speakerNames: Record<string, string>               // maps raw speaker IDs to display names
+  speakerStyles: Record<string, SpeakerStyleOverride> // per-speaker style overrides
 
   // Actions
   setJob: (jobId: string, transcript: Transcript, videoMetadata: VideoMetadata) => void
@@ -32,6 +33,8 @@ interface SubtitleStore {
   deleteWord: (wordIndex: number) => void
   resetSession: () => void
   setStyle: (partial: Partial<StyleProps>) => void
+  setSpeakerStyle: (speakerId: string, override: SpeakerStyleOverride) => void
+  clearSpeakerStyle: (speakerId: string) => void
   reset: () => void
   renameSpeaker: (speakerId: string, displayName: string) => void
   reassignWordSpeaker: (wordIndex: number, speakerId: string) => void
@@ -41,7 +44,10 @@ const DEFAULT_STYLE: StyleProps = {
   highlightColor: '#FFFF00',
   baseColor: '#FFFFFF',
   fontSize: 48,
-  fontFamily: 'Arial, sans-serif',
+  fontFamily: 'Inter',
+  strokeColor: '#000000',
+  strokeWidth: 2,
+  verticalPosition: 80,
 }
 
 export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
@@ -51,6 +57,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   session: null,
   style: DEFAULT_STYLE,
   speakerNames: {},
+  speakerStyles: {},
 
   setJob: (jobId, transcript, videoMetadata) => {
     const words: SessionWord[] = transcript.words.map((w) => ({ ...w }))
@@ -206,6 +213,12 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         manualSplitWordIndices.add(idx >= globalIdx ? idx + 1 : idx)
       }
 
+      // Ensure the next phrase boundary is preserved — without this, the
+      // auto-grouper may merge the new word into the next phrase (gap ≈ 0).
+      if (phraseIndex < state.session.phrases.length - 1) {
+        manualSplitWordIndices.add(globalIdx + 1)
+      }
+
       const phrases = buildSessionPhrases(words, manualSplitWordIndices)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
@@ -303,7 +316,20 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
 
   setStyle: (partial) => set((state) => ({ style: { ...state.style, ...partial } })),
 
-  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, speakerNames: {} }),
+  setSpeakerStyle: (speakerId, override) => set((state) => ({
+    speakerStyles: {
+      ...state.speakerStyles,
+      [speakerId]: { ...state.speakerStyles[speakerId], ...override },
+    }
+  })),
+
+  clearSpeakerStyle: (speakerId) => set((state) => {
+    const speakerStyles = { ...state.speakerStyles }
+    delete speakerStyles[speakerId]
+    return { speakerStyles }
+  }),
+
+  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, speakerNames: {}, speakerStyles: {} }),
 
   renameSpeaker: (speakerId, displayName) => {
     set((state) => ({

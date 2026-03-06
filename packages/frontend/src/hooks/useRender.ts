@@ -35,16 +35,16 @@ export function useRender() {
 
     setState({ status: 'rendering', progress: 0 })
 
-    // Read current phrases and style from Zustand store
-    const { session, style } = useSubtitleStore.getState()
-    const phrases = (session?.phrases ?? []).map((p) => ({ words: p.words }))
+    // Read current phrases, style, and speakerStyles from Zustand store
+    const { session, style, speakerStyles } = useSubtitleStore.getState()
+    const phrases = (session?.phrases ?? []).map((p) => ({ words: p.words, dominantSpeaker: p.dominantSpeaker }))
 
     // POST to trigger the render
     try {
       const res = await fetch(`/api/jobs/${jobId}/render`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phrases, style }),
+        body: JSON.stringify({ phrases, style, speakerStyles }),
       })
       if (!res.ok) {
         let errorMsg = `HTTP ${res.status}`
