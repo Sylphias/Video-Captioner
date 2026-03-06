@@ -5,6 +5,8 @@ import { useDiarize } from '../hooks/useDiarize.ts'
 import { useRender } from '../hooks/useRender.ts'
 import { UploadZone } from '../components/UploadZone.tsx'
 import { TranscriptEditor } from '../components/TranscriptEditor/TranscriptEditor.tsx'
+import { StylePanel } from '../components/StylePanel/StylePanel.tsx'
+import { SpeakerStylePanel } from '../components/StylePanel/SpeakerStylePanel.tsx'
 import { PreviewPanel } from '../components/PreviewPanel.tsx'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
 import './SubtitlesPage.css'
@@ -24,6 +26,7 @@ export function SubtitlesPage() {
   const [getCurrentTime, setGetCurrentTime] = useState<(() => number) | null>(null)
   const [numSpeakers, setNumSpeakers] = useState<number | undefined>(undefined)
   const [topPercent, setTopPercent] = useState(45)
+  const [activeTab, setActiveTab] = useState<'transcript' | 'style'>('transcript')
   const containerRef = useRef<HTMLDivElement>(null)
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
@@ -284,8 +287,33 @@ export function SubtitlesPage() {
         </div>
 
         <div className="subtitles-page__editor-scroll" style={{ height: `${100 - topPercent}%` }}>
+          {/* Tab bar */}
+          <div className="subtitles-page__tab-bar">
+            <button
+              className={`subtitles-page__tab${activeTab === 'transcript' ? ' subtitles-page__tab--active' : ''}`}
+              onClick={() => setActiveTab('transcript')}
+              type="button"
+            >
+              Transcript
+            </button>
+            <button
+              className={`subtitles-page__tab${activeTab === 'style' ? ' subtitles-page__tab--active' : ''}`}
+              onClick={() => setActiveTab('style')}
+              type="button"
+            >
+              Style
+            </button>
+          </div>
+
           <div className="subtitles-page__editor-section">
-            <TranscriptEditor seekToTime={seekToTime ?? (() => {})} />
+            {activeTab === 'transcript' ? (
+              <TranscriptEditor seekToTime={seekToTime ?? (() => {})} />
+            ) : (
+              <div className="subtitles-page__style-panels">
+                <StylePanel />
+                <SpeakerStylePanel />
+              </div>
+            )}
           </div>
 
           <button

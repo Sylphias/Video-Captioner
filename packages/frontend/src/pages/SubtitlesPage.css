@@ -390,6 +390,46 @@
   margin: 0;
 }
 
+/* ---- Tab bar ---- */
+.subtitles-page__tab-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.subtitles-page__tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color var(--transition-fast), border-bottom-color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.subtitles-page__tab:hover {
+  color: var(--color-text-primary);
+}
+
+.subtitles-page__tab--active {
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-accent-green);
+  font-weight: 500;
+}
+
+/* ---- Style panels container ---- */
+.subtitles-page__style-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 /* ---- Upload another link ---- */
 .subtitles-page__reset-btn {
   background: transparent;
