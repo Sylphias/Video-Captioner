@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@eigen/shared-types": "*",
+    "@remotion/google-fonts": "4.0.379",
     "remotion": "4.0.379"
   },
   "devDependencies": {
