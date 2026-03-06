@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 6 of 6 (Styling)
-Plan: 0 of 3 — not yet planned
-Status: Ready to plan Phase 6
-Last activity: 2026-03-06 — Phase 5 complete (verified, human-approved)
+Plan: 1 of 3 — complete
+Status: In progress
+Last activity: 2026-03-06 — Phase 06-01 complete (styling data layer)
 
-Progress: [██████████████████] 87%
+Progress: [████████████████████] 91%
 
 ## Performance Metrics
 
@@ -33,10 +33,12 @@ Progress: [██████████████████] 87%
 | 04-transcript-editor-and-grouping | 2 | ~1 day | — |
 | 04.1-multi-speaker-diarization | 2 | ~2 days | — |
 | 05-server-render-and-output | 2/3 | ~18 min | — |
+| 06-styling | 1/3 | 5 min | — |
 
 **Recent Trend:**
 - Phase 05-01 complete — Remotion SSR pipeline implemented cleanly; bundle() verified working with 1.2s startup; TypeScript type workaround needed for Composition generic constraint
 - Phase 05-02 complete (8 min) — useRender hook + render UI implemented and verified; user confirmed burned-in subtitles in downloaded MP4
+- Phase 06-01 complete (5 min) — Styling data layer: extended StyleProps, per-speaker overrides, 8 Google Fonts, full stack speakerStyles propagation
 
 *Updated after each plan completion*
 
@@ -124,6 +126,10 @@ Recent decisions affecting current work:
 - [05-01]: durationInFrames = Math.floor(duration * fps) — must be integer, not float
 - [05-02]: useRender reads store via useSubtitleStore.getState() inside render() callback — accesses current store at trigger time without stale closure
 - [05-02]: Download MP4 uses <a href download> anchor — browser handles Content-Disposition natively without JS file handling
+- [06-01]: @remotion/google-fonts subpath imports used (e.g. @remotion/google-fonts/Inter) — matches ./* export pattern in package.json
+- [06-01]: loadFont() called at module level in fonts.ts — Remotion handles delayRender/continueRender internally; no async handling needed in component code
+- [06-01]: SpeakerStyleOverride = Partial<StyleProps> & { animationType?: AnimationType } — allows selective override of any style field per speaker
+- [06-01]: dist folders must be rebuilt before dependent packages type-check against new types — inherent limitation of workspace setup
 
 ### Roadmap Evolution
 
@@ -148,6 +154,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-06
-Stopped at: Phase 05-02 complete. Render UI verified end-to-end (burned-in subtitles confirmed). Ready for 05-03.
-Resume with: `/gsd:execute-phase 5`
+Stopped at: Completed 06-01-PLAN.md — Styling data layer complete. Ready for 06-02 (Style Controls UI).
+Resume with: `/gsd:execute-phase 6`
 Resume file: None
