@@ -1,6 +1,6 @@
 import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { TranscriptWord, TranscriptPhrase } from '@eigen/shared-types'
-import type { StyleProps } from './types'
+import type { StyleProps, SpeakerStyleOverride } from './types'
 
 /**
  * Binary search: find the index of the last word whose start <= currentTimeSec.
@@ -30,9 +30,10 @@ export function findActiveWordIndex(words: TranscriptWord[], currentTimeSec: num
 interface SubtitleOverlayProps {
   phrases: TranscriptPhrase[]
   style: StyleProps
+  speakerStyles: Record<string, SpeakerStyleOverride>
 }
 
-export function SubtitleOverlay({ phrases, style }: SubtitleOverlayProps) {
+export function SubtitleOverlay({ phrases, style, speakerStyles }: SubtitleOverlayProps) {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
 
@@ -53,24 +54,33 @@ export function SubtitleOverlay({ phrases, style }: SubtitleOverlayProps) {
 
   const activeWordIndex = findActiveWordIndex(activePhrase.words, currentTimeSec)
 
+  // Merge per-speaker style override with global style for the active phrase
+  const dominantSpeaker = activePhrase.dominantSpeaker
+  const override: SpeakerStyleOverride = dominantSpeaker ? (speakerStyles[dominantSpeaker] ?? {}) : {}
+  const effectiveStyle: StyleProps = { ...style, ...override }
+
   return (
     <div
       style={{
         position: 'absolute',
-        bottom: '10%',
+        top: `${effectiveStyle.verticalPosition}%`,
+        transform: 'translateY(-50%)',
         left: '5%',
         right: '5%',
         textAlign: 'center',
-        fontSize: style.fontSize,
-        fontFamily: style.fontFamily,
+        fontSize: effectiveStyle.fontSize,
+        fontFamily: effectiveStyle.fontFamily,
         lineHeight: 1.4,
+        WebkitTextStroke: effectiveStyle.strokeWidth > 0
+          ? `${effectiveStyle.strokeWidth}px ${effectiveStyle.strokeColor}`
+          : undefined,
       }}
     >
       {activePhrase.words.map((word, i) => (
         <span
           key={`${word.start}-${i}`}
           style={{
-            color: i === activeWordIndex ? style.highlightColor : style.baseColor,
+            color: i === activeWordIndex ? effectiveStyle.highlightColor : effectiveStyle.baseColor,
             marginRight: '0.25em',
             textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.9)',
           }}

@@ -12,7 +12,11 @@ const DEFAULT_PROPS: SubtitleCompositionProps = {
     baseColor: '#FFFFFF',
     fontSize: 48,
     fontFamily: 'sans-serif',
+    strokeColor: '#000000',
+    strokeWidth: 2,
+    verticalPosition: 80,
   },
+  speakerStyles: {},
 }
 
 export const RemotionRoot: React.FC = () => {

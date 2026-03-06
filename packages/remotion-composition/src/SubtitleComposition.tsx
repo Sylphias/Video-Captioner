@@ -1,8 +1,9 @@
 import { AbsoluteFill, Video, OffthreadVideo, useRemotionEnvironment } from 'remotion'
 import type { SubtitleCompositionProps } from './types'
 import { SubtitleOverlay } from './SubtitleOverlay'
+import './fonts' // triggers module-level Google Font loading side effects
 
-export function SubtitleComposition({ videoSrc, phrases, style }: SubtitleCompositionProps) {
+export function SubtitleComposition({ videoSrc, phrases, style, speakerStyles }: SubtitleCompositionProps) {
   const { isRendering } = useRemotionEnvironment()
 
   return (
@@ -15,7 +16,7 @@ export function SubtitleComposition({ videoSrc, phrases, style }: SubtitleCompos
         )}
       </AbsoluteFill>
       <AbsoluteFill>
-        <SubtitleOverlay phrases={phrases} style={style} />
+        <SubtitleOverlay phrases={phrases} style={style} speakerStyles={speakerStyles} />
       </AbsoluteFill>
     </AbsoluteFill>
   )
