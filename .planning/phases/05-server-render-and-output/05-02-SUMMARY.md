@@ -56,7 +56,7 @@ completed: 2026-03-05
 - **Duration:** ~8 min
 - **Started:** 2026-03-05T13:40:24Z
 - **Completed:** 2026-03-05T13:48:00Z
-- **Tasks:** 1 auto + 1 checkpoint (human-verify pending)
+- **Tasks:** 2 (1 auto + 1 human-verify checkpoint — approved)
 - **Files modified:** 3
 
 ## Accomplishments
@@ -73,9 +73,9 @@ Each task was committed atomically:
 
 1. **Task 1: useRender hook and SubtitlesPage render/download integration** - `3269601` (feat)
 
-**Plan metadata:** TBD (docs: complete plan — created after checkpoint)
+**Plan metadata:** `ba7eae5` (docs: complete plan)
 
-_Task 2 is a human-verify checkpoint — not committed automatically_
+_Task 2 is a human-verify checkpoint — approved by user confirming burned-in subtitles in downloaded MP4_
 
 ## Files Created/Modified
 - `packages/frontend/src/hooks/useRender.ts` - useRender state machine hook: POST render trigger, SSE progress, reset (NEW)
@@ -99,9 +99,9 @@ None - TypeScript compilation clean on first attempt.
 None - no external service configuration required.
 
 ## Next Phase Readiness
-- Frontend render-and-download flow complete pending human verification (Task 2 checkpoint)
-- After checkpoint approval: Phase 5 is complete (Plan 03 is the final verification/polish plan)
-- End-to-end workflow ready: upload → transcribe → (optional diarize) → render → download MP4
+- End-to-end render workflow verified by user: subtitles are visibly burned in to the downloaded MP4
+- Phase 5 Plan 2 complete — ready for 05-03 (final phase verification/polish) or Phase 6 (polish and export)
+- Full workflow confirmed: upload → transcribe → (optional diarize) → render → download MP4 with karaoke subtitles
 
 ---
 *Phase: 05-server-render-and-output*

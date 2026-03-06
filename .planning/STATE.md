@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 6 (Server Render and Output)
-Plan: 2 of 3 — 05-02 auto tasks complete, awaiting human-verify checkpoint
-Status: Executing Phase 5 — checkpoint: human-verify render end-to-end
-Last activity: 2026-03-05 — Phase 05-02 Task 1 complete (render UI: useRender hook, render button, progress bar, download link)
+Plan: 3 of 3 — 05-02 complete (verified), ready for 05-03
+Status: Executing Phase 5
+Last activity: 2026-03-06 — Phase 05-02 complete; user verified burned-in subtitles in downloaded MP4
 
-Progress: [████████████████] 83%
+Progress: [█████████████████] 87%
 
 ## Performance Metrics
 
@@ -32,11 +32,11 @@ Progress: [████████████████] 83%
 | 03-composition-and-preview | 2 | 11 min | 6 min |
 | 04-transcript-editor-and-grouping | 2 | ~1 day | — |
 | 04.1-multi-speaker-diarization | 2 | ~2 days | — |
-| 05-server-render-and-output | 1/3 | 10 min | — |
+| 05-server-render-and-output | 2/3 | ~18 min | — |
 
 **Recent Trend:**
 - Phase 05-01 complete — Remotion SSR pipeline implemented cleanly; bundle() verified working with 1.2s startup; TypeScript type workaround needed for Composition generic constraint
-- Phase 05-02 Task 1 complete (8 min) — useRender hook + render UI; awaiting human verification of end-to-end render flow
+- Phase 05-02 complete (8 min) — useRender hook + render UI implemented and verified; user confirmed burned-in subtitles in downloaded MP4
 
 *Updated after each plan completion*
 
@@ -142,11 +142,12 @@ Recent decisions affecting current work:
 - [Phase 3 — RESOLVED]: React 18.3.x confirmed compatible with Remotion 4.0.379; Player API verified working
 - [Phase 3 — RESOLVED]: Backend needs restart after code changes (no file watcher); user must Ctrl+C and re-run `just dev`
 - [Phase 5 — RESOLVED]: renderMedia() API and onProgress shape verified in 05-RESEARCH.md and confirmed working in 05-01 implementation
+- [Phase 5 — RESOLVED]: End-to-end render pipeline verified by user (05-02) — burned-in subtitles confirmed in downloaded MP4
 - [Phase 6]: Verify Tailwind 4 + shadcn/ui compatibility; fall back to Tailwind 3 if incompatible
 
 ## Session Continuity
 
-Last session: 2026-03-05
-Stopped at: Phase 05-02 Task 1 complete. Render UI implemented. At human-verify checkpoint (Task 2) — waiting for user to test end-to-end render.
+Last session: 2026-03-06
+Stopped at: Phase 05-02 complete. Render UI verified end-to-end (burned-in subtitles confirmed). Ready for 05-03.
 Resume with: `/gsd:execute-phase 5`
 Resume file: None
