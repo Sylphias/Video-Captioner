@@ -128,12 +128,11 @@ Plans:
   3. User can set subtitle vertical position (percentage of frame height) and see the subtitle move in the preview
   4. User can add or adjust text stroke/outline and see the legibility change in the preview
   5. User can select from a curated list of web fonts and the chosen font renders identically in the preview and in the final MP4
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 06-01: Style Zustand store — font size, highlight color, stroke, vertical position, font family; wire to composition props
-- [ ] 06-02: Style panel UI — controls for all five style properties with live preview updates
-- [ ] 06-03: Font loading — curated web font list via `@remotion/google-fonts`; validate font render parity between browser preview and MP4 output
+- [ ] 06-01-PLAN.md — Types, fonts, store, and composition wiring: extend StyleProps with stroke/position, add per-speaker overrides and animation type, create curated Google Fonts module, update SubtitleOverlay rendering, memoize PreviewPanel inputProps, fix render pipeline to propagate speakerStyles and dominantSpeaker
+- [ ] 06-02-PLAN.md — Style panel UI: global controls (font, size, highlight color, base color, stroke, position), per-speaker override panel with animation type selector, tab navigation in SubtitlesPage, human verification of live preview and render parity
 
 ## Progress
 
@@ -148,4 +147,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Transcript Editor and Grouping | 2/2 | ✓ Complete | 2026-03-04 |
 | 4.1 Multi-Speaker Diarization | 2/2 | ✓ Complete | 2026-03-05 |
 | 5. Server Render and Output | 2/2 | ✓ Complete | 2026-03-06 |
-| 6. Styling | 0/3 | Not started | - |
+| 6. Styling | 0/2 | Not started | - |
