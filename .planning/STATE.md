@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 6 — Styling
+**Current focus:** Phase 6 — Editing Workflow Redesign
 
 ## Current Position
 
-Phase: 6 of 6 (Styling)
-Plan: 2 of 3 — complete (awaiting human verification of Task 3 checkpoint)
-Status: In progress
-Last activity: 2026-03-06 — Phase 06-02 complete (style controls UI)
+Phase: 6 of 6 (Editing Workflow Redesign)
+Plan: 0 of ? — scope redefined, needs discuss + plan
+Status: Ready to discuss Phase 6
+Last activity: 2026-03-06 — Phase 6 scope changed from Styling to 4-stage editing workflow redesign. 06-01 data layer (types, fonts, store, render pipeline) committed and retained. 06-02 style panel UI partially built but will be reshaped to fit Stage 4 of new workflow.
 
 Progress: [████████████████████] 94%
 

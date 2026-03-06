@@ -117,22 +117,20 @@ Plans:
 - [x] 05-01-PLAN.md — Backend render infrastructure: shared types, Remotion entry point, bundle service, render worker, render/download routes, SSE update
 - [x] 05-02-PLAN.md — Frontend render UI: useRender hook, render button, progress bar, download button, human verification
 
-### Phase 6: Styling
+### Phase 6: Editing Workflow Redesign
 
-**Goal**: Users can customize subtitle appearance (font, size, color, stroke, position) and see changes live in the preview before committing to a render
-**Depends on**: Phase 5
-**Requirements**: STYLE-01, STYLE-02, STYLE-03, STYLE-04, STYLE-05
+**Goal**: Restructure the subtitle editing experience into a guided 4-stage workflow — text editing → timing adjustment → speaker assignment → styling — so users can focus on one concern at a time and move through edits efficiently
+**Depends on**: Phase 5 (+ Phase 06-01 data layer already committed: types, fonts, store, render pipeline)
+**Requirements**: TBD (to be defined during discuss-phase)
 **Success Criteria** (what must be TRUE):
-  1. User can change subtitle font size and see the change immediately in the preview
-  2. User can choose the highlight color for the currently-spoken word and see the change in the preview
-  3. User can set subtitle vertical position (percentage of frame height) and see the subtitle move in the preview
-  4. User can add or adjust text stroke/outline and see the legibility change in the preview
-  5. User can select from a curated list of web fonts and the chosen font renders identically in the preview and in the final MP4
-**Plans:** 2 plans
-
-Plans:
-- [ ] 06-01-PLAN.md — Types, fonts, store, and composition wiring: extend StyleProps with stroke/position, add per-speaker overrides and animation type, create curated Google Fonts module, update SubtitleOverlay rendering, memoize PreviewPanel inputProps, fix render pipeline to propagate speakerStyles and dominantSpeaker
-- [ ] 06-02-PLAN.md — Style panel UI: global controls (font, size, highlight color, base color, stroke, position), per-speaker override panel with animation type selector, tab navigation in SubtitlesPage, human verification of live preview and render parity
+  1. User progresses through 4 distinct editing stages in order: Text → Timing → Speakers → Styling
+  2. Stage 1 (Text): User can edit transcript text in a paragraph/phrase-based editor for fast bulk edits (add/remove/rewrite lines)
+  3. Stage 2 (Timing): User can adjust word timings within phrases and set phrase linger duration; overlapping phrases render at separate vertical positions
+  4. Stage 3 (Speakers): User can auto-detect speakers, manually assign/reassign speakers, and add/remove speaker labels
+  5. Stage 4 (Styling): User can customize fonts, colors, stroke, position, and per-speaker overrides with live preview
+  6. Each stage's changes are immediately reflected in the video preview
+  7. User can navigate back to previous stages without losing work
+**Plans:** TBD (to be planned)
 
 ## Progress
 
@@ -147,4 +145,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Transcript Editor and Grouping | 2/2 | ✓ Complete | 2026-03-04 |
 | 4.1 Multi-Speaker Diarization | 2/2 | ✓ Complete | 2026-03-05 |
 | 5. Server Render and Output | 2/2 | ✓ Complete | 2026-03-06 |
-| 6. Styling | 0/2 | Not started | - |
+| 6. Editing Workflow Redesign | 0/? | Not started | - |
