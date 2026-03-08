@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Transcript Editor and Grouping** - Connect transcription output to editable UI; auto-group words into subtitle phrases with manual override
 - [x] **Phase 4.1: Multi-Speaker Diarization and Speaker Lanes** (INSERTED) - Speaker detection via pyannote, color-coded speaker lanes, rename/reassign UI
 - [x] **Phase 5: Server Render and Output** - Render final MP4 in a worker thread, stream progress via SSE, deliver download
-- [ ] **Phase 6: Styling** - Add font, color, stroke, and position controls; connect style state to composition props and render props
+- [ ] **Phase 6: Editing Workflow Redesign** - Restructure editing into 4-stage workflow (Text, Timing, Speakers, Styling) with collapsible preview, undo/redo, waveform timeline
 
 ## Phase Details
 
@@ -121,7 +121,7 @@ Plans:
 
 **Goal**: Restructure the subtitle editing experience into a guided 4-stage workflow — text editing → timing adjustment → speaker assignment → styling — so users can focus on one concern at a time and move through edits efficiently
 **Depends on**: Phase 5 (+ Phase 06-01 data layer already committed: types, fonts, store, render pipeline)
-**Requirements**: TBD (to be defined during discuss-phase)
+**Requirements**: STYLE-01, STYLE-02, STYLE-03, STYLE-04, STYLE-05, EDIT-01, EDIT-02, GROUP-02
 **Success Criteria** (what must be TRUE):
   1. User progresses through 4 distinct editing stages in order: Text → Timing → Speakers → Styling
   2. Stage 1 (Text): User can edit transcript text in a paragraph/phrase-based editor for fast bulk edits (add/remove/rewrite lines)
@@ -130,7 +130,15 @@ Plans:
   5. Stage 4 (Styling): User can customize fonts, colors, stroke, position, and per-speaker overrides with live preview
   6. Each stage's changes are immediately reflected in the video preview
   7. User can navigate back to previous stages without losing work
-**Plans:** TBD (to be planned)
+**Plans:** 6 plans (2 data layer complete, 4 workflow redesign)
+
+Plans:
+- [x] 06-01-PLAN.md — Styling data layer: extended StyleProps, per-speaker overrides, 8 Google Fonts, full stack speakerStyles propagation
+- [x] 06-02-PLAN.md — Style Controls UI: StylePanel (7 controls), SpeakerStylePanel (per-speaker overrides), Transcript/Style tab bar
+- [ ] 06-03-PLAN.md — Stage tab shell: 4-stage navigation, collapsible preview, Speakers and Styling stage rewiring
+- [ ] 06-04-PLAN.md — Text Editor (Stage 1): screenplay-style numbered lines, Enter/Backspace split/merge, global undo/redo
+- [ ] 06-05-PLAN.md — Timing Editor (Stage 2): waveform timeline, phrase blocks, numeric timestamps, per-phrase linger, stacked lanes
+- [ ] 06-06-PLAN.md — Stage transitions, polish, and end-to-end verification
 
 ## Progress
 
@@ -145,4 +153,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Transcript Editor and Grouping | 2/2 | ✓ Complete | 2026-03-04 |
 | 4.1 Multi-Speaker Diarization | 2/2 | ✓ Complete | 2026-03-05 |
 | 5. Server Render and Output | 2/2 | ✓ Complete | 2026-03-06 |
-| 6. Editing Workflow Redesign | 0/? | Not started | - |
+| 6. Editing Workflow Redesign | 2/6 | In progress | - |
