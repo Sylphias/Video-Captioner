@@ -11,6 +11,7 @@ import jobRoutes from './routes/jobs.ts'
 import transcribeRoutes from './routes/transcribe.ts'
 import diarizeRoutes from './routes/diarize.ts'
 import renderRoutes from './routes/render.ts'
+import waveformRoutes from './routes/waveform.ts'
 import { initBundle } from './services/render.ts'
 
 // ESM __dirname equivalent
@@ -39,6 +40,7 @@ await fastify.register(jobRoutes)
 await fastify.register(transcribeRoutes)
 await fastify.register(diarizeRoutes)
 await fastify.register(renderRoutes)
+await fastify.register(waveformRoutes)
 
 // Health check endpoint
 fastify.get('/api/health', async (_request, _reply) => {
