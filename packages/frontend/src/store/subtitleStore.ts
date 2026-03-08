@@ -7,6 +7,7 @@ import {
   buildSessionPhrases,
   computeDominantSpeaker,
 } from '../lib/grouping.ts'
+import { useUndoStore, type StateSnapshot } from './undoMiddleware.ts'
 
 export type { SessionWord, SessionPhrase }
 
@@ -31,6 +32,7 @@ interface SubtitleStore {
   addWord: (phraseIndex: number) => void
   addPhrase: (afterPhraseIndex: number) => void
   deleteWord: (wordIndex: number) => void
+  updatePhraseText: (phraseIndex: number, newWords: string[]) => void
   resetSession: () => void
   setStyle: (partial: Partial<StyleProps>) => void
   setSpeakerStyle: (speakerId: string, override: SpeakerStyleOverride) => void
@@ -49,6 +51,69 @@ const DEFAULT_STYLE: StyleProps = {
   strokeWidth: 2,
   verticalPosition: 80,
   lingerDuration: 1.0,
+}
+
+/**
+ * Capture the current store state as an undo snapshot.
+ * Uses structuredClone for deep-copy; Set is serialized to Array.
+ */
+function captureSnapshot(state: {
+  session: SubtitleStore['session']
+  style: StyleProps
+  speakerNames: Record<string, string>
+  speakerStyles: Record<string, SpeakerStyleOverride>
+}): StateSnapshot {
+  return {
+    session: state.session
+      ? {
+          words: structuredClone(state.session.words),
+          phrases: structuredClone(state.session.phrases),
+          manualSplitWordIndices: Array.from(state.session.manualSplitWordIndices),
+        }
+      : null,
+    style: structuredClone(state.style) as unknown as Record<string, unknown>,
+    speakerNames: { ...state.speakerNames },
+    speakerStyles: structuredClone(state.speakerStyles) as Record<string, Record<string, unknown>>,
+  }
+}
+
+/**
+ * Push a snapshot to the undo store before a user-mutating action.
+ * Call this inside the set() callback to capture the CURRENT state.
+ */
+function pushUndo(state: {
+  session: SubtitleStore['session']
+  style: StyleProps
+  speakerNames: Record<string, string>
+  speakerStyles: Record<string, SpeakerStyleOverride>
+}): void {
+  useUndoStore.getState().pushSnapshot(captureSnapshot(state))
+}
+
+/**
+ * Restore a StateSnapshot back into the subtitle store.
+ * Called by undo() and redo() in SubtitlesPage.
+ */
+export function restoreSnapshot(snapshot: StateSnapshot): void {
+  useSubtitleStore.setState((state) => {
+    if (!snapshot.session) {
+      return { session: null }
+    }
+
+    // Re-hydrate Set from serialized Array
+    const manualSplitWordIndices = new Set<number>(snapshot.session.manualSplitWordIndices)
+
+    return {
+      session: {
+        words: structuredClone(snapshot.session.words) as SessionWord[],
+        phrases: structuredClone(snapshot.session.phrases) as SessionPhrase[],
+        manualSplitWordIndices,
+      },
+      style: structuredClone(snapshot.style) as unknown as StyleProps,
+      speakerNames: { ...snapshot.speakerNames },
+      speakerStyles: structuredClone(snapshot.speakerStyles) as unknown as Record<string, SpeakerStyleOverride>,
+    }
+  })
 }
 
 export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
@@ -94,6 +159,9 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         if (wordIndex < state.session.words.length - 1 && patch.end! > state.session.words[wordIndex + 1].start) return state
       }
 
+      // Push undo snapshot before mutating
+      pushUndo(state)
+
       const words = state.session.words.map((w, i) =>
         i === wordIndex ? { ...w, ...patch } : w
       )
@@ -132,6 +200,10 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       if (!target || splitBeforeWordIndex <= 0 || splitBeforeWordIndex >= target.words.length) {
         return state // invalid split
       }
+
+      // Push undo snapshot before mutating
+      pushUndo(state)
+
       const left: SessionPhrase = { words: target.words.slice(0, splitBeforeWordIndex), isManualSplit: false }
       const right: SessionPhrase = { words: target.words.slice(splitBeforeWordIndex), isManualSplit: true }
       phrases.splice(phraseIndex, 1, left, right)
@@ -154,6 +226,9 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       if (!state.session) return state
       const phrases = [...state.session.phrases]
       if (phraseIndex >= phrases.length - 1) return state // nothing to merge into
+
+      // Push undo snapshot before mutating
+      pushUndo(state)
 
       const merged: SessionPhrase = {
         words: [...phrases[phraseIndex].words, ...phrases[phraseIndex + 1].words],
@@ -178,6 +253,9 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       if (!state.session) return state
       const phrase = state.session.phrases[phraseIndex]
       if (!phrase || phrase.words.length === 0) return state
+
+      // Push undo snapshot before mutating
+      pushUndo(state)
 
       const lastWord = phrase.words[phrase.words.length - 1]
       const DEFAULT_WORD_DURATION = 0.3
@@ -228,6 +306,10 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   addPhrase: (afterPhraseIndex) => {
     set((state) => {
       if (!state.session) return state
+
+      // Push undo snapshot before mutating
+      pushUndo(state)
+
       const DEFAULT_WORD_DURATION = 0.5
 
       // Determine timing for the new phrase's word
@@ -287,6 +369,9 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       // Don't allow deleting the last word entirely
       if (state.session.words.length <= 1) return state
 
+      // Push undo snapshot before mutating
+      pushUndo(state)
+
       const words = state.session.words.filter((_, i) => i !== wordIndex)
 
       // Shift manual split indices
@@ -294,6 +379,80 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       for (const idx of state.session.manualSplitWordIndices) {
         if (idx === wordIndex) continue // remove split at deleted word
         manualSplitWordIndices.add(idx > wordIndex ? idx - 1 : idx)
+      }
+
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      return { session: { words, phrases, manualSplitWordIndices } }
+    })
+  },
+
+  updatePhraseText: (phraseIndex, newWords) => {
+    set((state) => {
+      if (!state.session) return state
+      const phrase = state.session.phrases[phraseIndex]
+      if (!phrase || phrase.words.length === 0) return state
+
+      // Push undo snapshot before mutating
+      pushUndo(state)
+
+      const oldWords = phrase.words
+      const phraseStart = oldWords[0].start
+      const phraseEnd = oldWords[oldWords.length - 1].end
+      const phraseDuration = phraseEnd - phraseStart
+
+      // Compute global offset of this phrase's first word
+      let globalOffset = 0
+      for (let i = 0; i < phraseIndex; i++) {
+        globalOffset += state.session.phrases[i].words.length
+      }
+
+      const newWordCount = newWords.length
+      const oldWordCount = oldWords.length
+
+      // Build updated SessionWords: distribute timestamps evenly across the phrase window
+      let updatedPhraseWords: SessionWord[]
+
+      if (newWordCount === oldWordCount) {
+        // Same word count: update text only, keep original timestamps
+        updatedPhraseWords = oldWords.map((w, i) => ({
+          ...w,
+          word: newWords[i],
+        }))
+      } else {
+        // Different word count: redistribute timestamps evenly
+        const step = phraseDuration / newWordCount
+        updatedPhraseWords = newWords.map((text, i) => ({
+          word: text,
+          start: phraseStart + i * step,
+          end: phraseStart + (i + 1) * step,
+          confidence: 1,
+          speaker: oldWords[0].speaker, // inherit speaker from first word
+        }))
+      }
+
+      // Replace the words in the flat words array
+      const words = [...state.session.words]
+      words.splice(globalOffset, oldWordCount, ...updatedPhraseWords)
+
+      // Adjust manual split indices for word count change
+      const delta = newWordCount - oldWordCount
+      const manualSplitWordIndices = new Set<number>()
+      for (const idx of state.session.manualSplitWordIndices) {
+        if (idx >= globalOffset && idx < globalOffset + oldWordCount) {
+          // This split is inside the edited phrase — remove it (phrase structure may change)
+          continue
+        }
+        if (idx >= globalOffset + oldWordCount) {
+          // This split is after the edited phrase — shift by delta
+          manualSplitWordIndices.add(idx + delta)
+        } else {
+          manualSplitWordIndices.add(idx)
+        }
+      }
+
+      // Preserve the phrase boundary at the start of this phrase (if it was manual)
+      if (phrase.isManualSplit && phraseIndex > 0) {
+        manualSplitWordIndices.add(globalOffset)
       }
 
       const phrases = buildSessionPhrases(words, manualSplitWordIndices)
@@ -315,27 +474,43 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     })
   },
 
-  setStyle: (partial) => set((state) => ({ style: { ...state.style, ...partial } })),
+  setStyle: (partial) => {
+    set((state) => {
+      pushUndo(state)
+      return { style: { ...state.style, ...partial } }
+    })
+  },
 
-  setSpeakerStyle: (speakerId, override) => set((state) => ({
-    speakerStyles: {
-      ...state.speakerStyles,
-      [speakerId]: { ...state.speakerStyles[speakerId], ...override },
-    }
-  })),
+  setSpeakerStyle: (speakerId, override) => {
+    set((state) => {
+      pushUndo(state)
+      return {
+        speakerStyles: {
+          ...state.speakerStyles,
+          [speakerId]: { ...state.speakerStyles[speakerId], ...override },
+        }
+      }
+    })
+  },
 
-  clearSpeakerStyle: (speakerId) => set((state) => {
-    const speakerStyles = { ...state.speakerStyles }
-    delete speakerStyles[speakerId]
-    return { speakerStyles }
-  }),
+  clearSpeakerStyle: (speakerId) => {
+    set((state) => {
+      pushUndo(state)
+      const speakerStyles = { ...state.speakerStyles }
+      delete speakerStyles[speakerId]
+      return { speakerStyles }
+    })
+  },
 
   reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, speakerNames: {}, speakerStyles: {} }),
 
   renameSpeaker: (speakerId, displayName) => {
-    set((state) => ({
-      speakerNames: { ...state.speakerNames, [speakerId]: displayName }
-    }))
+    set((state) => {
+      pushUndo(state)
+      return {
+        speakerNames: { ...state.speakerNames, [speakerId]: displayName }
+      }
+    })
   },
 
   reassignWordSpeaker: (wordIndex, speakerId) => {
@@ -343,6 +518,9 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       if (!state.session) return state
       const word = state.session.words[wordIndex]
       if (!word) return state
+
+      // Push undo snapshot before mutating
+      pushUndo(state)
 
       // Update the word's speaker in the flat words array
       const words = state.session.words.map((w, i) =>
