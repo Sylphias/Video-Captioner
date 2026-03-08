@@ -1,4 +1,4 @@
-export type StageId = 'text' | 'timing' | 'speakers' | 'styling'
+export type StageId = 'timing' | 'text' | 'styling'
 
 interface Stage {
   id: StageId
@@ -6,9 +6,8 @@ interface Stage {
 }
 
 const STAGES: Stage[] = [
-  { id: 'text', label: 'Text' },
   { id: 'timing', label: 'Timing' },
-  { id: 'speakers', label: 'Speakers' },
+  { id: 'text', label: 'Text' },
   { id: 'styling', label: 'Styling' },
 ]
 

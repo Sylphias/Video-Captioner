@@ -74,14 +74,14 @@
 }
 
 /* Speaker dot colors */
-.text-editor__speaker-indicator[data-speaker-index="0"] { background: var(--speaker-color-0, #4caf72); }
-.text-editor__speaker-indicator[data-speaker-index="1"] { background: var(--speaker-color-1, #5b9bd5); }
-.text-editor__speaker-indicator[data-speaker-index="2"] { background: var(--speaker-color-2, #e07e5b); }
-.text-editor__speaker-indicator[data-speaker-index="3"] { background: var(--speaker-color-3, #c375c7); }
-.text-editor__speaker-indicator[data-speaker-index="4"] { background: var(--speaker-color-4, #e0c05b); }
-.text-editor__speaker-indicator[data-speaker-index="5"] { background: var(--speaker-color-5, #5bc4c4); }
-.text-editor__speaker-indicator[data-speaker-index="6"] { background: var(--speaker-color-6, #e05b8e); }
-.text-editor__speaker-indicator[data-speaker-index="7"] { background: var(--speaker-color-7, #8e8ee0); }
+.text-editor__speaker-indicator[data-speaker-index="0"] { background: var(--speaker-color-0); }
+.text-editor__speaker-indicator[data-speaker-index="1"] { background: var(--speaker-color-1); }
+.text-editor__speaker-indicator[data-speaker-index="2"] { background: var(--speaker-color-2); }
+.text-editor__speaker-indicator[data-speaker-index="3"] { background: var(--speaker-color-3); }
+.text-editor__speaker-indicator[data-speaker-index="4"] { background: var(--speaker-color-4); }
+.text-editor__speaker-indicator[data-speaker-index="5"] { background: var(--speaker-color-5); }
+.text-editor__speaker-indicator[data-speaker-index="6"] { background: var(--speaker-color-6); }
+.text-editor__speaker-indicator[data-speaker-index="7"] { background: var(--speaker-color-7); }
 
 /* ---- Editable line content ---- */
 .text-editor__line-content {

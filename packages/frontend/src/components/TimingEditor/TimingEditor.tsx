@@ -3,49 +3,50 @@ import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useWaveform } from '../../hooks/useWaveform.ts'
 import { WaveformCanvas } from './WaveformCanvas.tsx'
 import type { SessionPhrase, SessionWord } from '../../store/subtitleStore.ts'
+import type { DiarizeState } from '../../hooks/useDiarize.ts'
 import './TimingEditor.css'
 
 interface TimingEditorProps {
   seekToTime: (timeSec: number) => void
   jobId: string
+  diarizeState: DiarizeState
+  diarize: (jobId: string, numSpeakers?: number) => void
+  numSpeakers: number | undefined
+  setNumSpeakers: (n: number | undefined) => void
 }
 
 const PIXELS_PER_SECOND = 100
 const LANE_HEIGHT = 44
 const RULER_HEIGHT = 24
 
-/** Assign phrases to non-overlapping lanes using a greedy algorithm. */
-function assignLanes(phrases: SessionPhrase[]): number[] {
-  const lanes: number[] = new Array(phrases.length).fill(0)
-  // Track the end time of the last phrase in each lane
-  const laneEndTimes: number[] = []
+interface SpeakerLane {
+  speakerId: string
+  phrases: Array<{ phrase: SessionPhrase; phraseIndex: number }>
+}
+
+/** Group phrases by dominant speaker into dedicated lanes. */
+function buildSpeakerLanes(phrases: SessionPhrase[], speakerNames: Record<string, string>): SpeakerLane[] {
+  const laneMap = new Map<string, SpeakerLane>()
+
+  // Maintain order from speakerNames (deterministic)
+  for (const sid of Object.keys(speakerNames)) {
+    laneMap.set(sid, { speakerId: sid, phrases: [] })
+  }
 
   for (let i = 0; i < phrases.length; i++) {
     const phrase = phrases[i]
     if (phrase.words.length === 0) continue
-
-    const start = phrase.words[0].start
-    const end = phrase.words[phrase.words.length - 1].end
-
-    // Find the lowest lane where this phrase doesn't overlap
-    let assignedLane = -1
-    for (let lane = 0; lane < laneEndTimes.length; lane++) {
-      if (start >= laneEndTimes[lane]) {
-        assignedLane = lane
-        break
-      }
+    const speaker = phrase.dominantSpeaker ?? 'unknown'
+    if (!laneMap.has(speaker)) {
+      laneMap.set(speaker, { speakerId: speaker, phrases: [] })
     }
-
-    if (assignedLane === -1) {
-      // All lanes are occupied — create a new lane (cap at 2 to keep 3 total)
-      assignedLane = Math.min(laneEndTimes.length, 2)
-    }
-
-    lanes[i] = assignedLane
-    laneEndTimes[assignedLane] = end
+    laneMap.get(speaker)!.phrases.push({ phrase, phraseIndex: i })
   }
 
-  return lanes
+  // Only return lanes that have phrases or are in speakerNames
+  return Array.from(laneMap.values()).filter(
+    (lane) => lane.phrases.length > 0 || speakerNames[lane.speakerId]
+  )
 }
 
 /** Format seconds as mm:ss for the time ruler. */
@@ -60,14 +61,34 @@ function getSpeakerColorIndex(speakerId: string): number {
   return parseInt(speakerId.replace('SPEAKER_', ''), 10) % 8
 }
 
-export function TimingEditor({ seekToTime, jobId }: TimingEditorProps) {
+export function TimingEditor({
+  seekToTime,
+  jobId,
+  diarizeState,
+  diarize,
+  numSpeakers,
+  setNumSpeakers,
+}: TimingEditorProps) {
   const session = useSubtitleStore((s) => s.session)
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
-  const { splitPhrase, mergePhrase, updateWord, setPhraseLinger } = useSubtitleStore()
+  const {
+    splitPhrase,
+    mergePhrase,
+    updateWord,
+    setPhraseLinger,
+    renameSpeaker,
+    reassignPhraseSpeaker,
+    deleteSpeaker,
+    deletePhrase,
+    addPhraseAtTime,
+  } = useSubtitleStore()
 
   const { waveform } = useWaveform(jobId)
 
   const [selectedPhraseIndex, setSelectedPhraseIndex] = useState<number | null>(null)
+  const [dragOverLane, setDragOverLane] = useState<string | null>(null)
+  const [deletingLane, setDeletingLane] = useState<string | null>(null)
+  const [deleteReassignTo, setDeleteReassignTo] = useState<string>('')
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -80,11 +101,11 @@ export function TimingEditor({ seekToTime, jobId }: TimingEditorProps) {
   const timelineWidth = Math.ceil(totalDuration * PIXELS_PER_SECOND)
 
   const phrases = session?.phrases ?? []
-  const laneCounts = assignLanes(phrases)
-  const maxLane = phrases.length > 0 ? Math.max(...laneCounts) : 0
-  const lanesHeight = (maxLane + 1) * LANE_HEIGHT
+  const lanes = buildSpeakerLanes(phrases, speakerNames)
+  const lanesHeight = Math.max(1, lanes.length) * LANE_HEIGHT
 
   const selectedPhrase = selectedPhraseIndex !== null ? phrases[selectedPhraseIndex] : null
+  const allSpeakerIds = Object.keys(speakerNames)
 
   const handlePhraseClick = useCallback((phraseIndex: number) => {
     setSelectedPhraseIndex((prev) => prev === phraseIndex ? null : phraseIndex)
@@ -94,11 +115,72 @@ export function TimingEditor({ seekToTime, jobId }: TimingEditorProps) {
     }
   }, [phrases, seekToTime])
 
-  // Deselect when clicking the timeline background
-  const handleTimelineClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+  // Click empty space on a lane track → add a new phrase at that time for that speaker
+  const handleLaneTrackClick = useCallback((e: React.MouseEvent, speakerId: string) => {
+    if (e.target !== e.currentTarget) return // only fire on background, not on phrase blocks
+    const rect = e.currentTarget.getBoundingClientRect()
+    const clickX = e.clientX - rect.left + e.currentTarget.scrollLeft
+    const timeSec = clickX / PIXELS_PER_SECOND
+    if (timeSec >= 0) {
+      addPhraseAtTime(timeSec, speakerId)
+    }
+  }, [addPhraseAtTime])
+
+  // Delete a phrase block
+  const handleDeletePhrase = useCallback((e: React.MouseEvent, phraseIndex: number) => {
+    e.stopPropagation()
+    deletePhrase(phraseIndex)
+    if (selectedPhraseIndex === phraseIndex) {
       setSelectedPhraseIndex(null)
     }
+  }, [deletePhrase, selectedPhraseIndex])
+
+  // Drag and drop handlers
+  const handleDragStart = useCallback((e: React.DragEvent, phraseIndex: number) => {
+    e.dataTransfer.setData('text/plain', String(phraseIndex))
+    e.dataTransfer.effectAllowed = 'move'
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent, speakerId: string) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverLane(speakerId)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverLane(null)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent, speakerId: string) => {
+    e.preventDefault()
+    setDragOverLane(null)
+    const phraseIndex = parseInt(e.dataTransfer.getData('text/plain'), 10)
+    if (!isNaN(phraseIndex)) {
+      reassignPhraseSpeaker(phraseIndex, speakerId)
+    }
+  }, [reassignPhraseSpeaker])
+
+  // Handle delete lane confirmation
+  const handleDeleteLane = useCallback((speakerId: string) => {
+    // Find first other speaker to pre-select as reassign target
+    const other = allSpeakerIds.find((s) => s !== speakerId)
+    if (!other) return // Can't delete the only speaker
+    setDeletingLane(speakerId)
+    setDeleteReassignTo(other)
+  }, [allSpeakerIds])
+
+  const confirmDeleteLane = useCallback(() => {
+    if (deletingLane && deleteReassignTo) {
+      deleteSpeaker(deletingLane, deleteReassignTo)
+      setDeletingLane(null)
+      setDeleteReassignTo('')
+      setSelectedPhraseIndex(null)
+    }
+  }, [deletingLane, deleteReassignTo, deleteSpeaker])
+
+  const cancelDeleteLane = useCallback(() => {
+    setDeletingLane(null)
+    setDeleteReassignTo('')
   }, [])
 
   // Build time ruler tick marks: minor ticks every second, labels every 5s
@@ -121,7 +203,47 @@ export function TimingEditor({ seekToTime, jobId }: TimingEditorProps) {
 
   return (
     <div className="timing-editor">
-      {/* Horizontally scrollable timeline */}
+      {/* Diarize progress banner */}
+      {diarizeState.status === 'diarizing' && (
+        <div className="timing-editor__diarize-banner">
+          <span>Detecting speakers... {diarizeState.progress}%</span>
+          <div className="timing-editor__diarize-progress-track">
+            <div
+              className="timing-editor__diarize-progress-fill"
+              style={{ width: `${diarizeState.progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Re-diarize controls */}
+      {diarizeState.status !== 'diarizing' && (
+        <div className="timing-editor__diarize-controls">
+          <label className="timing-editor__speakers-label">
+            Speakers
+            <input
+              type="number"
+              className="timing-editor__speakers-input"
+              min={1}
+              max={20}
+              placeholder="Auto"
+              value={numSpeakers ?? ''}
+              onChange={(e) => setNumSpeakers(e.target.value ? Number(e.target.value) : undefined)}
+            />
+          </label>
+          <button
+            className="timing-editor__diarize-btn"
+            onClick={() => diarize(jobId, numSpeakers)}
+          >
+            {diarizeState.status === 'done' ? 'Re-detect speakers' : 'Detect speakers'}
+          </button>
+          {diarizeState.status === 'failed' && diarizeState.error && (
+            <span className="timing-editor__diarize-error">{diarizeState.error}</span>
+          )}
+        </div>
+      )}
+
+      {/* Horizontally scrollable timeline with speaker lanes */}
       <div className="timing-editor__timeline-scroll" ref={scrollContainerRef}>
         {/* Time ruler */}
         <div className="timing-editor__ruler" style={{ width: timelineWidth }}>
@@ -138,59 +260,135 @@ export function TimingEditor({ seekToTime, jobId }: TimingEditorProps) {
           ))}
         </div>
 
-        {/* Waveform + phrase blocks layer */}
-        <div
-          className="timing-editor__lanes"
-          style={{ width: timelineWidth, height: lanesHeight + RULER_HEIGHT }}
-          onClick={handleTimelineClick}
-        >
-          {/* Waveform canvas as background */}
-          {waveform && (
-            <div className="timing-editor__waveform-bg" style={{ width: timelineWidth, height: lanesHeight }}>
-              <WaveformCanvas
-                samples={waveform.samples}
-                duration={waveform.duration}
-                pixelsPerSecond={PIXELS_PER_SECOND}
-                height={lanesHeight}
-              />
-            </div>
-          )}
+        {/* Waveform row — above speaker lanes */}
+        {waveform && (
+          <div className="timing-editor__waveform-row" style={{ width: timelineWidth }}>
+            <WaveformCanvas
+              samples={waveform.samples}
+              duration={waveform.duration}
+              pixelsPerSecond={PIXELS_PER_SECOND}
+              height={48}
+            />
+          </div>
+        )}
 
-          {/* Phrase blocks */}
-          {phrases.map((phrase, phraseIndex) => {
-            if (phrase.words.length === 0) return null
-
-            const firstWord = phrase.words[0]
-            const lastWord = phrase.words[phrase.words.length - 1]
-            const left = firstWord.start * PIXELS_PER_SECOND
-            const width = Math.max(4, (lastWord.end - firstWord.start) * PIXELS_PER_SECOND)
-            const lane = laneCounts[phraseIndex]
-            const top = lane * LANE_HEIGHT
-
-            const isSelected = selectedPhraseIndex === phraseIndex
-            const phraseText = phrase.words.map((w) => w.word).join(' ')
-
-            // Determine background color
-            let blockBg: string
-            if (phrase.dominantSpeaker) {
-              const colorIdx = getSpeakerColorIndex(phrase.dominantSpeaker)
-              blockBg = `var(--speaker-color-${colorIdx}, rgba(0, 230, 150, 0.4))`
-            } else {
-              blockBg = 'rgba(0, 230, 150, 0.4)'
-            }
+        {/* Speaker lanes */}
+        <div className="timing-editor__speaker-lanes">
+          {lanes.map((lane) => {
+            const colorIdx = getSpeakerColorIndex(lane.speakerId)
+            const isDragOver = dragOverLane === lane.speakerId
+            const isDeleting = deletingLane === lane.speakerId
 
             return (
               <div
-                key={phraseIndex}
-                className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}`}
-                style={{ left, width, top, background: blockBg }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handlePhraseClick(phraseIndex)
-                }}
-                title={phraseText}
+                key={lane.speakerId}
+                className={`timing-editor__lane${isDragOver ? ' timing-editor__lane--drag-over' : ''}`}
+                onDragOver={(e) => handleDragOver(e, lane.speakerId)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, lane.speakerId)}
               >
-                <span className="timing-editor__phrase-text">{phraseText}</span>
+                {/* Lane header (sticky left) */}
+                <div className="timing-editor__lane-header">
+                  <span
+                    className="timing-editor__lane-dot"
+                    style={{ background: `var(--speaker-color-${colorIdx})` }}
+                  />
+                  <SpeakerNameInput
+                    speakerId={lane.speakerId}
+                    displayName={speakerNames[lane.speakerId] ?? lane.speakerId}
+                    onRename={renameSpeaker}
+                  />
+                  {allSpeakerIds.length > 1 && (
+                    <button
+                      className="timing-editor__lane-delete-btn"
+                      type="button"
+                      onClick={() => handleDeleteLane(lane.speakerId)}
+                      title="Delete this speaker lane"
+                    >
+                      ×
+                    </button>
+                  )}
+
+                  {/* Inline delete confirmation */}
+                  {isDeleting && (
+                    <div className="timing-editor__lane-delete-confirm">
+                      <span className="timing-editor__lane-delete-label">Reassign to:</span>
+                      <select
+                        className="timing-editor__lane-delete-select"
+                        value={deleteReassignTo}
+                        onChange={(e) => setDeleteReassignTo(e.target.value)}
+                      >
+                        {allSpeakerIds
+                          .filter((s) => s !== lane.speakerId)
+                          .map((s) => (
+                            <option key={s} value={s}>
+                              {speakerNames[s] ?? s}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        className="timing-editor__lane-delete-action timing-editor__lane-delete-action--confirm"
+                        type="button"
+                        onClick={confirmDeleteLane}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        className="timing-editor__lane-delete-action timing-editor__lane-delete-action--cancel"
+                        type="button"
+                        onClick={cancelDeleteLane}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Lane track (scrollable with phrases) — click empty space to add phrase */}
+                <div
+                  className="timing-editor__lane-track"
+                  style={{ width: timelineWidth, height: LANE_HEIGHT }}
+                  onClick={(e) => handleLaneTrackClick(e, lane.speakerId)}
+                >
+                  {/* Phrase blocks in this lane */}
+                  {lane.phrases.map(({ phrase, phraseIndex }) => {
+                    if (phrase.words.length === 0) return null
+
+                    const firstWord = phrase.words[0]
+                    const lastWord = phrase.words[phrase.words.length - 1]
+                    const left = firstWord.start * PIXELS_PER_SECOND
+                    const width = Math.max(4, (lastWord.end - firstWord.start) * PIXELS_PER_SECOND)
+
+                    const isSelected = selectedPhraseIndex === phraseIndex
+                    const phraseText = phrase.words.map((w) => w.word).join(' ')
+                    const blockBg = `var(--speaker-color-${colorIdx}, rgba(0, 230, 150, 0.4))`
+
+                    return (
+                      <div
+                        key={phraseIndex}
+                        className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}`}
+                        style={{ left, width, background: blockBg }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePhraseClick(phraseIndex)
+                        }}
+                        title={phraseText}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, phraseIndex)}
+                      >
+                        <span className="timing-editor__phrase-text">{phraseText}</span>
+                        <button
+                          className="timing-editor__phrase-delete"
+                          type="button"
+                          onClick={(e) => handleDeletePhrase(e, phraseIndex)}
+                          title="Delete phrase"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )
           })}
@@ -204,6 +402,7 @@ export function TimingEditor({ seekToTime, jobId }: TimingEditorProps) {
           phraseIndex={selectedPhraseIndex}
           totalPhrases={phrases.length}
           speakerNames={speakerNames}
+          allSpeakerIds={allSpeakerIds}
           onUpdateWord={(wordIndex, patch) => {
             // Compute global word index
             let globalOffset = 0
@@ -214,19 +413,55 @@ export function TimingEditor({ seekToTime, jobId }: TimingEditorProps) {
           }}
           onSplitPhrase={(splitBeforeWordIndex) => {
             splitPhrase(selectedPhraseIndex, splitBeforeWordIndex)
-            // After split, keep the same index selected (left half)
           }}
           onMergePhrase={() => {
             mergePhrase(selectedPhraseIndex)
-            // After merge, keep current index selected
           }}
           onLingerChange={(lingerSec) => {
             setPhraseLinger(selectedPhraseIndex, lingerSec)
+          }}
+          onReassignSpeaker={(speakerId) => {
+            reassignPhraseSpeaker(selectedPhraseIndex, speakerId)
           }}
           onSeekTo={(timeSec) => seekToTime(timeSec)}
         />
       )}
     </div>
+  )
+}
+
+// ── Speaker Name Input (editable on blur/Enter) ─────────────────────────────
+
+interface SpeakerNameInputProps {
+  speakerId: string
+  displayName: string
+  onRename: (speakerId: string, name: string) => void
+}
+
+function SpeakerNameInput({ speakerId, displayName, onRename }: SpeakerNameInputProps) {
+  const [draft, setDraft] = useState(displayName)
+
+  useEffect(() => {
+    setDraft(displayName)
+  }, [displayName])
+
+  const commit = useCallback(() => {
+    const trimmed = draft.trim()
+    if (trimmed && trimmed !== displayName) {
+      onRename(speakerId, trimmed)
+    } else {
+      setDraft(displayName)
+    }
+  }, [draft, displayName, speakerId, onRename])
+
+  return (
+    <input
+      className="timing-editor__lane-name-input"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') commit() }}
+    />
   )
 }
 
@@ -237,10 +472,12 @@ interface PhraseDetailPanelProps {
   phraseIndex: number
   totalPhrases: number
   speakerNames: Record<string, string>
+  allSpeakerIds: string[]
   onUpdateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
   onSplitPhrase: (splitBeforeWordIndex: number) => void
   onMergePhrase: () => void
   onLingerChange: (lingerSec: number) => void
+  onReassignSpeaker: (speakerId: string) => void
   onSeekTo: (timeSec: number) => void
 }
 
@@ -249,10 +486,12 @@ function PhraseDetailPanel({
   phraseIndex,
   totalPhrases,
   speakerNames,
+  allSpeakerIds,
   onUpdateWord,
   onSplitPhrase,
   onMergePhrase,
   onLingerChange,
+  onReassignSpeaker,
   onSeekTo,
 }: PhraseDetailPanelProps) {
   const lingerValue = phrase.lingerDuration ?? 1.0
@@ -283,6 +522,26 @@ function PhraseDetailPanel({
           </button>
         )}
       </div>
+
+      {/* Move to speaker dropdown */}
+      {allSpeakerIds.length > 1 && (
+        <div className="timing-editor__move-speaker-row">
+          <label className="timing-editor__move-speaker-label">
+            Move to speaker:
+          </label>
+          <select
+            className="timing-editor__move-speaker-select"
+            value={phrase.dominantSpeaker ?? ''}
+            onChange={(e) => onReassignSpeaker(e.target.value)}
+          >
+            {allSpeakerIds.map((sid) => (
+              <option key={sid} value={sid}>
+                {speakerNames[sid] ?? sid}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Per-phrase linger slider */}
       <div className="timing-editor__linger-row">

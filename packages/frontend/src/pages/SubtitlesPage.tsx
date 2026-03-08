@@ -8,7 +8,6 @@ import { StylePanel } from '../components/StylePanel/StylePanel.tsx'
 import { SpeakerStylePanel } from '../components/StylePanel/SpeakerStylePanel.tsx'
 import { PreviewPanel } from '../components/PreviewPanel.tsx'
 import { StageTabBar, type StageId } from '../components/StageTabBar.tsx'
-import { SpeakersStage } from '../components/SpeakersStage.tsx'
 import { TextEditor } from '../components/TextEditor/TextEditor.tsx'
 import { TimingEditor } from '../components/TimingEditor/TimingEditor.tsx'
 import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
@@ -36,10 +35,11 @@ export function SubtitlesPage() {
   const [getCurrentTime, setGetCurrentTime] = useState<(() => number) | null>(null)
   const [numSpeakers, setNumSpeakers] = useState<number | undefined>(undefined)
   const [topPercent, setTopPercent] = useState(45)
-  const [activeStage, setActiveStage] = useState<StageId>('text')
+  const [activeStage, setActiveStage] = useState<StageId>('timing')
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
   const [stageToast, setStageToast] = useState<StageToast | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const hasAutoDiarizedRef = useRef(false)
 
   // Tracks original phrase texts at transcription time for the Text->Timing transition
   // confirmation toast. Captured once when session first loads; updated on re-transcribe.
@@ -213,6 +213,22 @@ export function SubtitlesPage() {
       )
     }
   }, [transcribeState.status, uploadState.jobId, transcribeState.transcript, uploadState.job])
+
+  // Auto-diarize: trigger speaker detection once after transcription completes
+  useEffect(() => {
+    if (transcribeState.status !== 'transcribed') return
+    if (hasAutoDiarizedRef.current) return
+    if (!uploadState.jobId) return
+    hasAutoDiarizedRef.current = true
+    diarize(uploadState.jobId, numSpeakers)
+  }, [transcribeState.status, uploadState.jobId, diarize, numSpeakers])
+
+  // When diarization completes, switch to Timing stage with toast
+  useEffect(() => {
+    if (diarizeState.status !== 'done') return
+    setActiveStage('timing')
+    setStageToast({ message: 'Speaker detection complete.', key: Date.now() })
+  }, [diarizeState.status])
 
   // Global Cmd+Z / Cmd+Shift+Z keyboard shortcuts for undo/redo
   // Only active when transcription is complete (editing is live)
@@ -444,13 +460,9 @@ export function SubtitlesPage() {
             )}
 
             {activeStage === 'timing' && (
-              <TimingEditor seekToTime={seekToTime ?? (() => {})} jobId={uploadState.jobId!} />
-            )}
-
-            {activeStage === 'speakers' && (
-              <SpeakersStage
-                jobId={uploadState.jobId!}
+              <TimingEditor
                 seekToTime={seekToTime ?? (() => {})}
+                jobId={uploadState.jobId!}
                 diarizeState={diarizeState}
                 diarize={diarize}
                 numSpeakers={numSpeakers}

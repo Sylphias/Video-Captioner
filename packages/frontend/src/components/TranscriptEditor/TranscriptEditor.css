@@ -1,15 +1,3 @@
-/* Speaker lane colors */
-:root {
-  --speaker-color-0: #4A90D9;
-  --speaker-color-1: #E67E22;
-  --speaker-color-2: #27AE60;
-  --speaker-color-3: #9B59B6;
-  --speaker-color-4: #E74C3C;
-  --speaker-color-5: #1ABC9C;
-  --speaker-color-6: #F39C12;
-  --speaker-color-7: #95A5A6;
-}
-
 /* Speaker lane border coloring via data attribute */
 .phrase-row[data-speaker-index="0"] { border-left-color: var(--speaker-color-0); border-left-width: 3px; }
 .phrase-row[data-speaker-index="1"] { border-left-color: var(--speaker-color-1); border-left-width: 3px; }

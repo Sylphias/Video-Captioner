@@ -41,6 +41,10 @@ interface SubtitleStore {
   reset: () => void
   renameSpeaker: (speakerId: string, displayName: string) => void
   reassignWordSpeaker: (wordIndex: number, speakerId: string) => void
+  reassignPhraseSpeaker: (phraseIndex: number, speakerId: string) => void
+  deleteSpeaker: (speakerId: string, reassignTo: string) => void
+  deletePhrase: (phraseIndex: number) => void
+  addPhraseAtTime: (timeSec: number, speakerId: string) => void
 }
 
 const DEFAULT_STYLE: StyleProps = {
@@ -565,6 +569,159 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         : { ...state.speakerNames, [speakerId]: speakerId }
 
       return { session: { ...state.session, words, phrases }, speakerNames }
+    })
+  },
+
+  reassignPhraseSpeaker: (phraseIndex, speakerId) => {
+    set((state) => {
+      if (!state.session) return state
+      const phrase = state.session.phrases[phraseIndex]
+      if (!phrase) return state
+
+      pushUndo(state)
+
+      // Compute global word offset for this phrase
+      let globalOffset = 0
+      for (let i = 0; i < phraseIndex; i++) {
+        globalOffset += state.session.phrases[i].words.length
+      }
+
+      // Update all words in this phrase in the flat words array
+      const words = state.session.words.map((w, i) =>
+        i >= globalOffset && i < globalOffset + phrase.words.length
+          ? { ...w, speaker: speakerId }
+          : w
+      )
+
+      // Update phrases: only the target phrase changes
+      const phrases = state.session.phrases.map((p, i) => {
+        if (i !== phraseIndex) return p
+        const updatedWords = p.words.map((pw) => ({ ...pw, speaker: speakerId }))
+        return { ...p, words: updatedWords, dominantSpeaker: speakerId }
+      })
+
+      // Ensure the new speaker is in speakerNames
+      const speakerNames = state.speakerNames[speakerId]
+        ? state.speakerNames
+        : { ...state.speakerNames, [speakerId]: speakerId }
+
+      return { session: { ...state.session, words, phrases }, speakerNames }
+    })
+  },
+
+  deleteSpeaker: (speakerId, reassignTo) => {
+    set((state) => {
+      if (!state.session) return state
+
+      pushUndo(state)
+
+      // Reassign all words from deleted speaker to target speaker
+      const words = state.session.words.map((w) =>
+        w.speaker === speakerId ? { ...w, speaker: reassignTo } : w
+      )
+
+      // Rebuild phrases with updated speakers
+      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices)
+
+      // Remove deleted speaker from speakerNames and speakerStyles
+      const speakerNames = { ...state.speakerNames }
+      delete speakerNames[speakerId]
+      // Ensure reassignTo is in speakerNames
+      if (!speakerNames[reassignTo]) speakerNames[reassignTo] = reassignTo
+
+      const speakerStyles = { ...state.speakerStyles }
+      delete speakerStyles[speakerId]
+
+      return {
+        session: { ...state.session, words, phrases },
+        speakerNames,
+        speakerStyles,
+      }
+    })
+  },
+
+  deletePhrase: (phraseIndex) => {
+    set((state) => {
+      if (!state.session) return state
+      const phrase = state.session.phrases[phraseIndex]
+      if (!phrase || phrase.words.length === 0) return state
+      // Don't allow deleting the last phrase if it would leave no words
+      if (state.session.words.length <= phrase.words.length) return state
+
+      pushUndo(state)
+
+      // Compute global word offset for this phrase
+      let globalOffset = 0
+      for (let i = 0; i < phraseIndex; i++) {
+        globalOffset += state.session.phrases[i].words.length
+      }
+
+      const deleteCount = phrase.words.length
+      const words = state.session.words.filter(
+        (_, i) => i < globalOffset || i >= globalOffset + deleteCount
+      )
+
+      // Adjust manual split indices
+      const manualSplitWordIndices = new Set<number>()
+      for (const idx of state.session.manualSplitWordIndices) {
+        if (idx >= globalOffset && idx < globalOffset + deleteCount) continue
+        if (idx >= globalOffset + deleteCount) {
+          manualSplitWordIndices.add(idx - deleteCount)
+        } else {
+          manualSplitWordIndices.add(idx)
+        }
+      }
+
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      return { session: { words, phrases, manualSplitWordIndices } }
+    })
+  },
+
+  addPhraseAtTime: (timeSec, speakerId) => {
+    set((state) => {
+      if (!state.session) return state
+
+      pushUndo(state)
+
+      const DURATION = 0.5
+      const newWord: SessionWord = {
+        word: '...',
+        start: timeSec,
+        end: timeSec + DURATION,
+        confidence: 1,
+        speaker: speakerId,
+      }
+
+      // Find insertion point in sorted words array (by start time)
+      let insertIdx = 0
+      for (let i = 0; i < state.session.words.length; i++) {
+        if (state.session.words[i].start <= timeSec) {
+          insertIdx = i + 1
+        } else {
+          break
+        }
+      }
+
+      // Cap end time to not overlap with the next word
+      if (insertIdx < state.session.words.length) {
+        newWord.end = Math.min(newWord.end, state.session.words[insertIdx].start)
+      }
+
+      const words = [...state.session.words]
+      words.splice(insertIdx, 0, newWord)
+
+      // Shift manual split indices and add splits to isolate the new phrase
+      const manualSplitWordIndices = new Set<number>()
+      for (const idx of state.session.manualSplitWordIndices) {
+        manualSplitWordIndices.add(idx >= insertIdx ? idx + 1 : idx)
+      }
+      // Force phrase boundary before the new word
+      if (insertIdx > 0) manualSplitWordIndices.add(insertIdx)
+      // Force phrase boundary after the new word
+      if (insertIdx < words.length - 1) manualSplitWordIndices.add(insertIdx + 1)
+
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
 }))
