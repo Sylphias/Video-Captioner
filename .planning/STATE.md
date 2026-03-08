@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 6 of 6 (Editing Workflow Redesign)
-Plan: 0 of ? — scope redefined, needs discuss + plan
-Status: Ready to discuss Phase 6
-Last activity: 2026-03-06 — Phase 6 scope changed from Styling to 4-stage editing workflow redesign. 06-01 data layer (types, fonts, store, render pipeline) committed and retained. 06-02 style panel UI partially built but will be reshaped to fit Stage 4 of new workflow.
+Plan: 3 of ? (06-03 complete)
+Status: In Progress — stage navigation shell complete; Plans 04-05 remain (Text Editor, Timing Editor)
+Last activity: 2026-03-08 — 06-03 complete: 4-stage nav shell (StageTabBar, SpeakersStage, collapsible PreviewPanel, SubtitlesPage restructure)
 
-Progress: [████████████████████] 94%
+Progress: [████████████████████] 96%
 
 ## Performance Metrics
 
@@ -33,13 +33,14 @@ Progress: [████████████████████] 94%
 | 04-transcript-editor-and-grouping | 2 | ~1 day | — |
 | 04.1-multi-speaker-diarization | 2 | ~2 days | — |
 | 05-server-render-and-output | 2/3 | ~18 min | — |
-| 06-styling | 2/3 | ~7 min | — |
+| 06-styling | 3/? | ~32 min | — |
 
 **Recent Trend:**
 - Phase 05-01 complete — Remotion SSR pipeline implemented cleanly; bundle() verified working with 1.2s startup; TypeScript type workaround needed for Composition generic constraint
 - Phase 05-02 complete (8 min) — useRender hook + render UI implemented and verified; user confirmed burned-in subtitles in downloaded MP4
 - Phase 06-01 complete (5 min) — Styling data layer: extended StyleProps, per-speaker overrides, 8 Google Fonts, full stack speakerStyles propagation
 - Phase 06-02 complete (~2 min) — Style Controls UI: StylePanel (7 controls), SpeakerStylePanel (per-speaker overrides + animation), Transcript/Style tab bar in SubtitlesPage
+- Phase 06-03 complete (~25 min) — 4-stage nav shell: StageTabBar, SpeakersStage, collapsible PreviewPanel, SubtitlesPage restructured to stage-conditional rendering
 
 *Updated after each plan completion*
 
@@ -134,6 +135,10 @@ Recent decisions affecting current work:
 - [06-02]: Individual Zustand selectors per style field (not whole style object) — minimizes re-renders during rapid color picker drag
 - [06-02]: Toggle-to-override pattern in SpeakerStylePanel — checkbox checked initializes with default, unchecked removes field from SpeakerStyleOverride entirely
 - [06-02]: Animation type selector unconditional per speaker; other override fields use opt-in checkboxes — animation is primary per-speaker customization
+- [06-03]: StageId type exported from StageTabBar.tsx — SubtitlesPage imports component + type from one location
+- [06-03]: diarizeState/diarize/numSpeakers/setNumSpeakers passed as explicit props to SpeakersStage — useDiarize is hook-scoped state, not in Zustand
+- [06-03]: Preview collapse button opacity:0 by default, shown on .preview-panel:hover — keeps video UI uncluttered
+- [06-03]: Text stage keeps TranscriptEditor as fallback — placeholder alone would break editing until Plan 04
 
 ### Roadmap Evolution
 
@@ -157,7 +162,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-06
-Stopped at: Completed 06-02-PLAN.md Tasks 1-2 — awaiting human verification (Task 3 checkpoint). Style Controls UI built.
+Last session: 2026-03-08
+Stopped at: Completed 06-03-PLAN.md — 4-stage navigation shell complete. Speakers and Styling stages functional; Text/Timing are placeholders.
 Resume with: `/gsd:execute-phase 6`
 Resume file: None
