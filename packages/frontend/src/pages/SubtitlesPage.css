@@ -86,6 +86,7 @@
   align-items: center;
   gap: 1rem;
   padding-top: 0.5rem;
+  position: relative; /* anchor for .subtitles-page__stage-toast */
 }
 
 /* ---- Progress card ---- */
@@ -444,6 +445,31 @@
 .subtitles-page__undo-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* ---- Stage transition toast ---- */
+/* Slides in from above the tab bar, holds for ~1.5s, fades out. */
+@keyframes toast-fade-in-out {
+  0%   { opacity: 0; transform: translateY(-6px); }
+  10%  { opacity: 1; transform: translateY(0); }
+  75%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
+.subtitles-page__stage-toast {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: color-mix(in srgb, var(--color-accent-green) 15%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-accent-green) 35%, transparent);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  animation: toast-fade-in-out 2s ease forwards;
+  pointer-events: none;
 }
 
 /* ---- Upload another link ---- */

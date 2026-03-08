@@ -15,6 +15,12 @@ import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
 import { useUndoStore } from '../store/undoMiddleware.ts'
 import './SubtitlesPage.css'
 
+// Toast state for stage transition notifications
+interface StageToast {
+  message: string
+  key: number
+}
+
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
@@ -32,7 +38,13 @@ export function SubtitlesPage() {
   const [topPercent, setTopPercent] = useState(45)
   const [activeStage, setActiveStage] = useState<StageId>('text')
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
+  const [stageToast, setStageToast] = useState<StageToast | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Tracks original phrase texts at transcription time for the Text->Timing transition
+  // confirmation toast. Captured once when session first loads; updated on re-transcribe.
+  // Each entry is the joined word text of the corresponding phrase at load time.
+  const originalPhraseTextsRef = useRef<string[]>([])
 
   // Subscribe to undo/redo availability for button states
   const canUndo = useUndoStore((s) => s.canUndo)
@@ -139,6 +151,41 @@ export function SubtitlesPage() {
     }
   }, [])
 
+  // Stage transition handler with confirmation toast on Text -> other stage.
+  //
+  // Timestamp preservation note: going back from later stages to Text preserves
+  // timing adjustments on unchanged words. This is the default store behavior:
+  // - updateWord(idx, { word: text }) only touches the 'word' field, never timestamps.
+  // - updatePhraseText redistributes timestamps only for phrases whose word count changed.
+  // So back-navigation from Timing/Speakers/Styling to Text does NOT clobber timing data.
+  const handleStageChange = useCallback((newStage: StageId) => {
+    if (activeStage === 'text' && newStage !== 'text') {
+      // Compute how many phrases differ from the original (phrase-level comparison).
+      // This avoids word-index mismatches that occur when word counts change inside phrases
+      // (splits, merges, text edits that change word count via updatePhraseText).
+      const session = useSubtitleStore.getState().session
+      let modifiedCount = 0
+      if (session) {
+        session.phrases.forEach((phrase, i) => {
+          const currentText = phrase.words.map((w) => w.word).join(' ')
+          const originalText = originalPhraseTextsRef.current[i] ?? ''
+          if (currentText !== originalText) {
+            modifiedCount++
+          }
+        })
+      }
+
+      const message =
+        modifiedCount === 0
+          ? 'No text changes.'
+          : `Text changes saved. ${modifiedCount} ${modifiedCount === 1 ? 'phrase' : 'phrases'} modified.`
+
+      setStageToast({ message, key: Date.now() })
+    }
+
+    setActiveStage(newStage)
+  }, [activeStage])
+
   const resetAll = () => {
     resetUpload()
     resetTranscribe()
@@ -155,6 +202,16 @@ export function SubtitlesPage() {
     const metadata = uploadState.job?.metadata
     if (!jobId || !transcript || !metadata) return
     useSubtitleStore.getState().setJob(jobId, transcript, metadata)
+
+    // Capture original phrase texts for the Text->Timing transition confirmation toast.
+    // We snapshot this here (after setJob) so originalPhraseTextsRef always reflects the
+    // state at the moment transcription completed (or re-transcription completed).
+    const session = useSubtitleStore.getState().session
+    if (session) {
+      originalPhraseTextsRef.current = session.phrases.map((p) =>
+        p.words.map((w) => w.word).join(' ')
+      )
+    }
   }, [transcribeState.status, uploadState.jobId, transcribeState.transcript, uploadState.job])
 
   // Global Cmd+Z / Cmd+Shift+Z keyboard shortcuts for undo/redo
@@ -370,7 +427,16 @@ export function SubtitlesPage() {
           className="subtitles-page__editor-scroll"
           style={previewCollapsed ? undefined : { height: `${100 - topPercent}%` }}
         >
-          <StageTabBar activeStage={activeStage} onStageChange={setActiveStage} />
+          {stageToast && (
+            <div
+              key={stageToast.key}
+              className="subtitles-page__stage-toast"
+              onAnimationEnd={() => setStageToast(null)}
+            >
+              {stageToast.message}
+            </div>
+          )}
+          <StageTabBar activeStage={activeStage} onStageChange={handleStageChange} />
 
           <div className="subtitles-page__editor-section">
             {activeStage === 'text' && (
