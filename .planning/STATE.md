@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 6 of 6 (Editing Workflow Redesign)
-Plan: 4 of ? (06-04 complete)
-Status: In Progress — Text Editor and undo/redo complete; Plan 05 remains (Timing Editor)
-Last activity: 2026-03-08 — 06-04 complete: TextEditor (screenplay-style numbered lines, inline editing, split/merge, click-to-seek), useUndoStore (snapshot-based undo/redo, Cmd+Z/Cmd+Shift+Z)
+Plan: 5 of 5 (06-05 complete — ALL PLANS COMPLETE)
+Status: Complete — All phases and plans executed. Project feature-complete.
+Last activity: 2026-03-08 — 06-05 complete: TimingEditor (waveform timeline, phrase blocks, stacked lanes, per-phrase linger, word timestamp editing)
 
-Progress: [████████████████████] 96%
+Progress: [████████████████████] 100%
 
 ## Performance Metrics
 
@@ -33,7 +33,7 @@ Progress: [████████████████████] 96%
 | 04-transcript-editor-and-grouping | 2 | ~1 day | — |
 | 04.1-multi-speaker-diarization | 2 | ~2 days | — |
 | 05-server-render-and-output | 2/3 | ~18 min | — |
-| 06-styling | 3/? | ~32 min | — |
+| 06-styling | 5/5 | ~39 min | — |
 
 **Recent Trend:**
 - Phase 05-01 complete — Remotion SSR pipeline implemented cleanly; bundle() verified working with 1.2s startup; TypeScript type workaround needed for Composition generic constraint
@@ -142,6 +142,10 @@ Recent decisions affecting current work:
 - [Phase 06-styling]: useUndoStore is a separate Zustand store (not middleware on subtitleStore) — avoids circular dependency; subtitleStore calls useUndoStore.getState().pushSnapshot() before each mutation
 - [Phase 06-04]: StateSnapshot.manualSplitWordIndices stored as number[] (not Set) — structuredClone cannot clone Set; re-hydrated to Set<number> in restoreSnapshot
 - [Phase 06-04]: updatePhraseText: same word count -> text-only update preserving original timestamps; different word count -> redistribute timestamps evenly across phrase time window
+- [06-05]: FFmpeg waveform: mono 8kHz f32le PCM piped to stdout, downsampled to 2000 peaks via max amplitude bucketing; module-level Map cache by jobId prevents re-extraction
+- [06-05]: Per-phrase lingerDuration: SessionPhrase.lingerDuration -> TranscriptPhrase.lingerDuration -> PreviewPanel inputProps -> SubtitleOverlay (phrase.lingerDuration ?? style.lingerDuration ?? 1.0)
+- [06-05]: Greedy lane assignment for timeline: tracks laneEndTimes[], assigns to lowest available lane, capped at 3 lanes max to prevent excessive height
+- [06-05]: setPhraseLinger uses pushUndo before mutation — consistent with all other mutating store actions; updates phrase in-place without rebuilding phrase array
 
 ### Roadmap Evolution
 
@@ -166,6 +170,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-08
-Stopped at: Completed 06-04-PLAN.md — TextEditor and undo/redo complete. Text stage functional; Timing stage is placeholder.
-Resume with: `/gsd:execute-phase 6`
+Stopped at: Completed 06-05-PLAN.md — TimingEditor complete. Timing stage fully functional with waveform, phrase blocks, stacked lanes, per-phrase linger, and word timestamp editing. All phases complete.
+Resume with: N/A — project feature-complete
 Resume file: None
