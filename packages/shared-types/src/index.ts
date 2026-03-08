@@ -37,4 +37,5 @@ export interface Transcript {
 export interface TranscriptPhrase {
   words: TranscriptWord[]
   dominantSpeaker?: string  // e.g. "SPEAKER_00" — set by diarization, optional
+  lingerDuration?: number   // per-phrase linger in seconds; overrides global style.lingerDuration when set
 }

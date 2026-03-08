@@ -10,6 +10,7 @@ import { PreviewPanel } from '../components/PreviewPanel.tsx'
 import { StageTabBar, type StageId } from '../components/StageTabBar.tsx'
 import { SpeakersStage } from '../components/SpeakersStage.tsx'
 import { TextEditor } from '../components/TextEditor/TextEditor.tsx'
+import { TimingEditor } from '../components/TimingEditor/TimingEditor.tsx'
 import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
 import { useUndoStore } from '../store/undoMiddleware.ts'
 import './SubtitlesPage.css'
@@ -377,9 +378,7 @@ export function SubtitlesPage() {
             )}
 
             {activeStage === 'timing' && (
-              <div className="subtitles-page__stage-placeholder">
-                Timing Editor — coming in Plan 05
-              </div>
+              <TimingEditor seekToTime={seekToTime ?? (() => {})} jobId={uploadState.jobId!} />
             )}
 
             {activeStage === 'speakers' && (

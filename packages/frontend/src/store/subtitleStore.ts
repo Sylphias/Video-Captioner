@@ -33,6 +33,7 @@ interface SubtitleStore {
   addPhrase: (afterPhraseIndex: number) => void
   deleteWord: (wordIndex: number) => void
   updatePhraseText: (phraseIndex: number, newWords: string[]) => void
+  setPhraseLinger: (phraseIndex: number, lingerSec: number) => void
   resetSession: () => void
   setStyle: (partial: Partial<StyleProps>) => void
   setSpeakerStyle: (speakerId: string, override: SpeakerStyleOverride) => void
@@ -457,6 +458,22 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
 
       const phrases = buildSessionPhrases(words, manualSplitWordIndices)
       return { session: { words, phrases, manualSplitWordIndices } }
+    })
+  },
+
+  setPhraseLinger: (phraseIndex, lingerSec) => {
+    set((state) => {
+      if (!state.session) return state
+      const phrase = state.session.phrases[phraseIndex]
+      if (!phrase) return state
+
+      // Push undo snapshot before mutating
+      pushUndo(state)
+
+      const phrases = state.session.phrases.map((p, i) =>
+        i === phraseIndex ? { ...p, lingerDuration: lingerSec } : p
+      )
+      return { session: { ...state.session, phrases } }
     })
   },
 

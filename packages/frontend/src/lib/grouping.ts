@@ -24,6 +24,7 @@ export interface SessionPhrase {
   words: SessionWord[]
   isManualSplit: boolean
   dominantSpeaker?: string
+  lingerDuration?: number  // per-phrase linger in seconds; overrides global style.lingerDuration when set
 }
 
 /**

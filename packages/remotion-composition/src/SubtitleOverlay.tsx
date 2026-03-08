@@ -41,12 +41,13 @@ export function SubtitleOverlay({ phrases, style, speakerStyles }: SubtitleOverl
   const { fps } = useVideoConfig()
 
   const currentTimeSec = frame / fps
-  const lingerSec = style.lingerDuration ?? 1.0
 
   // Find ALL active phrases — supports overlapping speakers
+  // Per-phrase lingerDuration overrides global style.lingerDuration when set
   const activePhrases = phrases.filter((phrase) => {
+    const phraseLingerSec = phrase.lingerDuration ?? style.lingerDuration ?? 1.0
     const phraseStart = phrase.words[0].start
-    const phraseEnd = phrase.words[phrase.words.length - 1].end + lingerSec
+    const phraseEnd = phrase.words[phrase.words.length - 1].end + phraseLingerSec
     return currentTimeSec >= phraseStart && currentTimeSec <= phraseEnd
   })
 

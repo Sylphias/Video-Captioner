@@ -59,7 +59,7 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
     const videoSrc = `/api/jobs/${jobId}/video`
     return {
       videoSrc,
-      phrases: session.phrases.map((p) => ({ words: p.words, dominantSpeaker: p.dominantSpeaker })),
+      phrases: session.phrases.map((p) => ({ words: p.words, dominantSpeaker: p.dominantSpeaker, lingerDuration: p.lingerDuration })),
       style,
       speakerStyles,
     }
