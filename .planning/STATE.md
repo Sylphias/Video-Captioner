@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 6 of 6 (Editing Workflow Redesign)
-Plan: 3 of ? (06-03 complete)
-Status: In Progress — stage navigation shell complete; Plans 04-05 remain (Text Editor, Timing Editor)
-Last activity: 2026-03-08 — 06-03 complete: 4-stage nav shell (StageTabBar, SpeakersStage, collapsible PreviewPanel, SubtitlesPage restructure)
+Plan: 4 of ? (06-04 complete)
+Status: In Progress — Text Editor and undo/redo complete; Plan 05 remains (Timing Editor)
+Last activity: 2026-03-08 — 06-04 complete: TextEditor (screenplay-style numbered lines, inline editing, split/merge, click-to-seek), useUndoStore (snapshot-based undo/redo, Cmd+Z/Cmd+Shift+Z)
 
 Progress: [████████████████████] 96%
 
@@ -139,6 +139,9 @@ Recent decisions affecting current work:
 - [06-03]: diarizeState/diarize/numSpeakers/setNumSpeakers passed as explicit props to SpeakersStage — useDiarize is hook-scoped state, not in Zustand
 - [06-03]: Preview collapse button opacity:0 by default, shown on .preview-panel:hover — keeps video UI uncluttered
 - [06-03]: Text stage keeps TranscriptEditor as fallback — placeholder alone would break editing until Plan 04
+- [Phase 06-styling]: useUndoStore is a separate Zustand store (not middleware on subtitleStore) — avoids circular dependency; subtitleStore calls useUndoStore.getState().pushSnapshot() before each mutation
+- [Phase 06-04]: StateSnapshot.manualSplitWordIndices stored as number[] (not Set) — structuredClone cannot clone Set; re-hydrated to Set<number> in restoreSnapshot
+- [Phase 06-04]: updatePhraseText: same word count -> text-only update preserving original timestamps; different word count -> redistribute timestamps evenly across phrase time window
 
 ### Roadmap Evolution
 
@@ -163,6 +166,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-08
-Stopped at: Completed 06-03-PLAN.md — 4-stage navigation shell complete. Speakers and Styling stages functional; Text/Timing are placeholders.
+Stopped at: Completed 06-04-PLAN.md — TextEditor and undo/redo complete. Text stage functional; Timing stage is placeholder.
 Resume with: `/gsd:execute-phase 6`
 Resume file: None
