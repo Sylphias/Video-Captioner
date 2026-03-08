@@ -4,13 +4,14 @@ import { useTranscribe } from '../hooks/useTranscribe.ts'
 import { useDiarize } from '../hooks/useDiarize.ts'
 import { useRender } from '../hooks/useRender.ts'
 import { UploadZone } from '../components/UploadZone.tsx'
-import { TranscriptEditor } from '../components/TranscriptEditor/TranscriptEditor.tsx'
 import { StylePanel } from '../components/StylePanel/StylePanel.tsx'
 import { SpeakerStylePanel } from '../components/StylePanel/SpeakerStylePanel.tsx'
 import { PreviewPanel } from '../components/PreviewPanel.tsx'
 import { StageTabBar, type StageId } from '../components/StageTabBar.tsx'
 import { SpeakersStage } from '../components/SpeakersStage.tsx'
-import { useSubtitleStore } from '../store/subtitleStore.ts'
+import { TextEditor } from '../components/TextEditor/TextEditor.tsx'
+import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
+import { useUndoStore } from '../store/undoMiddleware.ts'
 import './SubtitlesPage.css'
 
 function formatDuration(seconds: number): string {
@@ -31,6 +32,10 @@ export function SubtitlesPage() {
   const [activeStage, setActiveStage] = useState<StageId>('text')
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Subscribe to undo/redo availability for button states
+  const canUndo = useUndoStore((s) => s.canUndo)
+  const canRedo = useUndoStore((s) => s.canRedo)
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -86,6 +91,53 @@ export function SubtitlesPage() {
     }
   }, [getCurrentTime])
 
+  const handleUndo = useCallback(() => {
+    const storeState = useSubtitleStore.getState()
+    const { session, style, speakerNames, speakerStyles } = storeState
+
+    // Build current snapshot to push to future stack
+    const currentSnapshot = {
+      session: session
+        ? {
+            words: structuredClone(session.words),
+            phrases: structuredClone(session.phrases),
+            manualSplitWordIndices: Array.from(session.manualSplitWordIndices),
+          }
+        : null,
+      style: structuredClone(style) as unknown as Record<string, unknown>,
+      speakerNames: { ...speakerNames },
+      speakerStyles: structuredClone(speakerStyles) as unknown as Record<string, Record<string, unknown>>,
+    }
+
+    const target = useUndoStore.getState().undo(currentSnapshot)
+    if (target) {
+      restoreSnapshot(target)
+    }
+  }, [])
+
+  const handleRedo = useCallback(() => {
+    const storeState = useSubtitleStore.getState()
+    const { session, style, speakerNames, speakerStyles } = storeState
+
+    const currentSnapshot = {
+      session: session
+        ? {
+            words: structuredClone(session.words),
+            phrases: structuredClone(session.phrases),
+            manualSplitWordIndices: Array.from(session.manualSplitWordIndices),
+          }
+        : null,
+      style: structuredClone(style) as unknown as Record<string, unknown>,
+      speakerNames: { ...speakerNames },
+      speakerStyles: structuredClone(speakerStyles) as unknown as Record<string, Record<string, unknown>>,
+    }
+
+    const target = useUndoStore.getState().redo(currentSnapshot)
+    if (target) {
+      restoreSnapshot(target)
+    }
+  }, [])
+
   const resetAll = () => {
     resetUpload()
     resetTranscribe()
@@ -103,6 +155,28 @@ export function SubtitlesPage() {
     if (!jobId || !transcript || !metadata) return
     useSubtitleStore.getState().setJob(jobId, transcript, metadata)
   }, [transcribeState.status, uploadState.jobId, transcribeState.transcript, uploadState.job])
+
+  // Global Cmd+Z / Cmd+Shift+Z keyboard shortcuts for undo/redo
+  // Only active when transcription is complete (editing is live)
+  useEffect(() => {
+    if (transcribeState.status !== 'transcribed') return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey
+      if (!isMod || e.key !== 'z') return
+
+      e.preventDefault()
+
+      if (e.shiftKey) {
+        handleRedo()
+      } else {
+        handleUndo()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [transcribeState.status, handleUndo, handleRedo])
 
   // State: idle — show upload zone
   if (uploadState.status === 'idle') {
@@ -219,6 +293,26 @@ export function SubtitlesPage() {
                 Go to subtitle
               </button>
 
+              {/* Undo / Redo buttons */}
+              <div className="subtitles-page__undo-controls">
+                <button
+                  className="subtitles-page__undo-btn"
+                  onClick={handleUndo}
+                  disabled={!canUndo}
+                  title="Undo (Cmd+Z)"
+                >
+                  Undo
+                </button>
+                <button
+                  className="subtitles-page__undo-btn"
+                  onClick={handleRedo}
+                  disabled={!canRedo}
+                  title="Redo (Cmd+Shift+Z)"
+                >
+                  Redo
+                </button>
+              </div>
+
               <div className="subtitles-page__render-controls">
                 <button
                   className="subtitles-page__render-btn"
@@ -279,13 +373,7 @@ export function SubtitlesPage() {
 
           <div className="subtitles-page__editor-section">
             {activeStage === 'text' && (
-              <>
-                <div className="subtitles-page__stage-placeholder">
-                  Text Editor — coming in Plan 04
-                </div>
-                {/* Temporary fallback so app remains functional */}
-                <TranscriptEditor seekToTime={seekToTime ?? (() => {})} />
-              </>
+              <TextEditor seekToTime={seekToTime ?? (() => {})} />
             )}
 
             {activeStage === 'timing' && (

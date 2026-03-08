@@ -418,6 +418,34 @@
   gap: 0;
 }
 
+/* ---- Undo / Redo controls ---- */
+.subtitles-page__undo-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.subtitles-page__undo-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.subtitles-page__undo-btn:hover:not(:disabled) {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+.subtitles-page__undo-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* ---- Upload another link ---- */
 .subtitles-page__reset-btn {
   background: transparent;

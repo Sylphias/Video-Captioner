@@ -1,0 +1,136 @@
+/* ---- Text Editor: screenplay-style phrase editor ---- */
+
+.text-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--spacing-md);
+  padding-bottom: var(--spacing-xl);
+}
+
+/* Empty state */
+.text-editor--empty {
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.text-editor__empty-msg {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ---- Line row: line number + optional speaker dot + editable text ---- */
+.text-editor__line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: 3px var(--spacing-xs);
+  border-radius: 4px;
+  transition: background var(--transition-fast);
+}
+
+.text-editor__line:hover {
+  background: var(--color-bg-surface);
+}
+
+/* ---- Line number gutter: click-to-seek ---- */
+.text-editor__line-number {
+  /* Fixed-width gutter */
+  flex-shrink: 0;
+  width: 36px;
+  text-align: right;
+  padding: 0 6px 0 0;
+
+  /* Text style */
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-disabled);
+  line-height: 1.6;
+
+  /* Interactive */
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  outline: none;
+  transition: color var(--transition-fast);
+}
+
+.text-editor__line-number:hover {
+  color: var(--color-accent-green);
+}
+
+/* ---- Speaker indicator dot ---- */
+.text-editor__speaker-indicator {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px; /* align with text baseline */
+  background: var(--color-text-disabled);
+  transition: background var(--transition-fast);
+}
+
+/* Speaker dot colors */
+.text-editor__speaker-indicator[data-speaker-index="0"] { background: var(--speaker-color-0, #4caf72); }
+.text-editor__speaker-indicator[data-speaker-index="1"] { background: var(--speaker-color-1, #5b9bd5); }
+.text-editor__speaker-indicator[data-speaker-index="2"] { background: var(--speaker-color-2, #e07e5b); }
+.text-editor__speaker-indicator[data-speaker-index="3"] { background: var(--speaker-color-3, #c375c7); }
+.text-editor__speaker-indicator[data-speaker-index="4"] { background: var(--speaker-color-4, #e0c05b); }
+.text-editor__speaker-indicator[data-speaker-index="5"] { background: var(--speaker-color-5, #5bc4c4); }
+.text-editor__speaker-indicator[data-speaker-index="6"] { background: var(--speaker-color-6, #e05b8e); }
+.text-editor__speaker-indicator[data-speaker-index="7"] { background: var(--speaker-color-7, #8e8ee0); }
+
+/* ---- Editable line content ---- */
+.text-editor__line-content {
+  flex: 1;
+  min-height: 1.5em;
+  padding: 1px 4px;
+  font-size: var(--font-size-base);
+  font-family: var(--font-family);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 2px;
+  transition: border-bottom-color var(--transition-fast), background var(--transition-fast);
+  cursor: text;
+}
+
+.text-editor__line-content:focus {
+  border-bottom-color: var(--color-accent-green);
+  background: color-mix(in srgb, var(--color-accent-green-muted) 40%, transparent);
+}
+
+/* ---- Active line highlight (currently-playing phrase) ---- */
+.text-editor__line--active .text-editor__line-content {
+  color: var(--color-accent-green);
+}
+
+.text-editor__line--active .text-editor__line-number {
+  color: var(--color-accent-green-dim);
+}
+
+/* ---- Add line button ---- */
+.text-editor__add-line-btn {
+  align-self: flex-start;
+  margin-top: var(--spacing-sm);
+  margin-left: 44px; /* align with line content (36px gutter + 8px gap) */
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.text-editor__add-line-btn:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
