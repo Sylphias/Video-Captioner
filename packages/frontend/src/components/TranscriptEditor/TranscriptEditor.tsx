@@ -60,26 +60,36 @@ export function TranscriptEditor({ seekToTime }: TranscriptEditorProps) {
             ? parseInt(phrase.dominantSpeaker.replace('SPEAKER_', ''), 10) % 8
             : undefined
           return (
-            <PhraseRow
-              key={phraseIndex}
-              phrase={phrase}
-              phraseIndex={phraseIndex}
-              globalWordOffset={offsets[phraseIndex]}
-              isLast={phraseIndex === session.phrases.length - 1}
-              onUpdateText={handleUpdateText}
-              onUpdateTimestamp={handleUpdateTimestamp}
-              onSplit={splitPhrase}
-              onMerge={mergePhrase}
-              onAddWord={addWord}
-              onDeleteWord={deleteWord}
-              onSeek={seekToTime}
-              dominantSpeaker={phrase.dominantSpeaker}
-              speakerDisplayName={phrase.dominantSpeaker ? speakerNames[phrase.dominantSpeaker] : undefined}
-              allSpeakers={allSpeakers}
-              speakerNames={speakerNames}
-              speakerIndex={speakerIndex}
-              onReassignSpeaker={reassignWordSpeaker}
-            />
+            <div key={phraseIndex}>
+              {phraseIndex > 0 && (
+                <button
+                  className="transcript-editor__insert-phrase-btn"
+                  onClick={() => addPhrase(phraseIndex - 1)}
+                  title="Insert phrase here"
+                >
+                  + Insert phrase
+                </button>
+              )}
+              <PhraseRow
+                phrase={phrase}
+                phraseIndex={phraseIndex}
+                globalWordOffset={offsets[phraseIndex]}
+                isLast={phraseIndex === session.phrases.length - 1}
+                onUpdateText={handleUpdateText}
+                onUpdateTimestamp={handleUpdateTimestamp}
+                onSplit={splitPhrase}
+                onMerge={mergePhrase}
+                onAddWord={addWord}
+                onDeleteWord={deleteWord}
+                onSeek={seekToTime}
+                dominantSpeaker={phrase.dominantSpeaker}
+                speakerDisplayName={phrase.dominantSpeaker ? speakerNames[phrase.dominantSpeaker] : undefined}
+                allSpeakers={allSpeakers}
+                speakerNames={speakerNames}
+                speakerIndex={speakerIndex}
+                onReassignSpeaker={reassignWordSpeaker}
+              />
+            </div>
           )
         })}
         <button

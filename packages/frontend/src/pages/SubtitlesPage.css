@@ -30,6 +30,16 @@
   overflow: hidden;
 }
 
+/* Collapsed preview: shrink top section to just the collapsed bar */
+.subtitles-page__top--collapsed {
+  flex: none;
+  height: auto !important;
+  min-height: 0;
+  overflow: visible;
+  gap: 0;
+  padding-bottom: 0.5rem;
+}
+
 .subtitles-page__top-controls {
   display: flex;
   align-items: center;
@@ -390,37 +400,15 @@
   margin: 0;
 }
 
-/* ---- Tab bar ---- */
-.subtitles-page__tab-bar {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  border-bottom: 1px solid var(--color-border);
-  width: 100%;
-  flex-shrink: 0;
-}
-
-.subtitles-page__tab {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--color-text-secondary);
+/* ---- Stage placeholder ---- */
+.subtitles-page__stage-placeholder {
+  padding: var(--spacing-lg);
   font-size: var(--font-size-sm);
-  padding: var(--spacing-xs) var(--spacing-md);
-  cursor: pointer;
-  margin-bottom: -1px;
-  transition: color var(--transition-fast), border-bottom-color var(--transition-fast);
-  white-space: nowrap;
-}
-
-.subtitles-page__tab:hover {
-  color: var(--color-text-primary);
-}
-
-.subtitles-page__tab--active {
-  color: var(--color-text-primary);
-  border-bottom-color: var(--color-accent-green);
-  font-weight: 500;
+  color: var(--color-text-secondary);
+  border: 1px dashed var(--color-border);
+  border-radius: 4px;
+  text-align: center;
+  margin-bottom: var(--spacing-md);
 }
 
 /* ---- Style panels container ---- */

@@ -8,6 +8,8 @@ import { TranscriptEditor } from '../components/TranscriptEditor/TranscriptEdito
 import { StylePanel } from '../components/StylePanel/StylePanel.tsx'
 import { SpeakerStylePanel } from '../components/StylePanel/SpeakerStylePanel.tsx'
 import { PreviewPanel } from '../components/PreviewPanel.tsx'
+import { StageTabBar, type StageId } from '../components/StageTabBar.tsx'
+import { SpeakersStage } from '../components/SpeakersStage.tsx'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
 import './SubtitlesPage.css'
 
@@ -26,7 +28,8 @@ export function SubtitlesPage() {
   const [getCurrentTime, setGetCurrentTime] = useState<(() => number) | null>(null)
   const [numSpeakers, setNumSpeakers] = useState<number | undefined>(undefined)
   const [topPercent, setTopPercent] = useState(45)
-  const [activeTab, setActiveTab] = useState<'transcript' | 'style'>('transcript')
+  const [activeStage, setActiveStage] = useState<StageId>('text')
+  const [previewCollapsed, setPreviewCollapsed] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
@@ -191,124 +194,118 @@ export function SubtitlesPage() {
     )
   }
 
-  // State: transcribed — show video preview with karaoke subtitles + transcript editor below
+  // State: transcribed — show 4-stage editing layout
   if (transcribeState.status === 'transcribed' && transcribeState.transcript) {
     return (
       <div className="subtitles-page subtitles-page--preview" ref={containerRef}>
-        <div className="subtitles-page__top" style={{ height: `${topPercent}%` }}>
+        {/* Top: preview panel */}
+        <div
+          className={`subtitles-page__top${previewCollapsed ? ' subtitles-page__top--collapsed' : ''}`}
+          style={previewCollapsed ? undefined : { height: `${topPercent}%` }}
+        >
           <PreviewPanel
             onSeekReady={(fn) => setSeekToTime(() => fn)}
             onGetTimeReady={(fn) => setGetCurrentTime(() => fn)}
+            collapsed={previewCollapsed}
+            onToggleCollapse={() => setPreviewCollapsed((c) => !c)}
           />
 
-          <div className="subtitles-page__top-controls">
-            <button
-              className="subtitles-page__goto-btn"
-              onClick={handleGoToSubtitle}
-            >
-              Go to subtitle
-            </button>
-
-            <div className="subtitles-page__diarize-controls">
-              <label className="subtitles-page__speakers-label">
-                Speakers
-                <input
-                  type="number"
-                  className="subtitles-page__speakers-input"
-                  min={1}
-                  max={20}
-                  placeholder="Auto"
-                  value={numSpeakers ?? ''}
-                  onChange={(e) => setNumSpeakers(e.target.value ? Number(e.target.value) : undefined)}
-                />
-              </label>
+          {!previewCollapsed && (
+            <div className="subtitles-page__top-controls">
               <button
-                className="subtitles-page__diarize-btn"
-                onClick={() => diarize(uploadState.jobId!, numSpeakers)}
-                disabled={diarizeState.status === 'diarizing'}
+                className="subtitles-page__goto-btn"
+                onClick={handleGoToSubtitle}
               >
-                {diarizeState.status === 'diarizing'
-                  ? `Detecting speakers... ${diarizeState.progress}%`
-                  : diarizeState.status === 'done'
-                    ? 'Re-detect speakers'
-                    : 'Detect speakers'}
-              </button>
-            </div>
-
-            {diarizeState.status === 'failed' && diarizeState.error && (
-              <p className="subtitles-page__diarize-error">{diarizeState.error}</p>
-            )}
-
-            <div className="subtitles-page__render-controls">
-              <button
-                className="subtitles-page__render-btn"
-                onClick={() => render(uploadState.jobId!)}
-                disabled={renderState.status === 'rendering'}
-              >
-                {renderState.status === 'rendering'
-                  ? `Rendering... ${renderState.progress}%`
-                  : renderState.status === 'rendered'
-                    ? 'Re-render MP4'
-                    : renderState.status === 'failed'
-                      ? 'Retry render'
-                      : 'Render MP4'}
+                Go to subtitle
               </button>
 
-              {renderState.status === 'rendered' && (
-                <a
-                  className="subtitles-page__download-btn"
-                  href={`/api/jobs/${uploadState.jobId}/download`}
-                  download
+              <div className="subtitles-page__render-controls">
+                <button
+                  className="subtitles-page__render-btn"
+                  onClick={() => render(uploadState.jobId!)}
+                  disabled={renderState.status === 'rendering'}
                 >
-                  Download MP4
-                </a>
+                  {renderState.status === 'rendering'
+                    ? `Rendering... ${renderState.progress}%`
+                    : renderState.status === 'rendered'
+                      ? 'Re-render MP4'
+                      : renderState.status === 'failed'
+                        ? 'Retry render'
+                        : 'Render MP4'}
+                </button>
+
+                {renderState.status === 'rendered' && (
+                  <a
+                    className="subtitles-page__download-btn"
+                    href={`/api/jobs/${uploadState.jobId}/download`}
+                    download
+                  >
+                    Download MP4
+                  </a>
+                )}
+              </div>
+
+              {renderState.status === 'rendering' && (
+                <div className="subtitles-page__render-progress">
+                  <div className="subtitles-page__progress-track">
+                    <div
+                      className="subtitles-page__progress-fill"
+                      style={{ width: `${renderState.progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {renderState.status === 'failed' && renderState.error && (
+                <p className="subtitles-page__render-error">{renderState.error}</p>
               )}
             </div>
+          )}
+        </div>
 
-            {renderState.status === 'rendering' && (
-              <div className="subtitles-page__render-progress">
-                <div className="subtitles-page__progress-track">
-                  <div
-                    className="subtitles-page__progress-fill"
-                    style={{ width: `${renderState.progress}%` }}
-                  />
+        {/* Resize handle (only visible when preview expanded) */}
+        {!previewCollapsed && (
+          <div className="subtitles-page__resize-handle" onMouseDown={handleResizeMouseDown}>
+            <div className="subtitles-page__resize-grip" />
+          </div>
+        )}
+
+        {/* Bottom: stage tab bar + editor content */}
+        <div
+          className="subtitles-page__editor-scroll"
+          style={previewCollapsed ? undefined : { height: `${100 - topPercent}%` }}
+        >
+          <StageTabBar activeStage={activeStage} onStageChange={setActiveStage} />
+
+          <div className="subtitles-page__editor-section">
+            {activeStage === 'text' && (
+              <>
+                <div className="subtitles-page__stage-placeholder">
+                  Text Editor — coming in Plan 04
                 </div>
+                {/* Temporary fallback so app remains functional */}
+                <TranscriptEditor seekToTime={seekToTime ?? (() => {})} />
+              </>
+            )}
+
+            {activeStage === 'timing' && (
+              <div className="subtitles-page__stage-placeholder">
+                Timing Editor — coming in Plan 05
               </div>
             )}
 
-            {renderState.status === 'failed' && renderState.error && (
-              <p className="subtitles-page__render-error">{renderState.error}</p>
+            {activeStage === 'speakers' && (
+              <SpeakersStage
+                jobId={uploadState.jobId!}
+                seekToTime={seekToTime ?? (() => {})}
+                diarizeState={diarizeState}
+                diarize={diarize}
+                numSpeakers={numSpeakers}
+                setNumSpeakers={setNumSpeakers}
+              />
             )}
-          </div>
-        </div>
 
-        <div className="subtitles-page__resize-handle" onMouseDown={handleResizeMouseDown}>
-          <div className="subtitles-page__resize-grip" />
-        </div>
-
-        <div className="subtitles-page__editor-scroll" style={{ height: `${100 - topPercent}%` }}>
-          {/* Tab bar */}
-          <div className="subtitles-page__tab-bar">
-            <button
-              className={`subtitles-page__tab${activeTab === 'transcript' ? ' subtitles-page__tab--active' : ''}`}
-              onClick={() => setActiveTab('transcript')}
-              type="button"
-            >
-              Transcript
-            </button>
-            <button
-              className={`subtitles-page__tab${activeTab === 'style' ? ' subtitles-page__tab--active' : ''}`}
-              onClick={() => setActiveTab('style')}
-              type="button"
-            >
-              Style
-            </button>
-          </div>
-
-          <div className="subtitles-page__editor-section">
-            {activeTab === 'transcript' ? (
-              <TranscriptEditor seekToTime={seekToTime ?? (() => {})} />
-            ) : (
+            {activeStage === 'styling' && (
               <div className="subtitles-page__style-panels">
                 <StylePanel />
                 <SpeakerStylePanel />

@@ -7,9 +7,11 @@ import './PreviewPanel.css'
 interface PreviewPanelProps {
   onSeekReady?: (seekFn: (timeSec: number) => void) => void
   onGetTimeReady?: (getTimeFn: () => number) => void
+  collapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
-export function PreviewPanel({ onSeekReady, onGetTimeReady }: PreviewPanelProps) {
+export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, onToggleCollapse }: PreviewPanelProps) {
   const jobId = useSubtitleStore((s) => s.jobId)
   const session = useSubtitleStore((s) => s.session)
   const videoMetadata = useSubtitleStore((s) => s.videoMetadata)
@@ -69,8 +71,33 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady }: PreviewPanelProps)
 
   const durationInFrames = Math.max(1, Math.floor(videoMetadata.duration * videoMetadata.fps))
 
+  // Collapsed state: show a thin bar with expand button
+  if (collapsed) {
+    return (
+      <div className="preview-panel preview-panel--collapsed">
+        <button
+          className="preview-panel__expand-btn"
+          type="button"
+          onClick={onToggleCollapse}
+        >
+          ▾ Show preview
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div ref={containerRef} className="preview-panel" style={{ maxWidth }}>
+      {onToggleCollapse && (
+        <button
+          className="preview-panel__collapse-btn"
+          type="button"
+          onClick={onToggleCollapse}
+          title="Hide preview"
+        >
+          ▴
+        </button>
+      )}
       <Player
         ref={playerRef}
         component={SubtitleComposition}

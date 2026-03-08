@@ -125,8 +125,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
-  max-height: 50vh;
-  overflow-y: auto;
 }
 
 .transcript-editor__header {
@@ -253,6 +251,33 @@
 .phrase-row__add-word-btn:hover {
   border-color: var(--color-accent-green);
   color: var(--color-accent-green);
+}
+
+/* ---- Insert phrase button (between rows) ---- */
+.transcript-editor__insert-phrase-btn {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-top: 1px dashed transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: 2px 0;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast), color var(--transition-fast), border-top-color var(--transition-fast);
+  text-align: left;
+  padding-left: var(--spacing-md);
+}
+
+.transcript-editor__insert-phrase-btn:hover {
+  opacity: 1;
+  color: var(--color-accent-green);
+  border-top-color: var(--color-accent-green);
+}
+
+.transcript-editor__list > div:hover > .transcript-editor__insert-phrase-btn {
+  opacity: 0.5;
 }
 
 /* ---- Add phrase button ---- */

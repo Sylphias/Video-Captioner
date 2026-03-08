@@ -65,7 +65,13 @@ export function WordCell({ word, wordIndex, onUpdateText, onUpdateTimestamp, onD
       if (!dragRef.current && Math.abs(deltaX) < 3) return // dead zone
       dragRef.current = true
       document.body.style.cursor = 'ew-resize'
-      const newVal = Math.max(0, startVal + deltaX * 0.01)
+      let newVal = Math.max(0, startVal + deltaX * 0.01)
+      // Clamp so start never exceeds end and end never goes below start
+      if (field === 'start') {
+        newVal = Math.min(newVal, word.end - 0.01)
+      } else {
+        newVal = Math.max(newVal, word.start + 0.01)
+      }
       setStr(newVal.toFixed(2))
     }
 
@@ -77,7 +83,12 @@ export function WordCell({ word, wordIndex, onUpdateText, onUpdateTimestamp, onD
       if (dragRef.current) {
         // Compute final value from drag delta (same formula as onMove)
         const deltaX = upE.clientX - startX
-        const newVal = Math.max(0, startVal + deltaX * 0.01)
+        let newVal = Math.max(0, startVal + deltaX * 0.01)
+        if (field === 'start') {
+          newVal = Math.min(newVal, word.end - 0.01)
+        } else {
+          newVal = Math.max(newVal, word.start + 0.01)
+        }
         setStr(newVal.toFixed(2))
         onUpdateTimestamp(wordIndex, field, parseFloat(newVal.toFixed(2)))
         // Blur to prevent accidental typing after drag
