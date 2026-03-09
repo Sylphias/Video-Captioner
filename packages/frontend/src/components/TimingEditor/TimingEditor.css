@@ -353,6 +353,13 @@
   box-shadow: 0 0 0 2px rgba(0, 230, 150, 0.2);
 }
 
+.timing-editor__phrase-block--dragging {
+  opacity: 0.85;
+  cursor: ew-resize;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
 .timing-editor__phrase-text {
   font-size: 0.625rem;
   color: rgba(255, 255, 255, 0.9);

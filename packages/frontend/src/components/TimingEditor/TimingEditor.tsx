@@ -81,6 +81,7 @@ export function TimingEditor({
     deleteSpeaker,
     deletePhrase,
     addPhraseAtTime,
+    shiftPhrase,
   } = useSubtitleStore()
 
   const { waveform } = useWaveform(jobId)
@@ -89,6 +90,10 @@ export function TimingEditor({
   const [dragOverLane, setDragOverLane] = useState<string | null>(null)
   const [deletingLane, setDeletingLane] = useState<string | null>(null)
   const [deleteReassignTo, setDeleteReassignTo] = useState<string>('')
+
+  // Phrase timing drag state
+  const [shiftDrag, setShiftDrag] = useState<{ phraseIndex: number; offsetPx: number } | null>(null)
+  const shiftDragRef = useRef<{ startX: number; phraseIndex: number } | null>(null)
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -135,8 +140,52 @@ export function TimingEditor({
     }
   }, [deletePhrase, selectedPhraseIndex])
 
-  // Drag and drop handlers
+  // Phrase timing shift: mousedown starts, mousemove updates visual offset, mouseup commits
+  const handlePhraseShiftStart = useCallback((e: React.MouseEvent, phraseIndex: number) => {
+    // Only left button, ignore if clicking delete button
+    if (e.button !== 0) return
+    e.preventDefault()
+    e.stopPropagation()
+    shiftDragRef.current = { startX: e.clientX, phraseIndex }
+    setShiftDrag({ phraseIndex, offsetPx: 0 })
+  }, [])
+
+  useEffect(() => {
+    if (!shiftDragRef.current) return
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!shiftDragRef.current) return
+      const offsetPx = e.clientX - shiftDragRef.current.startX
+      setShiftDrag({ phraseIndex: shiftDragRef.current.phraseIndex, offsetPx })
+    }
+
+    const onMouseUp = () => {
+      if (!shiftDragRef.current) return
+      const { phraseIndex } = shiftDragRef.current
+      shiftDragRef.current = null
+
+      setShiftDrag((prev) => {
+        if (prev && Math.abs(prev.offsetPx) > 2) {
+          const deltaSec = prev.offsetPx / PIXELS_PER_SECOND
+          // Use setTimeout to avoid setState-during-render
+          setTimeout(() => shiftPhrase(phraseIndex, deltaSec), 0)
+        }
+        return null
+      })
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [shiftDrag !== null, shiftPhrase]) // eslint-disable-line -- re-bind only when drag starts/stops
+
+  // Drag and drop handlers (cross-lane reassignment)
   const handleDragStart = useCallback((e: React.DragEvent, phraseIndex: number) => {
+    // Don't start DnD during timing shift
+    if (shiftDragRef.current) { e.preventDefault(); return }
     e.dataTransfer.setData('text/plain', String(phraseIndex))
     e.dataTransfer.effectAllowed = 'move'
   }, [])
@@ -363,16 +412,22 @@ export function TimingEditor({
                     const phraseText = phrase.words.map((w) => w.word).join(' ')
                     const blockBg = `var(--speaker-color-${colorIdx}, rgba(0, 230, 150, 0.4))`
 
+                    // Apply visual offset during timing shift drag
+                    const isDragging = shiftDrag?.phraseIndex === phraseIndex
+                    const visualLeft = isDragging ? left + shiftDrag.offsetPx : left
+
                     return (
                       <div
                         key={phraseIndex}
-                        className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}`}
-                        style={{ left, width, background: blockBg }}
+                        className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}${isDragging ? ' timing-editor__phrase-block--dragging' : ''}`}
+                        style={{ left: visualLeft, width, background: blockBg }}
                         onClick={(e) => {
                           e.stopPropagation()
-                          handlePhraseClick(phraseIndex)
+                          // Don't select if we just finished a drag
+                          if (!isDragging) handlePhraseClick(phraseIndex)
                         }}
                         title={phraseText}
+                        onMouseDown={(e) => handlePhraseShiftStart(e, phraseIndex)}
                         draggable
                         onDragStart={(e) => handleDragStart(e, phraseIndex)}
                       >

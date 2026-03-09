@@ -45,6 +45,7 @@ interface SubtitleStore {
   deleteSpeaker: (speakerId: string, reassignTo: string) => void
   deletePhrase: (phraseIndex: number) => void
   addPhraseAtTime: (timeSec: number, speakerId: string) => void
+  shiftPhrase: (phraseIndex: number, deltaSec: number) => void
 }
 
 const DEFAULT_STYLE: StyleProps = {
@@ -722,6 +723,56 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
 
       const phrases = buildSessionPhrases(words, manualSplitWordIndices)
       return { session: { words, phrases, manualSplitWordIndices } }
+    })
+  },
+
+  shiftPhrase: (phraseIndex, deltaSec) => {
+    set((state) => {
+      if (!state.session) return state
+      const phrase = state.session.phrases[phraseIndex]
+      if (!phrase || phrase.words.length === 0) return state
+
+      // Compute global word offset
+      let globalOffset = 0
+      for (let i = 0; i < phraseIndex; i++) {
+        globalOffset += state.session.phrases[i].words.length
+      }
+      const wordCount = phrase.words.length
+
+      // Clamp delta: phrase start can't go below 0
+      const phraseStart = phrase.words[0].start
+      const clampedDelta = Math.max(-phraseStart, deltaSec)
+
+      // Clamp: can't overlap with previous phrase's last word
+      let minStart = 0
+      if (globalOffset > 0) {
+        minStart = state.session.words[globalOffset - 1].end
+      }
+      const finalDelta = Math.max(minStart - phraseStart, clampedDelta)
+
+      // Clamp: can't overlap with next phrase's first word
+      const lastIdx = globalOffset + wordCount - 1
+      if (lastIdx < state.session.words.length - 1) {
+        const nextStart = state.session.words[lastIdx + 1].start
+        const phraseEnd = phrase.words[wordCount - 1].end
+        const maxDelta = nextStart - phraseEnd
+        if (finalDelta > maxDelta) return state // would overlap
+      }
+
+      if (Math.abs(finalDelta) < 0.001) return state
+
+      pushUndo(state)
+
+      // Shift all words in this phrase
+      const words = state.session.words.map((w, i) =>
+        i >= globalOffset && i < globalOffset + wordCount
+          ? { ...w, start: w.start + finalDelta, end: w.end + finalDelta }
+          : w
+      )
+
+      // Rebuild phrases (timestamps changed)
+      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices)
+      return { session: { ...state.session, words, phrases } }
     })
   },
 }))

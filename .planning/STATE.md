@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 Phase: 6 of 6 (Editing Workflow Redesign)
 Plan: 5 of 5 (06-05 complete — ALL PLANS COMPLETE)
-Status: Complete — All phases and plans executed. Project feature-complete.
-Last activity: 2026-03-08 — 06-05 complete: TimingEditor (waveform timeline, phrase blocks, stacked lanes, per-phrase linger, word timestamp editing)
+Status: Complete — All phases and plans executed. Post-phase refinements applied.
+Last activity: 2026-03-08 — Post-phase-6 refinements: speaker lanes redesign, auto-diarize, 3-stage flow (commit fa8d685)
 
 Progress: [████████████████████] 100%
 
@@ -146,6 +146,13 @@ Recent decisions affecting current work:
 - [06-05]: Per-phrase lingerDuration: SessionPhrase.lingerDuration -> TranscriptPhrase.lingerDuration -> PreviewPanel inputProps -> SubtitleOverlay (phrase.lingerDuration ?? style.lingerDuration ?? 1.0)
 - [06-05]: Greedy lane assignment for timeline: tracks laneEndTimes[], assigns to lowest available lane, capped at 3 lanes max to prevent excessive height
 - [06-05]: setPhraseLinger uses pushUndo before mutation — consistent with all other mutating store actions; updates phrase in-place without rebuilding phrase array
+- [post-06]: 3-stage flow (Timing → Text → Styling) replaces 4-stage — Speakers stage redundant after speaker management moved into TimingEditor lane headers
+- [post-06]: Auto-diarize after transcription with hasAutoDiarizedRef guard — speaker detection is always useful, no reason to require manual trigger
+- [post-06]: Speaker lanes replace greedy overlap lanes — buildSpeakerLanes() groups phrases by dominantSpeaker; each speaker gets a dedicated row with editable name and delete button
+- [post-06]: Waveform in its own row above speaker lanes (48px) — clearer audio overview than embedding in first lane at reduced opacity
+- [post-06]: Click empty lane space → addPhraseAtTime — crosshair cursor signals affordance; new phrase gets 0.5s duration capped to next word boundary
+- [post-06]: deletePhrase removes all words in phrase from flat array — won't delete if it would leave zero words; adjusts manual split indices
+- [post-06]: Phrase block × delete button: opacity:0 → visible on hover; positioned top-right absolute within phrase block
 
 ### Roadmap Evolution
 
@@ -170,6 +177,15 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-08
-Stopped at: Completed 06-05-PLAN.md — TimingEditor complete. Timing stage fully functional with waveform, phrase blocks, stacked lanes, per-phrase linger, and word timestamp editing. All phases complete.
-Resume with: N/A — project feature-complete
+Stopped at: Post-phase-6 checkpoint refinements (commit fa8d685). Implemented user feedback from phase 6 verification:
+  - Sticky StageTabBar (CSS position: sticky)
+  - 3-stage flow: Timing → Text → Styling (removed Speakers stage)
+  - Auto-diarize after transcription (hasAutoDiarizedRef guard)
+  - TimingEditor redesign: per-speaker lane rows with editable names, drag-drop phrase reassignment, delete lane with reassign confirmation
+  - Waveform row above speaker lanes (dedicated 48px row)
+  - Click empty lane space → addPhraseAtTime(timeSec, speakerId) store action
+  - Delete phrase × button on hover (deletePhrase store action)
+  - Store actions added: reassignPhraseSpeaker, deleteSpeaker, deletePhrase, addPhraseAtTime
+  - Speaker colors centralized in tokens.css; SpeakersStage.tsx/css deleted
+Resume with: Functional testing — verify the new speaker lanes, drag-drop, auto-diarize flow, add/delete phrase interactions end-to-end
 Resume file: None
