@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Transcript, VideoMetadata } from '@eigen/shared-types'
-import type { StyleProps, SpeakerStyleOverride } from '@eigen/remotion-composition'
+import type { StyleProps, SpeakerStyleOverride, AnimationType } from '@eigen/remotion-composition'
 import {
   type SessionWord,
   type SessionPhrase,
@@ -10,6 +10,9 @@ import {
 import { useUndoStore, type StateSnapshot } from './undoMiddleware.ts'
 
 export type { SessionWord, SessionPhrase }
+
+/** Style override shape for phrases — same as SpeakerStyleOverride but stored as Record<string, unknown> */
+export type PhraseStyleOverride = Partial<StyleProps> & { animationType?: AnimationType }
 
 interface SubtitleStore {
   jobId: string | null
@@ -21,6 +24,7 @@ interface SubtitleStore {
     manualSplitWordIndices: Set<number> // global word indices where user forced splits
   } | null
   style: StyleProps
+  maxWordsPerPhrase: number             // max words per auto-grouped phrase (default 8)
   speakerNames: Record<string, string>               // maps raw speaker IDs to display names
   speakerStyles: Record<string, SpeakerStyleOverride> // per-speaker style overrides
 
@@ -36,6 +40,7 @@ interface SubtitleStore {
   setPhraseLinger: (phraseIndex: number, lingerSec: number) => void
   resetSession: () => void
   setStyle: (partial: Partial<StyleProps>) => void
+  setMaxWordsPerPhrase: (n: number) => void
   setSpeakerStyle: (speakerId: string, override: SpeakerStyleOverride) => void
   clearSpeakerStyle: (speakerId: string) => void
   reset: () => void
@@ -46,6 +51,8 @@ interface SubtitleStore {
   deletePhrase: (phraseIndex: number) => void
   addPhraseAtTime: (timeSec: number, speakerId: string) => void
   shiftPhrase: (phraseIndex: number, deltaSec: number) => void
+  setPhraseStyle: (phraseIndex: number, override: PhraseStyleOverride) => void
+  clearPhraseStyle: (phraseIndex: number) => void
 }
 
 const DEFAULT_STYLE: StyleProps = {
@@ -53,6 +60,7 @@ const DEFAULT_STYLE: StyleProps = {
   baseColor: '#FFFFFF',
   fontSize: 48,
   fontFamily: 'Inter',
+  fontWeight: 700,
   strokeColor: '#000000',
   strokeWidth: 2,
   verticalPosition: 80,
@@ -66,6 +74,7 @@ const DEFAULT_STYLE: StyleProps = {
 function captureSnapshot(state: {
   session: SubtitleStore['session']
   style: StyleProps
+  maxWordsPerPhrase: number
   speakerNames: Record<string, string>
   speakerStyles: Record<string, SpeakerStyleOverride>
 }): StateSnapshot {
@@ -78,6 +87,7 @@ function captureSnapshot(state: {
         }
       : null,
     style: structuredClone(state.style) as unknown as Record<string, unknown>,
+    maxWordsPerPhrase: state.maxWordsPerPhrase,
     speakerNames: { ...state.speakerNames },
     speakerStyles: structuredClone(state.speakerStyles) as Record<string, Record<string, unknown>>,
   }
@@ -90,6 +100,7 @@ function captureSnapshot(state: {
 function pushUndo(state: {
   session: SubtitleStore['session']
   style: StyleProps
+  maxWordsPerPhrase: number
   speakerNames: Record<string, string>
   speakerStyles: Record<string, SpeakerStyleOverride>
 }): void {
@@ -116,6 +127,7 @@ export function restoreSnapshot(snapshot: StateSnapshot): void {
         manualSplitWordIndices,
       },
       style: structuredClone(snapshot.style) as unknown as StyleProps,
+      maxWordsPerPhrase: snapshot.maxWordsPerPhrase ?? 8,
       speakerNames: { ...snapshot.speakerNames },
       speakerStyles: structuredClone(snapshot.speakerStyles) as unknown as Record<string, SpeakerStyleOverride>,
     }
@@ -128,12 +140,13 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   videoMetadata: null,
   session: null,
   style: DEFAULT_STYLE,
+  maxWordsPerPhrase: 8,
   speakerNames: {},
   speakerStyles: {},
 
   setJob: (jobId, transcript, videoMetadata) => {
     const words: SessionWord[] = transcript.words.map((w) => ({ ...w }))
-    const phrases = buildSessionPhrases(words, new Set())
+    const phrases = buildSessionPhrases(words, new Set(), get().maxWordsPerPhrase)
     // Initialize speakerNames from unique speakers found in words
     const uniqueSpeakers = new Set<string>()
     for (const w of words) { if (w.speaker) uniqueSpeakers.add(w.speaker) }
@@ -179,7 +192,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
 
       let phrases: SessionPhrase[]
       if (rebuildPhrases) {
-        phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices)
+        phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
       } else {
         // Text edit: update the word text within the existing phrase structure
         // by finding it by its position match (start/end are unchanged)
@@ -304,7 +317,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         manualSplitWordIndices.add(globalIdx + 1)
       }
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -363,7 +376,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       }
       manualSplitWordIndices.add(globalIdx)
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -387,7 +400,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         manualSplitWordIndices.add(idx > wordIndex ? idx - 1 : idx)
       }
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -461,7 +474,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         manualSplitWordIndices.add(globalOffset)
       }
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -486,7 +499,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     set((state) => {
       if (!state.original) return state
       const words: SessionWord[] = state.original.words.map((w) => ({ ...w }))
-      const phrases = buildSessionPhrases(words, new Set())
+      const phrases = buildSessionPhrases(words, new Set(), state.maxWordsPerPhrase)
       // Re-initialize speakerNames from original transcript
       const uniqueSpeakers = new Set<string>()
       for (const w of words) { if (w.speaker) uniqueSpeakers.add(w.speaker) }
@@ -500,6 +513,18 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     set((state) => {
       pushUndo(state)
       return { style: { ...state.style, ...partial } }
+    })
+  },
+
+  setMaxWordsPerPhrase: (n) => {
+    set((state) => {
+      if (!state.session) return state
+      pushUndo(state)
+      const phrases = buildSessionPhrases(state.session.words, state.session.manualSplitWordIndices, n)
+      return {
+        maxWordsPerPhrase: n,
+        session: { ...state.session, phrases },
+      }
     })
   },
 
@@ -524,7 +549,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     })
   },
 
-  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, speakerNames: {}, speakerStyles: {} }),
+  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, maxWordsPerPhrase: 8, speakerNames: {}, speakerStyles: {} }),
 
   renameSpeaker: (speakerId, displayName) => {
     set((state) => {
@@ -622,7 +647,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       )
 
       // Rebuild phrases with updated speakers
-      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices)
+      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
 
       // Remove deleted speaker from speakerNames and speakerStyles
       const speakerNames = { ...state.speakerNames }
@@ -673,7 +698,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         }
       }
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -721,7 +746,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       // Force phrase boundary after the new word
       if (insertIdx < words.length - 1) manualSplitWordIndices.add(insertIdx + 1)
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices)
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -771,8 +796,38 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       )
 
       // Rebuild phrases (timestamps changed)
-      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices)
+      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
       return { session: { ...state.session, words, phrases } }
+    })
+  },
+
+  setPhraseStyle: (phraseIndex, override) => {
+    set((state) => {
+      if (!state.session) return state
+      const phrase = state.session.phrases[phraseIndex]
+      if (!phrase) return state
+
+      pushUndo(state)
+
+      const phrases = state.session.phrases.map((p, i) =>
+        i === phraseIndex
+          ? { ...p, styleOverride: { ...(p.styleOverride as PhraseStyleOverride | undefined), ...override } }
+          : p
+      )
+      return { session: { ...state.session, phrases } }
+    })
+  },
+
+  clearPhraseStyle: (phraseIndex) => {
+    set((state) => {
+      if (!state.session) return state
+
+      pushUndo(state)
+
+      const phrases = state.session.phrases.map((p, i) =>
+        i === phraseIndex ? { ...p, styleOverride: undefined } : p
+      )
+      return { session: { ...state.session, phrases } }
     })
   },
 }))

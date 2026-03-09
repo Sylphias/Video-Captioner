@@ -1,0 +1,69 @@
+/* ---- Drawer overlay ---- */
+.style-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ---- Drawer panel ---- */
+.style-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 340px;
+  max-width: 90vw;
+  z-index: 100;
+  background: var(--color-bg-elevated, #1a1a2e);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+
+.style-drawer--open {
+  transform: translateX(0);
+}
+
+/* ---- Header ---- */
+.style-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.style-drawer__title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.style-drawer__close-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  line-height: 1;
+  border-radius: 4px;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.style-drawer__close-btn:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+}
+
+/* ---- Body ---- */
+.style-drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}

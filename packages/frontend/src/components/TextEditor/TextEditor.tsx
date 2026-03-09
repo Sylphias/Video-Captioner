@@ -4,9 +4,10 @@ import './TextEditor.css'
 
 interface TextEditorProps {
   seekToTime: (timeSec: number) => void
+  onEditPhrase?: (phraseIndex: number) => void
 }
 
-export function TextEditor({ seekToTime }: TextEditorProps) {
+export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
   const session = useSubtitleStore((s) => s.session)
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
   const { splitPhrase, mergePhrase, addPhrase, updatePhraseText } = useSubtitleStore()
@@ -28,7 +29,8 @@ export function TextEditor({ seekToTime }: TextEditorProps) {
     if (phrase && phrase.words.length > 0) {
       seekToTime(phrase.words[0].start)
     }
-  }, [session, seekToTime])
+    if (onEditPhrase) onEditPhrase(phraseIndex)
+  }, [session, seekToTime, onEditPhrase])
 
   const handleBlur = useCallback((phraseIndex: number) => {
     if (!session) return

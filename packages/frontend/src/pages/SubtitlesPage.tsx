@@ -4,10 +4,9 @@ import { useTranscribe } from '../hooks/useTranscribe.ts'
 import { useDiarize } from '../hooks/useDiarize.ts'
 import { useRender } from '../hooks/useRender.ts'
 import { UploadZone } from '../components/UploadZone.tsx'
-import { StylePanel } from '../components/StylePanel/StylePanel.tsx'
-import { SpeakerStylePanel } from '../components/StylePanel/SpeakerStylePanel.tsx'
 import { PreviewPanel } from '../components/PreviewPanel.tsx'
 import { StageTabBar, type StageId } from '../components/StageTabBar.tsx'
+import { StyleDrawer, type DrawerMode } from '../components/StyleDrawer/StyleDrawer.tsx'
 import { TextEditor } from '../components/TextEditor/TextEditor.tsx'
 import { TimingEditor } from '../components/TimingEditor/TimingEditor.tsx'
 import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
@@ -38,6 +37,7 @@ export function SubtitlesPage() {
   const [activeStage, setActiveStage] = useState<StageId>('timing')
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
   const [stageToast, setStageToast] = useState<StageToast | null>(null)
+  const [drawerMode, setDrawerMode] = useState<DrawerMode | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const hasAutoDiarizedRef = useRef(false)
 
@@ -413,6 +413,14 @@ export function SubtitlesPage() {
                 )}
               </div>
 
+              <button
+                className="subtitles-page__styling-btn"
+                type="button"
+                onClick={() => setDrawerMode({ type: 'global' })}
+              >
+                Global Styling
+              </button>
+
               {renderState.status === 'rendering' && (
                 <div className="subtitles-page__render-progress">
                   <div className="subtitles-page__progress-track">
@@ -456,26 +464,26 @@ export function SubtitlesPage() {
 
           <div className="subtitles-page__editor-section">
             {activeStage === 'text' && (
-              <TextEditor seekToTime={seekToTime ?? (() => {})} />
+              <TextEditor
+                seekToTime={seekToTime ?? (() => {})}
+                onEditPhrase={(phraseIndex) => setDrawerMode({ type: 'phrase', phraseIndex })}
+              />
             )}
 
             {activeStage === 'timing' && (
               <TimingEditor
                 seekToTime={seekToTime ?? (() => {})}
+                getCurrentTime={getCurrentTime}
                 jobId={uploadState.jobId!}
                 diarizeState={diarizeState}
                 diarize={diarize}
                 numSpeakers={numSpeakers}
                 setNumSpeakers={setNumSpeakers}
+                onEditSpeaker={(speakerId) => setDrawerMode({ type: 'speaker', speakerId })}
+                onEditPhrase={(phraseIndex) => setDrawerMode({ type: 'phrase', phraseIndex })}
               />
             )}
 
-            {activeStage === 'styling' && (
-              <div className="subtitles-page__style-panels">
-                <StylePanel />
-                <SpeakerStylePanel />
-              </div>
-            )}
           </div>
 
           <button
@@ -489,6 +497,8 @@ export function SubtitlesPage() {
             Upload another video
           </button>
         </div>
+
+        <StyleDrawer mode={drawerMode} onClose={() => setDrawerMode(null)} />
       </div>
     )
   }

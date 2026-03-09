@@ -12,6 +12,7 @@ const DEFAULT_PROPS: SubtitleCompositionProps = {
     baseColor: '#FFFFFF',
     fontSize: 48,
     fontFamily: 'sans-serif',
+    fontWeight: 700,
     strokeColor: '#000000',
     strokeWidth: 2,
     verticalPosition: 80,

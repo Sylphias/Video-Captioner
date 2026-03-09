@@ -130,7 +130,7 @@ Plans:
   5. Stage 4 (Styling): User can customize fonts, colors, stroke, position, and per-speaker overrides with live preview
   6. Each stage's changes are immediately reflected in the video preview
   7. User can navigate back to previous stages without losing work
-**Plans:** 6 plans (2 data layer complete, 4 workflow redesign)
+**Plans:** 7 plans (2 data layer complete, 5 workflow redesign)
 
 Plans:
 - [x] 06-01-PLAN.md — Styling data layer: extended StyleProps, per-speaker overrides, 8 Google Fonts, full stack speakerStyles propagation
@@ -139,6 +139,7 @@ Plans:
 - [ ] 06-04-PLAN.md — Text Editor (Stage 1): screenplay-style numbered lines, Enter/Backspace split/merge, global undo/redo
 - [ ] 06-05-PLAN.md — Timing Editor (Stage 2): waveform timeline, phrase blocks, numeric timestamps, per-phrase linger, stacked lanes
 - [ ] 06-06-PLAN.md — Stage transitions, polish, and end-to-end verification
+- [ ] 06-07-PLAN.md — Global time-shift: slider/input to offset all word timestamps by a fixed amount (positive or negative) to correct systematic transcription drift
 
 ## Progress
 
@@ -153,4 +154,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Transcript Editor and Grouping | 2/2 | ✓ Complete | 2026-03-04 |
 | 4.1 Multi-Speaker Diarization | 2/2 | ✓ Complete | 2026-03-05 |
 | 5. Server Render and Output | 2/2 | ✓ Complete | 2026-03-06 |
-| 6. Editing Workflow Redesign | 2/6 | In progress | - |
+| 6. Editing Workflow Redesign | 2/7 | In progress | - |

@@ -58,32 +58,42 @@ export function SubtitleOverlay({ phrases, style, speakerStyles }: SubtitleOverl
   // Render up to 2 simultaneous phrases (primary + secondary)
   const visiblePhrases = activePhrases.slice(0, 2)
 
+  // Pre-compute effective styles to detect position collisions
+  const phraseStyles = visiblePhrases.map((activePhrase) => {
+    const dominantSpeaker = activePhrase.dominantSpeaker
+    const override: SpeakerStyleOverride = dominantSpeaker ? (speakerStyles[dominantSpeaker] ?? {}) : {}
+    const phraseOverride = (activePhrase.styleOverride ?? {}) as SpeakerStyleOverride
+    return { ...style, ...override, ...phraseOverride } as StyleProps
+  })
+
   return (
     <>
       {visiblePhrases.map((activePhrase, phraseIdx) => {
         const activeWordIndex = findActiveWordIndex(activePhrase.words, currentTimeSec)
 
-        // Merge per-speaker style override with global style
-        const dominantSpeaker = activePhrase.dominantSpeaker
-        const override: SpeakerStyleOverride = dominantSpeaker ? (speakerStyles[dominantSpeaker] ?? {}) : {}
-        const effectiveStyle: StyleProps = { ...style, ...override }
+        const effectiveStyle = phraseStyles[phraseIdx]
 
-        // Secondary phrase renders below the primary
-        const positionOffset = phraseIdx * OVERLAP_OFFSET_PCT
+        // Each phrase renders at its own vertical position; offset only on exact collision
+        let top = effectiveStyle.verticalPosition
+        if (phraseIdx > 0 && top === phraseStyles[0].verticalPosition) {
+          top += OVERLAP_OFFSET_PCT
+        }
 
         return (
           <div
             key={`${activePhrase.words[0].start}-${phraseIdx}`}
             style={{
               position: 'absolute',
-              top: `${effectiveStyle.verticalPosition + positionOffset}%`,
+              top: `${top}%`,
               transform: 'translateY(-50%)',
               left: '5%',
               right: '5%',
               textAlign: 'center',
               fontSize: effectiveStyle.fontSize,
               fontFamily: effectiveStyle.fontFamily,
+              fontWeight: effectiveStyle.fontWeight,
               lineHeight: 1.4,
+              paintOrder: effectiveStyle.strokeWidth > 0 ? 'stroke fill' : undefined,
               WebkitTextStroke: effectiveStyle.strokeWidth > 0
                 ? `${effectiveStyle.strokeWidth}px ${effectiveStyle.strokeColor}`
                 : undefined,

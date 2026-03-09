@@ -5,6 +5,7 @@ export interface StyleProps {
   baseColor: string        // e.g. '#FFFFFF'
   fontSize: number         // px
   fontFamily: string
+  fontWeight: number       // CSS font-weight: 300-900
   strokeColor: string      // e.g. '#000000' — outline color for text stroke
   strokeWidth: number      // px — 0 means no stroke
   verticalPosition: number // 0-100 percentage from top of frame

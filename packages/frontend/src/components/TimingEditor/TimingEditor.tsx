@@ -8,11 +8,14 @@ import './TimingEditor.css'
 
 interface TimingEditorProps {
   seekToTime: (timeSec: number) => void
+  getCurrentTime?: (() => number) | null
   jobId: string
   diarizeState: DiarizeState
   diarize: (jobId: string, numSpeakers?: number) => void
   numSpeakers: number | undefined
   setNumSpeakers: (n: number | undefined) => void
+  onEditSpeaker?: (speakerId: string) => void
+  onEditPhrase?: (phraseIndex: number) => void
 }
 
 const PIXELS_PER_SECOND = 100
@@ -56,6 +59,12 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+function formatTimePrecise(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toFixed(2).padStart(5, '0')}`
+}
+
 /** Get speaker color index (0-7) from a speaker ID. */
 function getSpeakerColorIndex(speakerId: string): number {
   return parseInt(speakerId.replace('SPEAKER_', ''), 10) % 8
@@ -63,11 +72,14 @@ function getSpeakerColorIndex(speakerId: string): number {
 
 export function TimingEditor({
   seekToTime,
+  getCurrentTime,
   jobId,
   diarizeState,
   diarize,
   numSpeakers,
   setNumSpeakers,
+  onEditSpeaker,
+  onEditPhrase,
 }: TimingEditorProps) {
   const session = useSubtitleStore((s) => s.session)
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
@@ -97,6 +109,22 @@ export function TimingEditor({
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+  // Playhead: poll current video time via rAF
+  const [playheadX, setPlayheadX] = useState<number>(0)
+  const [playheadTime, setPlayheadTime] = useState<number>(0)
+  useEffect(() => {
+    if (!getCurrentTime) return
+    let raf = 0
+    const tick = () => {
+      const t = getCurrentTime()
+      setPlayheadX(t * PIXELS_PER_SECOND)
+      setPlayheadTime(t)
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [getCurrentTime])
+
   // Determine the total timeline duration (from waveform or last word end)
   const totalDuration = waveform?.duration ?? (() => {
     if (!session || session.words.length === 0) return 60
@@ -119,6 +147,12 @@ export function TimingEditor({
       seekToTime(phrase.words[0].start)
     }
   }, [phrases, seekToTime])
+
+  const handleEditPhrase = useCallback((e: React.MouseEvent, phraseIndex: number) => {
+    e.stopPropagation()
+    setSelectedPhraseIndex(phraseIndex)
+    if (onEditPhrase) onEditPhrase(phraseIndex)
+  }, [onEditPhrase])
 
   // Click empty space on a lane track → add a new phrase at that time for that speaker
   const handleLaneTrackClick = useCallback((e: React.MouseEvent, speakerId: string) => {
@@ -232,6 +266,16 @@ export function TimingEditor({
     setDeleteReassignTo('')
   }, [])
 
+  // Click on ruler or waveform → seek to that time position
+  // The ruler/waveform elements span the full timeline width inside the scroll container,
+  // so getBoundingClientRect().left already reflects the scroll offset — no need to add scrollLeft.
+  const handleTimelineClick = useCallback((e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const timeSec = clickX / PIXELS_PER_SECOND
+    seekToTime(Math.max(0, timeSec))
+  }, [seekToTime])
+
   // Build time ruler tick marks: minor ticks every second, labels every 5s
   const rulerTicks = (() => {
     const ticks: Array<{ time: number; major: boolean }> = []
@@ -294,8 +338,16 @@ export function TimingEditor({
 
       {/* Horizontally scrollable timeline with speaker lanes */}
       <div className="timing-editor__timeline-scroll" ref={scrollContainerRef}>
+        {/* Playhead line */}
+        <div
+          className="timing-editor__playhead"
+          style={{ left: playheadX }}
+        >
+          <span className="timing-editor__playhead-time">{formatTimePrecise(playheadTime)}</span>
+        </div>
+
         {/* Time ruler */}
-        <div className="timing-editor__ruler" style={{ width: timelineWidth }}>
+        <div className="timing-editor__ruler" style={{ width: timelineWidth }} onClick={handleTimelineClick}>
           {rulerTicks.map(({ time, major }) => (
             <div
               key={time}
@@ -311,7 +363,7 @@ export function TimingEditor({
 
         {/* Waveform row — above speaker lanes */}
         {waveform && (
-          <div className="timing-editor__waveform-row" style={{ width: timelineWidth }}>
+          <div className="timing-editor__waveform-row" style={{ width: timelineWidth }} onClick={handleTimelineClick}>
             <WaveformCanvas
               samples={waveform.samples}
               duration={waveform.duration}
@@ -347,16 +399,28 @@ export function TimingEditor({
                     displayName={speakerNames[lane.speakerId] ?? lane.speakerId}
                     onRename={renameSpeaker}
                   />
-                  {allSpeakerIds.length > 1 && (
-                    <button
-                      className="timing-editor__lane-delete-btn"
-                      type="button"
-                      onClick={() => handleDeleteLane(lane.speakerId)}
-                      title="Delete this speaker lane"
-                    >
-                      ×
-                    </button>
-                  )}
+                  <div className="timing-editor__lane-actions">
+                    {onEditSpeaker && (
+                      <button
+                        className="timing-editor__lane-edit-btn"
+                        type="button"
+                        onClick={() => onEditSpeaker(lane.speakerId)}
+                        title="Edit speaker style"
+                      >
+                        ✎
+                      </button>
+                    )}
+                    {allSpeakerIds.length > 1 && (
+                      <button
+                        className="timing-editor__lane-delete-btn"
+                        type="button"
+                        onClick={() => handleDeleteLane(lane.speakerId)}
+                        title="Delete this speaker lane"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
 
                   {/* Inline delete confirmation */}
                   {isDeleting && (
@@ -431,7 +495,23 @@ export function TimingEditor({
                         draggable
                         onDragStart={(e) => handleDragStart(e, phraseIndex)}
                       >
+                        {/* Word-end markers (red lines showing where each word ends) */}
+                        {phrase.words.length > 1 && phrase.words.slice(0, -1).map((w, wi) => (
+                          <span
+                            key={wi}
+                            className="timing-editor__word-end-marker"
+                            style={{ left: (w.end - firstWord.start) * PIXELS_PER_SECOND }}
+                          />
+                        ))}
                         <span className="timing-editor__phrase-text">{phraseText}</span>
+                        <button
+                          className="timing-editor__phrase-edit"
+                          type="button"
+                          onClick={(e) => handleEditPhrase(e, phraseIndex)}
+                          title="Edit phrase style"
+                        >
+                          ✎
+                        </button>
                         <button
                           className="timing-editor__phrase-delete"
                           type="button"
@@ -464,7 +544,17 @@ export function TimingEditor({
             for (let i = 0; i < selectedPhraseIndex; i++) {
               globalOffset += phrases[i].words.length
             }
+            // Clamp end time: cannot exceed next word's end - 0.1s
+            if (patch.end !== undefined && wordIndex < selectedPhrase.words.length - 1) {
+              const nextWord = selectedPhrase.words[wordIndex + 1]
+              const maxEnd = nextWord.end - 0.1
+              patch = { ...patch, end: Math.min(patch.end, maxEnd) }
+            }
             updateWord(globalOffset + wordIndex, patch)
+            // When end time changes, cascade to next word's start time
+            if (patch.end !== undefined && wordIndex < selectedPhrase.words.length - 1) {
+              updateWord(globalOffset + wordIndex + 1, { start: patch.end })
+            }
           }}
           onSplitPhrase={(splitBeforeWordIndex) => {
             splitPhrase(selectedPhraseIndex, splitBeforeWordIndex)
@@ -687,6 +777,44 @@ function WordTimingRow({
     }
   }, [endDraft, wordIndex, onUpdateWord, word.end])
 
+  // Drag-to-adjust: horizontal scrub on timestamp inputs
+  // 100px of mouse movement = 1 second of change
+  const dragRef = useRef<{ startX: number; startVal: number; field: 'start' | 'end' } | null>(null)
+
+  const handleDragStart = useCallback((e: React.MouseEvent, field: 'start' | 'end') => {
+    // Only initiate drag on middle area of input (not spinner buttons)
+    if (e.button !== 0) return
+    const startVal = field === 'start' ? word.start : word.end
+    dragRef.current = { startX: e.clientX, startVal, field }
+
+    const handleMove = (me: MouseEvent) => {
+      if (!dragRef.current) return
+      const dx = me.clientX - dragRef.current.startX
+      // 100px = 1 second; hold shift for fine mode (100px = 0.1s)
+      const sensitivity = me.shiftKey ? 0.001 : 0.01
+      const newVal = Math.max(0, dragRef.current.startVal + dx * sensitivity)
+      const formatted = newVal.toFixed(3)
+      if (dragRef.current.field === 'start') {
+        setStartDraft(formatted)
+        onUpdateWord(wordIndex, { start: newVal })
+      } else {
+        setEndDraft(formatted)
+        onUpdateWord(wordIndex, { end: newVal })
+      }
+    }
+
+    const handleUp = () => {
+      dragRef.current = null
+      document.body.style.cursor = ''
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+
+    document.body.style.cursor = 'ew-resize'
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+  }, [word.start, word.end, wordIndex, onUpdateWord])
+
   return (
     <div className="timing-editor__word-row">
       {/* Split button: shown before each word (except the first) */}
@@ -713,28 +841,32 @@ function WordTimingRow({
         {word.word}
       </button>
 
-      {/* Start timestamp input */}
+      {/* Start timestamp input — drag horizontally to scrub */}
       <input
         type="number"
-        className="timing-editor__timestamp-input"
+        className="timing-editor__timestamp-input timing-editor__timestamp-input--draggable"
         value={startDraft}
         step={0.001}
         onChange={(e) => setStartDraft(e.target.value)}
         onBlur={commitStart}
         onKeyDown={(e) => { if (e.key === 'Enter') commitStart() }}
+        onMouseDown={(e) => handleDragStart(e, 'start')}
         aria-label={`Start time for "${word.word}"`}
+        title="Drag to scrub, Shift+drag for fine adjust"
       />
 
-      {/* End timestamp input */}
+      {/* End timestamp input — drag horizontally to scrub */}
       <input
         type="number"
-        className="timing-editor__timestamp-input"
+        className="timing-editor__timestamp-input timing-editor__timestamp-input--draggable"
         value={endDraft}
         step={0.001}
         onChange={(e) => setEndDraft(e.target.value)}
         onBlur={commitEnd}
         onKeyDown={(e) => { if (e.key === 'Enter') commitEnd() }}
+        onMouseDown={(e) => handleDragStart(e, 'end')}
         aria-label={`End time for "${word.word}"`}
+        title="Drag to scrub, Shift+drag for fine adjust"
       />
 
     </div>

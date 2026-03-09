@@ -27,6 +27,7 @@ export interface StateSnapshot {
     manualSplitWordIndices: number[] // serialized from Set<number>
   } | null
   style: Record<string, unknown>
+  maxWordsPerPhrase?: number
   speakerNames: Record<string, string>
   speakerStyles: Record<string, Record<string, unknown>>
 }

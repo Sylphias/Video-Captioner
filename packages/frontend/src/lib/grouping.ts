@@ -25,6 +25,7 @@ export interface SessionPhrase {
   isManualSplit: boolean
   dominantSpeaker?: string
   lingerDuration?: number  // per-phrase linger in seconds; overrides global style.lingerDuration when set
+  styleOverride?: Record<string, unknown>  // phrase-level style override, applied on top of speaker styles
 }
 
 /**
@@ -55,7 +56,7 @@ export function endsWithPunctuation(word: string): boolean {
  *
  * Returns an array of word arrays — each inner array is one phrase's words.
  */
-export function groupIntoPhrases(words: TranscriptWord[]): TranscriptWord[][] {
+export function groupIntoPhrases(words: TranscriptWord[], maxWordsPerPhrase = MAX_WORDS_PER_PHRASE): TranscriptWord[][] {
   if (words.length === 0) return []
 
   const phrases: TranscriptWord[][] = []
@@ -64,7 +65,7 @@ export function groupIntoPhrases(words: TranscriptWord[]): TranscriptWord[][] {
   for (let i = 1; i < words.length; i++) {
     const gap = words[i].start - words[i - 1].end
     const prevEndsPunctuation = endsWithPunctuation(words[i - 1].word)
-    const atMaxWords = currentPhrase.length >= MAX_WORDS_PER_PHRASE
+    const atMaxWords = currentPhrase.length >= maxWordsPerPhrase
 
     if (gap > PHRASE_GAP_SEC || prevEndsPunctuation || atMaxWords) {
       phrases.push(currentPhrase)
@@ -94,10 +95,11 @@ export function groupIntoPhrases(words: TranscriptWord[]): TranscriptWord[][] {
 export function buildSessionPhrases(
   words: SessionWord[],
   manualSplitWordIndices: Set<number>,
+  maxWordsPerPhrase = MAX_WORDS_PER_PHRASE,
 ): SessionPhrase[] {
   if (words.length === 0) return []
 
-  const autoGroups = groupIntoPhrases(words)
+  const autoGroups = groupIntoPhrases(words, maxWordsPerPhrase)
 
   // Collect auto-split boundary global indices (start of each group except the first)
   const autoSplitBoundaries = new Set<number>()

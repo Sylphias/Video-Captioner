@@ -1,53 +1,39 @@
-import { useState } from 'react'
 import { HexColorPicker, HexColorInput } from 'react-colorful'
 import { FONT_NAMES, getFontFamily } from '@eigen/remotion-composition'
-import type { AnimationType, SpeakerStyleOverride } from '@eigen/remotion-composition'
-import { useSubtitleStore } from '../../store/subtitleStore.ts'
-import './SpeakerStylePanel.css'
+import type { AnimationType } from '@eigen/remotion-composition'
+import { useSubtitleStore, type PhraseStyleOverride } from '../../store/subtitleStore.ts'
+import '../StylePanel/SpeakerStylePanel.css'
 
-const SPEAKER_COLORS = [
-  '#4A90D9',
-  '#E67E22',
-  '#27AE60',
-  '#9B59B6',
-  '#E74C3C',
-  '#1ABC9C',
-  '#F39C12',
-  '#95A5A6',
-]
+type StyleField = keyof Omit<PhraseStyleOverride, 'animationType'>
 
-function getSpeakerColor(speakerId: string): string {
-  const idx = parseInt(speakerId.replace('SPEAKER_', ''), 10) % 8
-  return SPEAKER_COLORS[isNaN(idx) ? 0 : idx]
+interface PhraseStylePanelProps {
+  phraseIndex: number
 }
 
-type StyleField = keyof Omit<SpeakerStyleOverride, 'animationType'>
+export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
+  const phrase = useSubtitleStore((s) => s.session?.phrases[phraseIndex])
+  const setPhraseStyle = useSubtitleStore((s) => s.setPhraseStyle)
+  const clearPhraseStyle = useSubtitleStore((s) => s.clearPhraseStyle)
 
-interface SpeakerSectionProps {
-  speakerId: string
-  displayName: string
-  override: SpeakerStyleOverride
-  onSet: (override: SpeakerStyleOverride) => void
-  onClear: () => void
-  defaultOpen?: boolean
-}
+  if (!phrase) return null
 
-function SpeakerSection({ speakerId, displayName, override, onSet, onClear, defaultOpen = false }: SpeakerSectionProps) {
-  const [open, setOpen] = useState(defaultOpen)
-  const color = getSpeakerColor(speakerId)
+  const override = (phrase.styleOverride ?? {}) as PhraseStyleOverride
+  const phraseText = phrase.words.map((w) => w.word).join(' ')
 
   const setField = (field: StyleField, value: string | number) => {
-    onSet({ [field]: value } as SpeakerStyleOverride)
+    setPhraseStyle(phraseIndex, { [field]: value } as PhraseStyleOverride)
   }
 
   const toggleField = (field: StyleField, checked: boolean) => {
     if (!checked) {
-      // Remove this field from overrides
       const next = { ...override }
       delete next[field]
-      onSet(next)
+      // Replace entire override (clear + set remaining)
+      clearPhraseStyle(phraseIndex)
+      if (Object.keys(next).length > 0) {
+        setPhraseStyle(phraseIndex, next)
+      }
     }
-    // When checked, initialize with a reasonable default; the control below will allow changing it
   }
 
   const hasOverride = (field: StyleField) => field in override
@@ -55,29 +41,21 @@ function SpeakerSection({ speakerId, displayName, override, onSet, onClear, defa
   const animationType: AnimationType = (override.animationType ?? 'none') as AnimationType
 
   return (
-    <div className="speaker-section">
-      <button
-        className="speaker-section__header"
-        onClick={() => setOpen((o) => !o)}
-        type="button"
-      >
-        <span
-          className="speaker-section__dot"
-          style={{ background: color }}
-        />
-        <span className="speaker-section__name">{displayName}</span>
-        <span className="speaker-section__chevron">{open ? '▲' : '▼'}</span>
-      </button>
+    <div className="speaker-style-panel">
+      {/* Phrase preview text */}
+      <p className="speaker-style-panel__heading" style={{ fontStyle: 'italic', opacity: 0.8 }}>
+        &ldquo;{phraseText}&rdquo;
+      </p>
 
-      {open && (
-        <div className="speaker-section__body">
+      <div className="speaker-section">
+        <div className="speaker-section__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
           {/* Animation type */}
           <div className="speaker-section__control-row">
             <label className="speaker-section__field-label">Animation</label>
             <select
               className="speaker-section__select"
               value={animationType}
-              onChange={(e) => onSet({ animationType: e.target.value as AnimationType })}
+              onChange={(e) => setPhraseStyle(phraseIndex, { animationType: e.target.value as AnimationType })}
             >
               <option value="none">None</option>
               <option value="pop">Pop</option>
@@ -255,7 +233,7 @@ function SpeakerSection({ speakerId, displayName, override, onSet, onClear, defa
             )}
           </div>
 
-          {/* Stroke color override — only if strokeWidth override > 0 */}
+          {/* Stroke color override */}
           {hasOverride('strokeWidth') && (override.strokeWidth ?? 0) > 0 && (
             <div className="speaker-section__control-row">
               <label className="speaker-section__toggle-label">
@@ -327,71 +305,13 @@ function SpeakerSection({ speakerId, displayName, override, onSet, onClear, defa
           {/* Clear all overrides */}
           <button
             className="speaker-section__clear-btn"
-            onClick={onClear}
+            onClick={() => clearPhraseStyle(phraseIndex)}
             type="button"
           >
             Clear all overrides
           </button>
         </div>
-      )}
-    </div>
-  )
-}
-
-interface SpeakerStylePanelProps {
-  singleSpeakerId?: string
-}
-
-export function SpeakerStylePanel({ singleSpeakerId }: SpeakerStylePanelProps = {}) {
-  const speakerNames = useSubtitleStore((s) => s.speakerNames)
-  const speakerStyles = useSubtitleStore((s) => s.speakerStyles)
-  const setSpeakerStyle = useSubtitleStore((s) => s.setSpeakerStyle)
-  const clearSpeakerStyle = useSubtitleStore((s) => s.clearSpeakerStyle)
-
-  // Single-speaker mode: render only that speaker's controls directly (no collapsible header)
-  if (singleSpeakerId) {
-    const displayName = speakerNames[singleSpeakerId] ?? singleSpeakerId
-    const override = speakerStyles[singleSpeakerId] ?? {}
-    return (
-      <div className="speaker-style-panel">
-        <SpeakerSection
-          key={singleSpeakerId}
-          speakerId={singleSpeakerId}
-          displayName={displayName}
-          override={override}
-          onSet={(o) => setSpeakerStyle(singleSpeakerId, o)}
-          onClear={() => clearSpeakerStyle(singleSpeakerId)}
-          defaultOpen
-        />
       </div>
-    )
-  }
-
-  const speakerIds = Object.keys(speakerNames)
-
-  if (speakerIds.length === 0) {
-    return (
-      <div className="speaker-style-panel speaker-style-panel--empty">
-        <p className="speaker-style-panel__empty-msg">
-          Run speaker detection to enable per-speaker styles
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="speaker-style-panel">
-      <p className="speaker-style-panel__heading">Per-speaker overrides</p>
-      {speakerIds.map((speakerId) => (
-        <SpeakerSection
-          key={speakerId}
-          speakerId={speakerId}
-          displayName={speakerNames[speakerId] ?? speakerId}
-          override={speakerStyles[speakerId] ?? {}}
-          onSet={(override) => setSpeakerStyle(speakerId, override)}
-          onClear={() => clearSpeakerStyle(speakerId)}
-        />
-      ))}
     </div>
   )
 }

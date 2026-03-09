@@ -89,7 +89,7 @@ Each task was committed atomically:
 1. **Task 1: Add render types, Remotion entry point, and install SSR packages** - `b26a2c4` (feat)
 2. **Task 2: Render service, worker thread, render/download routes, and SSE terminal state** - `ca98296` (feat)
 
-**Plan metadata:** `(pending final commit)` (docs: complete plan)
+**Plan metadata:** `4218400` (docs: complete plan)
 
 ## Files Created/Modified
 - `packages/shared-types/src/index.ts` - Added 'rendering', 'rendered' to JobStatus, outputPath to Job
