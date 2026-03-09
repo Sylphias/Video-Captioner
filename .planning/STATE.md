@@ -176,16 +176,19 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-08
-Stopped at: Post-phase-6 checkpoint refinements (commit fa8d685). Implemented user feedback from phase 6 verification:
-  - Sticky StageTabBar (CSS position: sticky)
-  - 3-stage flow: Timing → Text → Styling (removed Speakers stage)
-  - Auto-diarize after transcription (hasAutoDiarizedRef guard)
-  - TimingEditor redesign: per-speaker lane rows with editable names, drag-drop phrase reassignment, delete lane with reassign confirmation
-  - Waveform row above speaker lanes (dedicated 48px row)
-  - Click empty lane space → addPhraseAtTime(timeSec, speakerId) store action
-  - Delete phrase × button on hover (deletePhrase store action)
-  - Store actions added: reassignPhraseSpeaker, deleteSpeaker, deletePhrase, addPhraseAtTime
-  - Speaker colors centralized in tokens.css; SpeakersStage.tsx/css deleted
-Resume with: Functional testing — verify the new speaker lanes, drag-drop, auto-diarize flow, add/delete phrase interactions end-to-end
+Last session: 2026-03-09
+Stopped at: Post-phase-6 refinements complete (commits fa8d685, 037fad6). All timeline interactions working:
+  - Speaker lanes, auto-diarize, 3-stage flow (fa8d685)
+  - Drag phrase blocks sideways to shift timing (037fad6)
+  - Click empty lane space to add phrase, × to delete phrase
+  - Store: shiftPhrase, reassignPhraseSpeaker, deleteSpeaker, deletePhrase, addPhraseAtTime
+
+Next planned changes (user-specified, not yet implemented):
+  1. Remove Styling tab → 2 tabs: "Timeline View" / "Text Edit View"
+  2. Global styling becomes a slide-out drawer from the right (triggered by button)
+  3. Per-speaker overrides: replace lane × with pencil (edit) + delete buttons; pencil opens speaker style drawer
+  4. Per-phrase style override: clicking a phrase opens a phrase-level style drawer
+  5. NEW PHASE: Text animation creator — create/store animations for vertical/horizontal video resolutions (local DB or file storage for reuse)
+
+Resume with: Implement the UI restructuring (items 1-4 above), then plan the animation creator phase
 Resume file: None
