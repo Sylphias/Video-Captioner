@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 6 of 7 (Editing Workflow Redesign — COMPLETE)
-Plan: 7 of 7 (all complete, verified PASSED 7/7)
-Status: Phase 6 complete. Phase 7 planned but not started.
-Last activity: 2026-03-10 — Phase 6 verification passed; docs committed (19fac88)
+Phase: 7 of 7 (Text Animation Creator — IN PROGRESS)
+Plan: 2 of 5 complete (07-01, 07-02 done)
+Status: Phase 7 executing. Plans 01-02 complete. Plans 03-05 pending.
+Last activity: 2026-03-10 — 07-02 complete: better-sqlite3 SQLite plugin + 7 built-in presets seeded + CRUD API at /api/presets
 
-Progress: [████████████████░░░░] 86% (6 of 7 phases)
+Progress: [████████████████████] 86% (6 complete phases + 1 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 14 min
-- Total execution time: ~142 min
+- Total plans completed: 13
+- Average duration: 13 min
+- Total execution time: ~148 min
 
 **By Phase:**
 
@@ -34,13 +34,13 @@ Progress: [████████████████░░░░] 86% (6 
 | 04.1-multi-speaker-diarization | 2 | ~2 days | — |
 | 05-server-render-and-output | 2/3 | ~18 min | — |
 | 06-styling | 5/5 | ~39 min | — |
+| 07-text-animation-creator | 1/5 | 6 min | — |
 
 **Recent Trend:**
-- Phase 05-01 complete — Remotion SSR pipeline implemented cleanly; bundle() verified working with 1.2s startup; TypeScript type workaround needed for Composition generic constraint
-- Phase 05-02 complete (8 min) — useRender hook + render UI implemented and verified; user confirmed burned-in subtitles in downloaded MP4
 - Phase 06-01 complete (5 min) — Styling data layer: extended StyleProps, per-speaker overrides, 8 Google Fonts, full stack speakerStyles propagation
 - Phase 06-02 complete (~2 min) — Style Controls UI: StylePanel (7 controls), SpeakerStylePanel (per-speaker overrides + animation), Transcript/Style tab bar in SubtitlesPage
 - Phase 06-03 complete (~25 min) — 4-stage nav shell: StageTabBar, SpeakersStage, collapsible PreviewPanel, SubtitlesPage restructured to stage-conditional rendering
+- Phase 07-01 complete (6 min) — AnimationPreset type hierarchy, CompositionPhrase serialization boundary type, animations.ts computation engine, SubtitleOverlay animation integration
 
 *Updated after each plan completion*
 
@@ -153,6 +153,11 @@ Recent decisions affecting current work:
 - [post-06]: Click empty lane space → addPhraseAtTime — crosshair cursor signals affordance; new phrase gets 0.5s duration capped to next word boundary
 - [post-06]: deletePhrase removes all words in phrase from flat array — won't delete if it would leave zero words; adjusts manual split indices
 - [post-06]: Phrase block × delete button: opacity:0 → visible on hover; positioned top-right absolute within phrase block
+- [07-01]: SpeakerStyleOverride is now Partial<StyleProps> only — animationType removed; per-speaker animation handled via AnimationPreset at system level, not a legacy enum
+- [07-01]: CompositionPhrase extends TranscriptPhrase with resolved animationPreset: AnimationPreset — frontend resolves IDs at serialization boundary (Remotion composition cannot access hooks/stores/APIs)
+- [07-01]: animations.ts uses --textSliceProgress as a special CSS property marker for typewriter/letter-by-letter — cleaner than mixing text logic into pure computation helpers
+- [07-01]: Word-scope stagger applies to enter phase only; exit has no stagger (all words exit together)
+- [07-01]: mergeStyles helper safely concatenates CSS transform strings so multiple transforms don't clobber each other
 
 ### Roadmap Evolution
 
@@ -177,11 +182,13 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-10
-Stopped at: Phase 6 verified complete (7/7 plans, verification PASSED). Phase 7 ready to plan.
+Stopped at: Completed 07-01-PLAN.md (AnimationPreset type system + animations.ts engine)
 
 Next planned work:
-  1. Phase 7: Text Animation Creator — create/store reusable text animations for vertical/horizontal video
-  2. Human verification items from 06-VERIFICATION.md (waveform, linger preview, cross-stage undo, StyleDrawer, speaker lanes)
+  1. Phase 7 Plan 02: Already committed (eae1f9b) — backend SQLite preset storage; presets.ts route file is untracked and needs committing
+  2. Phase 7 Plan 03: Animation picker UI in StyleDrawer
+  3. Phase 7 Plan 04: Composition integration (wire inputProps to SubtitleComposition animationPreset)
+  4. Phase 7 Plan 05: Final polish and verification
 
-Resume with: /gsd:plan-phase 7 (or /gsd:discuss-phase 7 for context gathering first)
+Resume with: /gsd:execute-phase 07-text-animation-creator (plan 02 already done)
 Resume file: None
