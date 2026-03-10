@@ -19,9 +19,9 @@ Progress: [████████████████████] 86% (6 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 13 min
-- Total execution time: ~148 min
+- Total execution time: ~155 min
 
 **By Phase:**
 
@@ -34,7 +34,7 @@ Progress: [████████████████████] 86% (6 
 | 04.1-multi-speaker-diarization | 2 | ~2 days | — |
 | 05-server-render-and-output | 2/3 | ~18 min | — |
 | 06-styling | 5/5 | ~39 min | — |
-| 07-text-animation-creator | 1/5 | 6 min | — |
+| 07-text-animation-creator | 2/5 | 13 min | 7 min |
 
 **Recent Trend:**
 - Phase 06-01 complete (5 min) — Styling data layer: extended StyleProps, per-speaker overrides, 8 Google Fonts, full stack speakerStyles propagation
@@ -158,6 +158,10 @@ Recent decisions affecting current work:
 - [07-01]: animations.ts uses --textSliceProgress as a special CSS property marker for typewriter/letter-by-letter — cleaner than mixing text logic into pure computation helpers
 - [07-01]: Word-scope stagger applies to enter phase only; exit has no stagger (all words exit together)
 - [07-01]: mergeStyles helper safely concatenates CSS transform strings so multiple transforms don't clobber each other
+- [07-02]: better-sqlite3 requires Node 20+ — must use nvm to ensure Node 22 when installing; project .nvmrc already pins v22
+- [07-02]: animationPresetsPlugin registers before presetsRoutes — decorates fastify.db which routes depend on
+- [07-02]: Seeding uses staggered timestamps (now - N*1000ms) so ORDER BY created_at ASC keeps built-ins before user presets
+- [07-02]: PUT /api/presets/:id merges provided fields into existing params JSON — partial updates without full replacement
 
 ### Roadmap Evolution
 
@@ -182,13 +186,12 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-10
-Stopped at: Completed 07-01-PLAN.md (AnimationPreset type system + animations.ts engine)
+Stopped at: Completed 07-02-PLAN.md (SQLite preset storage + CRUD API at /api/presets)
 
 Next planned work:
-  1. Phase 7 Plan 02: Already committed (eae1f9b) — backend SQLite preset storage; presets.ts route file is untracked and needs committing
-  2. Phase 7 Plan 03: Animation picker UI in StyleDrawer
-  3. Phase 7 Plan 04: Composition integration (wire inputProps to SubtitleComposition animationPreset)
-  4. Phase 7 Plan 05: Final polish and verification
+  1. Phase 7 Plan 03: Animation picker UI in StyleDrawer
+  2. Phase 7 Plan 04: Composition integration (wire inputProps to SubtitleComposition animationPreset)
+  3. Phase 7 Plan 05: Final polish and verification
 
-Resume with: /gsd:execute-phase 07-text-animation-creator (plan 02 already done)
+Resume with: /gsd:execute-phase 07-text-animation-creator plan 03
 Resume file: None
