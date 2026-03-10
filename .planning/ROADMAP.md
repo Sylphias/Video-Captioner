@@ -152,7 +152,14 @@ Plans:
   3. Presets support both vertical (9:16) and horizontal (16:9) video resolutions
   4. Saved presets persist across sessions (local DB or file storage)
   5. User can apply a saved animation preset to the current project's subtitles
-**Plans:** TBD
+**Plans:** 5 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Animation type system and Remotion rendering engine: AnimationPreset types, animations.ts helpers, SubtitleOverlay integration
+- [ ] 07-02-PLAN.md — Backend SQLite preset storage: better-sqlite3 plugin, CRUD routes, 7 built-in preset seeding
+- [ ] 07-03-PLAN.md — Frontend state and preview wiring: useAnimationPresets hook, store extensions, PreviewPanel + PhraseStylePanel integration
+- [ ] 07-04-PLAN.md — Animation Editor UI: PresetList, PhaseTimeline, PhasePanel, AnimationPreview, useDebounced hook
+- [ ] 07-05-PLAN.md — Stage tab integration and end-to-end verification: Animation tab in StageTabBar, SubtitlesPage wiring, human verification
 
 ## Progress
 
@@ -168,4 +175,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4.1 Multi-Speaker Diarization | 2/2 | ✓ Complete | 2026-03-05 |
 | 5. Server Render and Output | 2/2 | ✓ Complete | 2026-03-06 |
 | 6. Editing Workflow Redesign | 7/7 | ✓ Complete | 2026-03-10 |
-| 7. Text Animation Creator | 0/? | Planned | - |
+| 7. Text Animation Creator | 0/5 | Planned | - |
