@@ -18,7 +18,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Transcript Editor and Grouping** - Connect transcription output to editable UI; auto-group words into subtitle phrases with manual override
 - [x] **Phase 4.1: Multi-Speaker Diarization and Speaker Lanes** (INSERTED) - Speaker detection via pyannote, color-coded speaker lanes, rename/reassign UI
 - [x] **Phase 5: Server Render and Output** - Render final MP4 in a worker thread, stream progress via SSE, deliver download
-- [ ] **Phase 6: Editing Workflow Redesign** - Restructure editing into 4-stage workflow (Text, Timing, Speakers, Styling) with collapsible preview, undo/redo, waveform timeline
+- [x] **Phase 6: Editing Workflow Redesign** - Restructure editing into 2-stage workflow (Timeline, Text) with collapsible preview, StyleDrawer, undo/redo, waveform timeline
+- [ ] **Phase 7: Text Animation Creator** - Create and store reusable text animations for vertical/horizontal video resolutions; local DB or file storage for animation presets
 
 ## Phase Details
 
@@ -130,21 +131,33 @@ Plans:
   5. Stage 4 (Styling): User can customize fonts, colors, stroke, position, and per-speaker overrides with live preview
   6. Each stage's changes are immediately reflected in the video preview
   7. User can navigate back to previous stages without losing work
-**Plans:** 7 plans (2 data layer complete, 5 workflow redesign)
+**Plans:** 7 plans (all complete)
 
 Plans:
 - [x] 06-01-PLAN.md — Styling data layer: extended StyleProps, per-speaker overrides, 8 Google Fonts, full stack speakerStyles propagation
 - [x] 06-02-PLAN.md — Style Controls UI: StylePanel (7 controls), SpeakerStylePanel (per-speaker overrides), Transcript/Style tab bar
-- [ ] 06-03-PLAN.md — Stage tab shell: 4-stage navigation, collapsible preview, Speakers and Styling stage rewiring
-- [ ] 06-04-PLAN.md — Text Editor (Stage 1): screenplay-style numbered lines, Enter/Backspace split/merge, global undo/redo
-- [ ] 06-05-PLAN.md — Timing Editor (Stage 2): waveform timeline, phrase blocks, numeric timestamps, per-phrase linger, stacked lanes
-- [ ] 06-06-PLAN.md — Stage transitions, polish, and end-to-end verification
-- [ ] 06-07-PLAN.md — Global time-shift: slider/input to offset all word timestamps by a fixed amount (positive or negative) to correct systematic transcription drift
+- [x] 06-03-PLAN.md — Stage tab shell: 2-stage navigation (Timeline/Text), collapsible preview, StyleDrawer slide-out
+- [x] 06-04-PLAN.md — Text Editor: screenplay-style numbered lines, Enter/Backspace split/merge, global undo/redo
+- [x] 06-05-PLAN.md — Timing Editor: waveform timeline, phrase blocks, speaker lanes, numeric timestamps, per-phrase linger, drag-to-adjust, word-end markers
+- [x] 06-06-PLAN.md — Stage transitions, toast notifications, undo/redo keyboard shortcuts, e2e verification
+- [x] 06-07-PLAN.md — Global time-shift: slider/input to offset all word timestamps by a fixed amount (positive or negative) to correct systematic transcription drift
+
+### Phase 7: Text Animation Creator
+
+**Goal**: Users can create, store, and reuse text animation presets for different video resolutions (vertical/horizontal), enabling consistent branding across projects
+**Depends on**: Phase 6
+**Success Criteria** (what must be TRUE):
+  1. User can create custom text animations with configurable parameters (enter/exit transitions, timing, easing)
+  2. Animations can be saved as reusable presets with descriptive names
+  3. Presets support both vertical (9:16) and horizontal (16:9) video resolutions
+  4. Saved presets persist across sessions (local DB or file storage)
+  5. User can apply a saved animation preset to the current project's subtitles
+**Plans:** TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -154,4 +167,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Transcript Editor and Grouping | 2/2 | ✓ Complete | 2026-03-04 |
 | 4.1 Multi-Speaker Diarization | 2/2 | ✓ Complete | 2026-03-05 |
 | 5. Server Render and Output | 2/2 | ✓ Complete | 2026-03-06 |
-| 6. Editing Workflow Redesign | 2/7 | In progress | - |
+| 6. Editing Workflow Redesign | 7/7 | ✓ Complete | 2026-03-10 |
+| 7. Text Animation Creator | 0/? | Planned | - |
