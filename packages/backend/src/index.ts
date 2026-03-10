@@ -6,6 +6,7 @@ import { mkdirSync } from 'node:fs'
 import corsPlugin from './plugins/cors.ts'
 import multipartPlugin from './plugins/multipart.ts'
 import jobStorePlugin from './services/jobStore.ts'
+import animationPresetsPlugin from './services/animationPresets.ts'
 import uploadRoutes from './routes/upload.ts'
 import jobRoutes from './routes/jobs.ts'
 import transcribeRoutes from './routes/transcribe.ts'
@@ -29,10 +30,11 @@ const fastify = Fastify({
   bodyLimit: 10 * 1024 * 1024 * 1024, // 10GB — video processing tool, no upload limit
 })
 
-// Register plugins in order: cors → multipart → jobStore → routes
+// Register plugins in order: cors → multipart → jobStore → animationPresets → routes
 await fastify.register(corsPlugin)
 await fastify.register(multipartPlugin)
 await fastify.register(jobStorePlugin)
+await fastify.register(animationPresetsPlugin)
 
 // Register route plugins after store is decorated
 await fastify.register(uploadRoutes)

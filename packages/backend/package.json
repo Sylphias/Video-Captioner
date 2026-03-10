@@ -14,10 +14,12 @@
     "@fastify/static": "^7.0.4",
     "@remotion/bundler": "4.0.379",
     "@remotion/renderer": "4.0.379",
+    "better-sqlite3": "^12.6.2",
     "fastify": "^4.28.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.0.0",
     "@types/uuid": "^9.0.7",
     "typescript": "^5.4.0"
