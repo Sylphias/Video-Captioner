@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 7 of 7 (Text Animation Creator — IN PROGRESS)
-Plan: 2 of 5 complete (07-01, 07-02 done)
-Status: Phase 7 executing. Plans 01-02 complete. Plans 03-05 pending.
-Last activity: 2026-03-10 — 07-02 complete: better-sqlite3 SQLite plugin + 7 built-in presets seeded + CRUD API at /api/presets
+Plan: 3 of 5 complete (07-01, 07-02, 07-03 done)
+Status: Phase 7 executing. Plans 01-03 complete. Plans 04-05 pending.
+Last activity: 2026-03-10 — 07-03 complete: useAnimationPresets hook + PreviewPanel serialization boundary resolution + PhraseStylePanel preset picker
 
 Progress: [████████████████████] 86% (6 complete phases + 1 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
-- Average duration: 13 min
-- Total execution time: ~155 min
+- Total plans completed: 15
+- Average duration: 12 min
+- Total execution time: ~158 min
 
 **By Phase:**
 
@@ -34,13 +34,14 @@ Progress: [████████████████████] 86% (6 
 | 04.1-multi-speaker-diarization | 2 | ~2 days | — |
 | 05-server-render-and-output | 2/3 | ~18 min | — |
 | 06-styling | 5/5 | ~39 min | — |
-| 07-text-animation-creator | 2/5 | 13 min | 7 min |
+| 07-text-animation-creator | 3/5 | 16 min | 5 min |
 
 **Recent Trend:**
 - Phase 06-01 complete (5 min) — Styling data layer: extended StyleProps, per-speaker overrides, 8 Google Fonts, full stack speakerStyles propagation
 - Phase 06-02 complete (~2 min) — Style Controls UI: StylePanel (7 controls), SpeakerStylePanel (per-speaker overrides + animation), Transcript/Style tab bar in SubtitlesPage
 - Phase 06-03 complete (~25 min) — 4-stage nav shell: StageTabBar, SpeakersStage, collapsible PreviewPanel, SubtitlesPage restructured to stage-conditional rendering
 - Phase 07-01 complete (6 min) — AnimationPreset type hierarchy, CompositionPhrase serialization boundary type, animations.ts computation engine, SubtitleOverlay animation integration
+- Phase 07-03 complete (3 min) — useAnimationPresets hook, PreviewPanel serialization boundary preset resolution, PhraseStylePanel animation preset picker, undo/redo support for animation state
 
 *Updated after each plan completion*
 
@@ -162,6 +163,9 @@ Recent decisions affecting current work:
 - [07-02]: animationPresetsPlugin registers before presetsRoutes — decorates fastify.db which routes depend on
 - [07-02]: Seeding uses staggered timestamps (now - N*1000ms) so ORDER BY created_at ASC keeps built-ins before user presets
 - [07-02]: PUT /api/presets/:id merges provided fields into existing params JSON — partial updates without full replacement
+- [07-03]: useAnimationPresets uses refreshTick counter pattern — increment triggers useEffect re-fetch; all CRUD mutations call refresh() after success
+- [07-03]: Select value of empty string represents "use global default" — maps cleanly to val || null in onChange handler for setPhraseAnimationPresetId
+- [07-03]: SubtitleComposition already forwarded animationPreset to SubtitleOverlay in 07-01 — no changes needed in 07-03
 
 ### Roadmap Evolution
 
@@ -186,12 +190,11 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-10
-Stopped at: Completed 07-02-PLAN.md (SQLite preset storage + CRUD API at /api/presets)
+Stopped at: Completed 07-03-PLAN.md (useAnimationPresets hook + PreviewPanel serialization boundary resolution + PhraseStylePanel preset picker)
 
 Next planned work:
-  1. Phase 7 Plan 03: Animation picker UI in StyleDrawer
-  2. Phase 7 Plan 04: Composition integration (wire inputProps to SubtitleComposition animationPreset)
-  3. Phase 7 Plan 05: Final polish and verification
+  1. Phase 7 Plan 04: Animation Editor tab (global preset selector, preset management UI)
+  2. Phase 7 Plan 05: Server render integration (pass animationPreset in render inputProps)
 
-Resume with: /gsd:execute-phase 07-text-animation-creator plan 03
+Resume with: /gsd:execute-phase 07-text-animation-creator plan 04
 Resume file: None
