@@ -9,6 +9,7 @@ import { StageTabBar, type StageId } from '../components/StageTabBar.tsx'
 import { StyleDrawer, type DrawerMode } from '../components/StyleDrawer/StyleDrawer.tsx'
 import { TextEditor } from '../components/TextEditor/TextEditor.tsx'
 import { TimingEditor } from '../components/TimingEditor/TimingEditor.tsx'
+import { AnimationEditor } from '../components/AnimationEditor/AnimationEditor.tsx'
 import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
 import { useUndoStore } from '../store/undoMiddleware.ts'
 import './SubtitlesPage.css'
@@ -574,6 +575,10 @@ export function SubtitlesPage() {
                 onEditSpeaker={(speakerId) => setDrawerMode({ type: 'speaker', speakerId })}
                 onEditPhrase={(phraseIndex) => setDrawerMode({ type: 'phrase', phraseIndex })}
               />
+            )}
+
+            {activeStage === 'animation' && (
+              <AnimationEditor />
             )}
 
           </div>

@@ -1,4 +1,4 @@
-export type StageId = 'timing' | 'text'
+export type StageId = 'timing' | 'text' | 'animation'
 
 interface Stage {
   id: StageId
@@ -8,6 +8,7 @@ interface Stage {
 const STAGES: Stage[] = [
   { id: 'timing', label: 'Timeline View' },
   { id: 'text', label: 'Text Edit View' },
+  { id: 'animation', label: 'Animation' },
 ]
 
 interface StageTabBarProps {

@@ -261,10 +261,17 @@
 /* ---- Editor section ---- */
 .subtitles-page__editor-section {
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   padding: var(--spacing-md);
   background-color: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: 6px;
+}
+
+.subtitles-page__editor-section > .animation-editor {
+  height: 100%;
 }
 
 /* Diarization controls group */
