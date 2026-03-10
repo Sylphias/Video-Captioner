@@ -30,6 +30,8 @@ export interface StateSnapshot {
   maxWordsPerPhrase?: number
   speakerNames: Record<string, string>
   speakerStyles: Record<string, Record<string, unknown>>
+  activeAnimationPresetId?: string | null
+  phraseAnimationPresetIds?: Record<number, string>
 }
 
 const MAX_HISTORY = 50

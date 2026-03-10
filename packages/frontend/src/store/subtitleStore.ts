@@ -87,6 +87,8 @@ function captureSnapshot(state: {
   maxWordsPerPhrase: number
   speakerNames: Record<string, string>
   speakerStyles: Record<string, SpeakerStyleOverride>
+  activeAnimationPresetId: string | null
+  phraseAnimationPresetIds: Record<number, string>
 }): StateSnapshot {
   return {
     session: state.session
@@ -100,6 +102,8 @@ function captureSnapshot(state: {
     maxWordsPerPhrase: state.maxWordsPerPhrase,
     speakerNames: { ...state.speakerNames },
     speakerStyles: structuredClone(state.speakerStyles) as Record<string, Record<string, unknown>>,
+    activeAnimationPresetId: state.activeAnimationPresetId,
+    phraseAnimationPresetIds: { ...state.phraseAnimationPresetIds },
   }
 }
 
@@ -113,6 +117,8 @@ function pushUndo(state: {
   maxWordsPerPhrase: number
   speakerNames: Record<string, string>
   speakerStyles: Record<string, SpeakerStyleOverride>
+  activeAnimationPresetId: string | null
+  phraseAnimationPresetIds: Record<number, string>
 }): void {
   useUndoStore.getState().pushSnapshot(captureSnapshot(state))
 }
@@ -140,6 +146,8 @@ export function restoreSnapshot(snapshot: StateSnapshot): void {
       maxWordsPerPhrase: snapshot.maxWordsPerPhrase ?? 8,
       speakerNames: { ...snapshot.speakerNames },
       speakerStyles: structuredClone(snapshot.speakerStyles) as unknown as Record<string, SpeakerStyleOverride>,
+      activeAnimationPresetId: snapshot.activeAnimationPresetId ?? null,
+      phraseAnimationPresetIds: snapshot.phraseAnimationPresetIds ?? {},
     }
   })
 }
