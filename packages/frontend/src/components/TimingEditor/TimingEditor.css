@@ -437,6 +437,28 @@
   flex: 1;
 }
 
+.timing-editor__phrase-block--editing {
+  cursor: text;
+  z-index: 10;
+  overflow: visible;
+}
+
+.timing-editor__phrase-inline-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 2px;
+  color: #fff;
+  font-size: 0.625rem;
+  padding: 1px 3px;
+  outline: none;
+}
+
+.timing-editor__phrase-inline-input:focus {
+  border-color: var(--color-accent-green, #00e696);
+}
+
 /* ── Phrase action buttons (top-right) ──────────────────────────────────── */
 
 .timing-editor__phrase-edit,
@@ -647,23 +669,49 @@
   height: 1px;
 }
 
-/* ── Word text (click to seek) ──────────────────────────────────────────── */
+/* ── Add word button ────────────────────────────────────────────────────── */
 
-.timing-editor__word-text {
+.timing-editor__add-word-btn {
   background: none;
-  border: none;
-  padding: 0;
+  border: 1px dashed var(--color-border, #333);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  color: var(--color-text-secondary, #888);
+  font-size: 0.75rem;
   cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-top: 2px;
+}
+
+.timing-editor__add-word-btn:hover {
+  color: var(--color-accent-green, #00e696);
+  border-color: var(--color-accent-green, #00e696);
+}
+
+/* ── Word text input (editable) ─────────────────────────────────────────── */
+
+.timing-editor__word-text-input {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 1px 4px;
   font-size: 0.875rem;
   color: var(--color-text-primary, #fff);
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  outline: none;
+  min-width: 0;
 }
 
-.timing-editor__word-text:hover {
-  color: var(--color-accent-green, #00e696);
+.timing-editor__word-text-input:hover {
+  border-color: var(--color-border, #333);
+}
+
+.timing-editor__word-text-input:focus {
+  border-color: var(--color-accent-green, #00e696);
+  background: var(--color-bg-surface, #1a1a1a);
 }
 
 /* ── Timestamp inputs ───────────────────────────────────────────────────── */

@@ -343,6 +343,66 @@
   margin: 0;
 }
 
+/* ---- Time shift controls ---- */
+.subtitles-page__time-shift {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.subtitles-page__time-shift-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.subtitles-page__time-shift-input {
+  width: 72px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs);
+  text-align: center;
+  outline: none;
+  cursor: ew-resize;
+}
+
+.subtitles-page__time-shift-input:focus {
+  border-color: var(--color-accent-green);
+}
+
+.subtitles-page__time-shift-input::-webkit-inner-spin-button,
+.subtitles-page__time-shift-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.subtitles-page__time-shift-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.subtitles-page__time-shift-unit {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.subtitles-page__time-shift-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.subtitles-page__time-shift-btn:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
 /* ---- Render controls ---- */
 .subtitles-page__render-controls {
   display: flex;

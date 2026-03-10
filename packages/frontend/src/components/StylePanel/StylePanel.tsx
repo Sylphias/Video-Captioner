@@ -150,6 +150,81 @@ function FontPicker({ value, onChange }: { value: string; onChange: (family: str
   )
 }
 
+// ── Scrub Input: number input with drag-to-adjust ───────────────────────────
+
+interface ScrubInputProps {
+  value: number
+  min: number
+  max: number
+  step: number
+  onChange: (value: number) => void
+}
+
+function ScrubInput({ value, min, max, step, onChange }: ScrubInputProps) {
+  const dragRef = useRef(false)
+  const [draft, setDraft] = useState(String(value))
+
+  useEffect(() => {
+    setDraft(String(value))
+  }, [value])
+
+  const commit = useCallback(() => {
+    const v = Number(draft)
+    if (!isNaN(v)) {
+      onChange(Math.min(max, Math.max(min, Math.round(v / step) * step)))
+    } else {
+      setDraft(String(value))
+    }
+  }, [draft, value, min, max, step, onChange])
+
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    if (document.activeElement === e.currentTarget) return
+    const startX = e.clientX
+    const startVal = value
+    dragRef.current = false
+    const input = e.currentTarget
+
+    const onMove = (moveE: MouseEvent) => {
+      const dx = moveE.clientX - startX
+      if (!dragRef.current && Math.abs(dx) < 3) return
+      dragRef.current = true
+      document.body.style.cursor = 'ew-resize'
+      const scale = moveE.shiftKey ? step * 0.2 : step
+      const raw = startVal + dx * scale * 0.1
+      const clamped = Math.min(max, Math.max(min, Math.round(raw / step) * step))
+      onChange(clamped)
+    }
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      if (dragRef.current) {
+        input.blur()
+      }
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [value, min, max, step, onChange])
+
+  return (
+    <input
+      type="number"
+      className="style-panel__scrub-input"
+      value={draft}
+      min={min}
+      max={max}
+      step={step}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') commit() }}
+      onMouseDown={handleMouseDown}
+      title="Drag sideways to adjust, Shift+drag for fine control"
+    />
+  )
+}
+
 export function StylePanel() {
   // Use individual selectors to minimize re-renders
   const fontFamily = useSubtitleStore((s) => s.style.fontFamily)
@@ -159,6 +234,10 @@ export function StylePanel() {
   const baseColor = useSubtitleStore((s) => s.style.baseColor)
   const strokeWidth = useSubtitleStore((s) => s.style.strokeWidth)
   const strokeColor = useSubtitleStore((s) => s.style.strokeColor)
+  const shadowColor = useSubtitleStore((s) => s.style.shadowColor)
+  const shadowOffsetX = useSubtitleStore((s) => s.style.shadowOffsetX)
+  const shadowOffsetY = useSubtitleStore((s) => s.style.shadowOffsetY)
+  const shadowBlur = useSubtitleStore((s) => s.style.shadowBlur)
   const verticalPosition = useSubtitleStore((s) => s.style.verticalPosition)
   const lingerDuration = useSubtitleStore((s) => s.style.lingerDuration)
   const maxWordsPerPhrase = useSubtitleStore((s) => s.maxWordsPerPhrase)
@@ -194,20 +273,33 @@ export function StylePanel() {
         </div>
       </div>
 
-      {/* Font size slider */}
+      {/* Font size number input */}
       <div className="style-panel__section">
-        <label className="style-panel__label">
-          Font size <span className="style-panel__value">{fontSize}px</span>
-        </label>
-        <input
-          type="range"
-          className="style-panel__slider"
-          min={16}
-          max={96}
-          step={2}
-          value={fontSize}
-          onChange={(e) => setStyle({ fontSize: Number(e.target.value) })}
-        />
+        <label className="style-panel__label">Font size</label>
+        <div className="style-panel__inline-row">
+          <ScrubInput
+            value={fontSize}
+            min={16}
+            max={200}
+            step={2}
+            onChange={(v) => setStyle({ fontSize: v })}
+          />
+          <span className="style-panel__unit">px</span>
+        </div>
+      </div>
+
+      {/* Max words per phrase */}
+      <div className="style-panel__section">
+        <label className="style-panel__label">Words per phrase</label>
+        <div className="style-panel__inline-row">
+          <ScrubInput
+            value={maxWordsPerPhrase}
+            min={1}
+            max={12}
+            step={1}
+            onChange={(v) => setMaxWordsPerPhrase(v)}
+          />
+        </div>
       </div>
 
       {/* Highlight color */}
@@ -250,20 +342,19 @@ export function StylePanel() {
         </div>
       </div>
 
-      {/* Stroke width slider */}
+      {/* Stroke width */}
       <div className="style-panel__section">
-        <label className="style-panel__label">
-          Stroke width <span className="style-panel__value">{strokeWidth}px</span>
-        </label>
-        <input
-          type="range"
-          className="style-panel__slider"
-          min={0}
-          max={4}
-          step={0.5}
-          value={strokeWidth}
-          onChange={(e) => setStyle({ strokeWidth: Number(e.target.value) })}
-        />
+        <label className="style-panel__label">Stroke width</label>
+        <div className="style-panel__inline-row">
+          <ScrubInput
+            value={strokeWidth}
+            min={0}
+            max={30}
+            step={0.5}
+            onChange={(v) => setStyle({ strokeWidth: v })}
+          />
+          <span className="style-panel__unit">px</span>
+        </div>
       </div>
 
       {/* Stroke color — only shown when strokeWidth > 0 */}
@@ -287,6 +378,57 @@ export function StylePanel() {
           </div>
         </div>
       )}
+
+      {/* Text shadow */}
+      <div className="style-panel__section">
+        <label className="style-panel__label">Shadow</label>
+        <div className="style-panel__inline-row">
+          <label className="style-panel__mini-label">X</label>
+          <ScrubInput
+            value={shadowOffsetX}
+            min={-20}
+            max={20}
+            step={1}
+            onChange={(v) => setStyle({ shadowOffsetX: v })}
+          />
+          <label className="style-panel__mini-label">Y</label>
+          <ScrubInput
+            value={shadowOffsetY}
+            min={-20}
+            max={20}
+            step={1}
+            onChange={(v) => setStyle({ shadowOffsetY: v })}
+          />
+          <label className="style-panel__mini-label">Blur</label>
+          <ScrubInput
+            value={shadowBlur}
+            min={0}
+            max={30}
+            step={1}
+            onChange={(v) => setStyle({ shadowBlur: v })}
+          />
+        </div>
+      </div>
+
+      {/* Shadow color */}
+      <div className="style-panel__section">
+        <label className="style-panel__label">Shadow color</label>
+        <div className="style-panel__color-control">
+          <HexColorPicker
+            color={shadowColor}
+            onChange={(color) => setStyle({ shadowColor: color })}
+          />
+          <div className="style-panel__hex-row">
+            <span className="style-panel__hex-prefix">#</span>
+            <HexColorInput
+              className="style-panel__hex-input"
+              color={shadowColor}
+              onChange={(color) => setStyle({ shadowColor: color })}
+              prefixed={false}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Vertical position slider */}
       <div className="style-panel__section">
@@ -320,21 +462,6 @@ export function StylePanel() {
         />
       </div>
 
-      {/* Max words per phrase slider */}
-      <div className="style-panel__section">
-        <label className="style-panel__label">
-          Max words per phrase <span className="style-panel__value">{maxWordsPerPhrase}</span>
-        </label>
-        <input
-          type="range"
-          className="style-panel__slider"
-          min={1}
-          max={12}
-          step={1}
-          value={maxWordsPerPhrase}
-          onChange={(e) => setMaxWordsPerPhrase(Number(e.target.value))}
-        />
-      </div>
     </div>
   )
 }

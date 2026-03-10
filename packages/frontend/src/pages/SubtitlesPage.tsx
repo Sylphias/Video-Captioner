@@ -38,6 +38,67 @@ export function SubtitlesPage() {
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
   const [stageToast, setStageToast] = useState<StageToast | null>(null)
   const [drawerMode, setDrawerMode] = useState<DrawerMode | null>(null)
+  const [timeShift, setTimeShift] = useState(0)
+  const timeShiftDragRef = useRef(false)
+  const timeShiftBaselineRef = useRef<import('../store/subtitleStore.ts').SessionWord[] | null>(null)
+
+  const handleTimeShiftMouseDown = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    if (document.activeElement === e.currentTarget) return
+    const startX = e.clientX
+    timeShiftDragRef.current = false
+    const input = e.currentTarget
+
+    const onMove = (moveE: MouseEvent) => {
+      const deltaX = moveE.clientX - startX
+      if (!timeShiftDragRef.current && Math.abs(deltaX) < 3) return
+
+      // On first real drag movement: capture baseline and push undo once
+      if (!timeShiftDragRef.current) {
+        timeShiftDragRef.current = true
+        document.body.style.cursor = 'ew-resize'
+        const storeState = useSubtitleStore.getState()
+        if (storeState.session) {
+          timeShiftBaselineRef.current = structuredClone(storeState.session.words)
+          // Push undo snapshot manually (same shape as handleUndo)
+          const { session, style, speakerNames, speakerStyles, maxWordsPerPhrase } = storeState
+          useUndoStore.getState().pushSnapshot({
+            session: session ? {
+              words: structuredClone(session.words),
+              phrases: structuredClone(session.phrases),
+              manualSplitWordIndices: Array.from(session.manualSplitWordIndices),
+            } : null,
+            style: structuredClone(style) as unknown as Record<string, unknown>,
+            maxWordsPerPhrase,
+            speakerNames: { ...speakerNames },
+            speakerStyles: structuredClone(speakerStyles) as unknown as Record<string, Record<string, unknown>>,
+          })
+        }
+      }
+
+      const scale = moveE.shiftKey ? 0.002 : 0.01
+      const newVal = parseFloat((deltaX * scale).toFixed(2))
+      setTimeShift(newVal)
+
+      // Apply live shift from baseline
+      if (timeShiftBaselineRef.current) {
+        useSubtitleStore.getState().applyWordShift(timeShiftBaselineRef.current, newVal)
+      }
+    }
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      timeShiftBaselineRef.current = null
+      if (timeShiftDragRef.current) {
+        setTimeShift(0)
+        input.blur()
+      }
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [])
   const containerRef = useRef<HTMLDivElement>(null)
   const hasAutoDiarizedRef = useRef(false)
 
@@ -384,6 +445,37 @@ export function SubtitlesPage() {
                   title="Redo (Cmd+Shift+Z)"
                 >
                   Redo
+                </button>
+              </div>
+
+              <div className="subtitles-page__time-shift">
+                <label className="subtitles-page__time-shift-label">Shift</label>
+                <input
+                  type="number"
+                  className="subtitles-page__time-shift-input"
+                  step={0.1}
+                  value={timeShift}
+                  onChange={(e) => setTimeShift(e.target.valueAsNumber || 0)}
+                  onMouseDown={handleTimeShiftMouseDown}
+                  title="Drag sideways to scrub, Shift+drag for fine adjust"
+                />
+                <span className="subtitles-page__time-shift-unit">s</span>
+                <button
+                  className="subtitles-page__time-shift-btn"
+                  onClick={() => {
+                    if (timeShift !== 0) {
+                      useSubtitleStore.getState().shiftAllWords(timeShift)
+                      setTimeShift(0)
+                    }
+                  }}
+                >
+                  Apply
+                </button>
+                <button
+                  className="subtitles-page__time-shift-btn"
+                  onClick={() => setTimeShift(0)}
+                >
+                  Reset
                 </button>
               </div>
 

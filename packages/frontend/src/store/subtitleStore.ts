@@ -51,6 +51,8 @@ interface SubtitleStore {
   deletePhrase: (phraseIndex: number) => void
   addPhraseAtTime: (timeSec: number, speakerId: string) => void
   shiftPhrase: (phraseIndex: number, deltaSec: number) => void
+  shiftAllWords: (deltaSec: number) => void
+  applyWordShift: (baselineWords: SessionWord[], deltaSec: number) => void
   setPhraseStyle: (phraseIndex: number, override: PhraseStyleOverride) => void
   clearPhraseStyle: (phraseIndex: number) => void
 }
@@ -63,6 +65,10 @@ const DEFAULT_STYLE: StyleProps = {
   fontWeight: 700,
   strokeColor: '#000000',
   strokeWidth: 2,
+  shadowColor: '#000000',
+  shadowOffsetX: 0,
+  shadowOffsetY: 2,
+  shadowBlur: 4,
   verticalPosition: 80,
   lingerDuration: 1.0,
 }
@@ -796,6 +802,47 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       )
 
       // Rebuild phrases (timestamps changed)
+      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
+      return { session: { ...state.session, words, phrases } }
+    })
+  },
+
+  shiftAllWords: (deltaSec) => {
+    set((state) => {
+      if (!state.session || state.session.words.length === 0) return state
+
+      // Clamp delta so no word's start goes below 0
+      const earliestStart = Math.min(...state.session.words.map((w) => w.start))
+      const clampedDelta = Math.max(deltaSec, -earliestStart)
+
+      if (Math.abs(clampedDelta) < 0.001) return state
+
+      pushUndo(state)
+
+      const words = state.session.words.map((w) => ({
+        ...w,
+        start: w.start + clampedDelta,
+        end: w.end + clampedDelta,
+      }))
+
+      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
+      return { session: { ...state.session, words, phrases } }
+    })
+  },
+
+  applyWordShift: (baselineWords, deltaSec) => {
+    set((state) => {
+      if (!state.session) return state
+
+      const earliestStart = Math.min(...baselineWords.map((w) => w.start))
+      const clampedDelta = Math.max(deltaSec, -earliestStart)
+
+      const words = baselineWords.map((w) => ({
+        ...w,
+        start: w.start + clampedDelta,
+        end: w.end + clampedDelta,
+      }))
+
       const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
       return { session: { ...state.session, words, phrases } }
     })

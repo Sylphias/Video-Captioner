@@ -87,18 +87,21 @@ export function TimingEditor({
     splitPhrase,
     mergePhrase,
     updateWord,
+    updatePhraseText,
     setPhraseLinger,
     renameSpeaker,
     reassignPhraseSpeaker,
     deleteSpeaker,
     deletePhrase,
     addPhraseAtTime,
+    addWord,
     shiftPhrase,
   } = useSubtitleStore()
 
   const { waveform } = useWaveform(jobId)
 
   const [selectedPhraseIndex, setSelectedPhraseIndex] = useState<number | null>(null)
+  const [editingPhraseIndex, setEditingPhraseIndex] = useState<number | null>(null)
   const [dragOverLane, setDragOverLane] = useState<string | null>(null)
   const [deletingLane, setDeletingLane] = useState<string | null>(null)
   const [deleteReassignTo, setDeleteReassignTo] = useState<string>('')
@@ -148,6 +151,29 @@ export function TimingEditor({
     }
   }, [phrases, seekToTime])
 
+  const handlePhraseDoubleClick = useCallback((e: React.MouseEvent, phraseIndex: number) => {
+    e.stopPropagation()
+    setEditingPhraseIndex(phraseIndex)
+  }, [])
+
+  const handleInlineEditCommit = useCallback((phraseIndex: number, text: string) => {
+    setEditingPhraseIndex(null)
+    const trimmed = text.trim()
+    if (!trimmed) return
+    const newWords = trimmed.split(/\s+/).filter(Boolean)
+    if (newWords.length === 0) return
+    const phrase = phrases[phraseIndex]
+    if (!phrase) return
+    const oldText = phrase.words.map((w) => w.word).join(' ')
+    if (newWords.join(' ') !== oldText) {
+      updatePhraseText(phraseIndex, newWords)
+    }
+  }, [phrases, updatePhraseText])
+
+  const handleInlineEditCancel = useCallback(() => {
+    setEditingPhraseIndex(null)
+  }, [])
+
   const handleEditPhrase = useCallback((e: React.MouseEvent, phraseIndex: number) => {
     e.stopPropagation()
     setSelectedPhraseIndex(phraseIndex)
@@ -174,14 +200,35 @@ export function TimingEditor({
     }
   }, [deletePhrase, selectedPhraseIndex])
 
-  // Phrase timing shift: mousedown starts, mousemove updates visual offset, mouseup commits
+  // Phrase timing shift: mousedown records intent, mousemove activates after dead zone,
+  // mouseup commits. The dead zone allows double-click to fire for inline editing.
+  const shiftPendingRef = useRef<{ startX: number; phraseIndex: number } | null>(null)
+
   const handlePhraseShiftStart = useCallback((e: React.MouseEvent, phraseIndex: number) => {
-    // Only left button, ignore if clicking delete button
     if (e.button !== 0) return
-    e.preventDefault()
     e.stopPropagation()
-    shiftDragRef.current = { startX: e.clientX, phraseIndex }
-    setShiftDrag({ phraseIndex, offsetPx: 0 })
+    // Record intent but don't activate drag yet — wait for movement past dead zone
+    shiftPendingRef.current = { startX: e.clientX, phraseIndex }
+
+    const onMove = (moveE: MouseEvent) => {
+      if (!shiftPendingRef.current) return
+      const dx = moveE.clientX - shiftPendingRef.current.startX
+      if (Math.abs(dx) < 3) return // dead zone — don't start drag yet
+      // Activate drag
+      shiftDragRef.current = shiftPendingRef.current
+      shiftPendingRef.current = null
+      setShiftDrag({ phraseIndex, offsetPx: dx })
+      // Subsequent moves handled by the drag effect below
+    }
+
+    const onUp = () => {
+      shiftPendingRef.current = null
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
   }, [])
 
   useEffect(() => {
@@ -201,7 +248,6 @@ export function TimingEditor({
       setShiftDrag((prev) => {
         if (prev && Math.abs(prev.offsetPx) > 2) {
           const deltaSec = prev.offsetPx / PIXELS_PER_SECOND
-          // Use setTimeout to avoid setState-during-render
           setTimeout(() => shiftPhrase(phraseIndex, deltaSec), 0)
         }
         return null
@@ -473,6 +519,7 @@ export function TimingEditor({
                     const width = Math.max(4, (lastWord.end - firstWord.start) * PIXELS_PER_SECOND)
 
                     const isSelected = selectedPhraseIndex === phraseIndex
+                    const isEditing = editingPhraseIndex === phraseIndex
                     const phraseText = phrase.words.map((w) => w.word).join(' ')
                     const blockBg = `var(--speaker-color-${colorIdx}, rgba(0, 230, 150, 0.4))`
 
@@ -483,16 +530,18 @@ export function TimingEditor({
                     return (
                       <div
                         key={phraseIndex}
-                        className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}${isDragging ? ' timing-editor__phrase-block--dragging' : ''}`}
+                        className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}${isDragging ? ' timing-editor__phrase-block--dragging' : ''}${isEditing ? ' timing-editor__phrase-block--editing' : ''}`}
                         style={{ left: visualLeft, width, background: blockBg }}
                         onClick={(e) => {
                           e.stopPropagation()
-                          // Don't select if we just finished a drag
-                          if (!isDragging) handlePhraseClick(phraseIndex)
+                          if (!isDragging && !isEditing) handlePhraseClick(phraseIndex)
                         }}
-                        title={phraseText}
-                        onMouseDown={(e) => handlePhraseShiftStart(e, phraseIndex)}
-                        draggable
+                        onDoubleClick={(e) => handlePhraseDoubleClick(e, phraseIndex)}
+                        title={isEditing ? undefined : phraseText}
+                        onMouseDown={(e) => {
+                          if (!isEditing) handlePhraseShiftStart(e, phraseIndex)
+                        }}
+                        draggable={!isEditing}
                         onDragStart={(e) => handleDragStart(e, phraseIndex)}
                       >
                         {/* Word-end markers (red lines showing where each word ends) */}
@@ -503,7 +552,15 @@ export function TimingEditor({
                             style={{ left: (w.end - firstWord.start) * PIXELS_PER_SECOND }}
                           />
                         ))}
-                        <span className="timing-editor__phrase-text">{phraseText}</span>
+                        {isEditing ? (
+                          <InlinePhraseInput
+                            initialText={phraseText}
+                            onCommit={(text) => handleInlineEditCommit(phraseIndex, text)}
+                            onCancel={handleInlineEditCancel}
+                          />
+                        ) : (
+                          <span className="timing-editor__phrase-text">{phraseText}</span>
+                        )}
                         <button
                           className="timing-editor__phrase-edit"
                           type="button"
@@ -561,6 +618,9 @@ export function TimingEditor({
           }}
           onMergePhrase={() => {
             mergePhrase(selectedPhraseIndex)
+          }}
+          onAddWord={() => {
+            addWord(selectedPhraseIndex)
           }}
           onLingerChange={(lingerSec) => {
             setPhraseLinger(selectedPhraseIndex, lingerSec)
@@ -621,6 +681,7 @@ interface PhraseDetailPanelProps {
   onUpdateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
   onSplitPhrase: (splitBeforeWordIndex: number) => void
   onMergePhrase: () => void
+  onAddWord: () => void
   onLingerChange: (lingerSec: number) => void
   onReassignSpeaker: (speakerId: string) => void
   onSeekTo: (timeSec: number) => void
@@ -635,6 +696,7 @@ function PhraseDetailPanel({
   onUpdateWord,
   onSplitPhrase,
   onMergePhrase,
+  onAddWord,
   onLingerChange,
   onReassignSpeaker,
   onSeekTo,
@@ -724,6 +786,15 @@ function PhraseDetailPanel({
             onSeekTo={onSeekTo}
           />
         ))}
+
+        <button
+          type="button"
+          className="timing-editor__add-word-btn"
+          onClick={onAddWord}
+          title="Add a word after the last word in this phrase"
+        >
+          + Add word
+        </button>
       </div>
     </div>
   )
@@ -746,11 +817,16 @@ function WordTimingRow({
   onSplitBefore,
   onSeekTo,
 }: WordTimingRowProps) {
-  // Local state for controlled timestamp inputs (allows typing without committing on each keystroke)
+  // Local state for controlled inputs (allows typing without committing on each keystroke)
+  const [wordDraft, setWordDraft] = useState(word.word)
   const [startDraft, setStartDraft] = useState(word.start.toFixed(3))
   const [endDraft, setEndDraft] = useState(word.end.toFixed(3))
 
   // Sync drafts when word props change (e.g. after an undo)
+  useEffect(() => {
+    setWordDraft(word.word)
+  }, [word.word])
+
   useEffect(() => {
     setStartDraft(word.start.toFixed(3))
   }, [word.start])
@@ -758,6 +834,15 @@ function WordTimingRow({
   useEffect(() => {
     setEndDraft(word.end.toFixed(3))
   }, [word.end])
+
+  const commitWord = useCallback(() => {
+    const trimmed = wordDraft.trim()
+    if (trimmed && trimmed !== word.word) {
+      onUpdateWord(wordIndex, { word: trimmed })
+    } else {
+      setWordDraft(word.word)
+    }
+  }, [wordDraft, wordIndex, onUpdateWord, word.word])
 
   const commitStart = useCallback(() => {
     const val = parseFloat(startDraft)
@@ -831,15 +916,16 @@ function WordTimingRow({
         <span className="timing-editor__split-placeholder" />
       )}
 
-      {/* Word text (click to seek) */}
-      <button
-        type="button"
-        className="timing-editor__word-text"
-        onClick={() => onSeekTo(word.start)}
-        title={`Seek to "${word.word}"`}
-      >
-        {word.word}
-      </button>
+      {/* Word text (editable, click seek icon to seek) */}
+      <input
+        type="text"
+        className="timing-editor__word-text-input"
+        value={wordDraft}
+        onChange={(e) => setWordDraft(e.target.value)}
+        onBlur={commitWord}
+        onKeyDown={(e) => { if (e.key === 'Enter') commitWord() }}
+        aria-label={`Word text "${word.word}"`}
+      />
 
       {/* Start timestamp input — drag horizontally to scrub */}
       <input
@@ -870,5 +956,50 @@ function WordTimingRow({
       />
 
     </div>
+  )
+}
+
+// ── Inline Phrase Text Input ────────────────────────────────────────────────
+
+interface InlinePhraseInputProps {
+  initialText: string
+  onCommit: (text: string) => void
+  onCancel: () => void
+}
+
+function InlinePhraseInput({ initialText, onCommit, onCancel }: InlinePhraseInputProps) {
+  const [draft, setDraft] = useState(initialText)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const el = inputRef.current
+    if (el) {
+      el.focus()
+      el.select()
+    }
+  }, [])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      onCommit(draft)
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      onCancel()
+    }
+    e.stopPropagation()
+  }, [draft, onCommit, onCancel])
+
+  return (
+    <input
+      ref={inputRef}
+      className="timing-editor__phrase-inline-input"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => onCommit(draft)}
+      onKeyDown={handleKeyDown}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    />
   )
 }

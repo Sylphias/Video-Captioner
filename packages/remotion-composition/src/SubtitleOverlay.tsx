@@ -79,33 +79,53 @@ export function SubtitleOverlay({ phrases, style, speakerStyles }: SubtitleOverl
           top += OVERLAP_OFFSET_PCT
         }
 
+        const hasStroke = effectiveStyle.strokeWidth > 0
+
+        const containerStyle: React.CSSProperties = {
+          position: 'absolute',
+          top: `${top}%`,
+          transform: 'translateY(-50%)',
+          left: '5%',
+          right: '5%',
+          textAlign: 'center',
+          fontSize: effectiveStyle.fontSize,
+          fontFamily: effectiveStyle.fontFamily,
+          fontWeight: effectiveStyle.fontWeight,
+          lineHeight: 1.4,
+        }
+
         return (
           <div
             key={`${activePhrase.words[0].start}-${phraseIdx}`}
-            style={{
-              position: 'absolute',
-              top: `${top}%`,
-              transform: 'translateY(-50%)',
-              left: '5%',
-              right: '5%',
-              textAlign: 'center',
-              fontSize: effectiveStyle.fontSize,
-              fontFamily: effectiveStyle.fontFamily,
-              fontWeight: effectiveStyle.fontWeight,
-              lineHeight: 1.4,
-              paintOrder: effectiveStyle.strokeWidth > 0 ? 'stroke fill' : undefined,
-              WebkitTextStroke: effectiveStyle.strokeWidth > 0
-                ? `${effectiveStyle.strokeWidth}px ${effectiveStyle.strokeColor}`
-                : undefined,
-            }}
+            style={containerStyle}
           >
+            {/* Stroke layer: text in stroke color with thick WebkitTextStroke, behind fill */}
+            {hasStroke && (
+              <div aria-hidden style={{ position: 'absolute', inset: 0, textAlign: 'center' }}>
+                {activePhrase.words.map((word, i) => (
+                  <span
+                    key={`${word.start}-${i}`}
+                    style={{
+                      color: effectiveStyle.strokeColor,
+                      marginRight: '0.25em',
+                      WebkitTextStroke: `${effectiveStyle.strokeWidth * 2}px ${effectiveStyle.strokeColor}`,
+                    }}
+                  >
+                    {word.word}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Fill layer: clean colored text on top */}
             {activePhrase.words.map((word, i) => (
               <span
                 key={`${word.start}-${i}`}
                 style={{
+                  position: 'relative',
                   color: i === activeWordIndex ? effectiveStyle.highlightColor : effectiveStyle.baseColor,
                   marginRight: '0.25em',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.9)',
+                  textShadow: `${effectiveStyle.shadowOffsetX ?? 0}px ${effectiveStyle.shadowOffsetY ?? 2}px ${effectiveStyle.shadowBlur ?? 4}px ${effectiveStyle.shadowColor ?? '#000000'}`,
                 }}
               >
                 {word.word}
