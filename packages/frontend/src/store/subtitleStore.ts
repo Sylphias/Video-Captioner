@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Transcript, VideoMetadata } from '@eigen/shared-types'
-import type { StyleProps, SpeakerStyleOverride, AnimationType } from '@eigen/remotion-composition'
+import type { StyleProps, SpeakerStyleOverride } from '@eigen/remotion-composition'
 import {
   type SessionWord,
   type SessionPhrase,
@@ -11,8 +11,8 @@ import { useUndoStore, type StateSnapshot } from './undoMiddleware.ts'
 
 export type { SessionWord, SessionPhrase }
 
-/** Style override shape for phrases — same as SpeakerStyleOverride but stored as Record<string, unknown> */
-export type PhraseStyleOverride = Partial<StyleProps> & { animationType?: AnimationType }
+/** Style override shape for phrases — same as SpeakerStyleOverride (Partial<StyleProps>) */
+export type PhraseStyleOverride = Partial<StyleProps>
 
 interface SubtitleStore {
   jobId: string | null
@@ -27,6 +27,8 @@ interface SubtitleStore {
   maxWordsPerPhrase: number             // max words per auto-grouped phrase (default 8)
   speakerNames: Record<string, string>               // maps raw speaker IDs to display names
   speakerStyles: Record<string, SpeakerStyleOverride> // per-speaker style overrides
+  activeAnimationPresetId: string | null              // globally active animation preset ID
+  phraseAnimationPresetIds: Record<number, string>    // maps phrase index to override preset ID
 
   // Actions
   setJob: (jobId: string, transcript: Transcript, videoMetadata: VideoMetadata) => void
@@ -55,6 +57,8 @@ interface SubtitleStore {
   applyWordShift: (baselineWords: SessionWord[], deltaSec: number) => void
   setPhraseStyle: (phraseIndex: number, override: PhraseStyleOverride) => void
   clearPhraseStyle: (phraseIndex: number) => void
+  setActiveAnimationPresetId: (id: string | null) => void
+  setPhraseAnimationPresetId: (phraseIndex: number, presetId: string | null) => void
 }
 
 const DEFAULT_STYLE: StyleProps = {
@@ -149,6 +153,8 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   maxWordsPerPhrase: 8,
   speakerNames: {},
   speakerStyles: {},
+  activeAnimationPresetId: null,
+  phraseAnimationPresetIds: {},
 
   setJob: (jobId, transcript, videoMetadata) => {
     const words: SessionWord[] = transcript.words.map((w) => ({ ...w }))
@@ -555,7 +561,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     })
   },
 
-  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, maxWordsPerPhrase: 8, speakerNames: {}, speakerStyles: {} }),
+  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, maxWordsPerPhrase: 8, speakerNames: {}, speakerStyles: {}, activeAnimationPresetId: null, phraseAnimationPresetIds: {} }),
 
   renameSpeaker: (speakerId, displayName) => {
     set((state) => {
@@ -875,6 +881,26 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         i === phraseIndex ? { ...p, styleOverride: undefined } : p
       )
       return { session: { ...state.session, phrases } }
+    })
+  },
+
+  setActiveAnimationPresetId: (id) => {
+    set((state) => {
+      pushUndo(state)
+      return { activeAnimationPresetId: id }
+    })
+  },
+
+  setPhraseAnimationPresetId: (phraseIndex, presetId) => {
+    set((state) => {
+      pushUndo(state)
+      const phraseAnimationPresetIds = { ...state.phraseAnimationPresetIds }
+      if (presetId === null) {
+        delete phraseAnimationPresetIds[phraseIndex]
+      } else {
+        phraseAnimationPresetIds[phraseIndex] = presetId
+      }
+      return { phraseAnimationPresetIds }
     })
   },
 }))

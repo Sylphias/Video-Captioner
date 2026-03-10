@@ -1,4 +1,4 @@
-import type { TranscriptPhrase } from '@eigen/shared-types'
+import type { AnimationPreset, TranscriptPhrase } from '@eigen/shared-types'
 
 export interface StyleProps {
   highlightColor: string   // e.g. '#FFFF00'
@@ -16,13 +16,22 @@ export interface StyleProps {
   lingerDuration: number   // seconds a phrase stays visible after last word ends
 }
 
-export type AnimationType = 'none' | 'pop' | 'slide-up' | 'bounce'
+// SpeakerStyleOverride is now just a partial style override — no animation field.
+// Animations are controlled via AnimationPreset, not per-speaker animation types.
+export type SpeakerStyleOverride = Partial<StyleProps>
 
-export type SpeakerStyleOverride = Partial<StyleProps> & { animationType?: AnimationType }
+// Per-phrase type extending TranscriptPhrase with resolved animation preset.
+// The frontend resolves preset IDs to full AnimationPreset objects before passing
+// to the Remotion Player, because the composition runs in a serialization boundary
+// and cannot access hooks/stores/APIs.
+export type CompositionPhrase = TranscriptPhrase & {
+  animationPreset?: AnimationPreset  // resolved per-phrase animation preset (takes priority over global)
+}
 
 export interface SubtitleCompositionProps {
   videoSrc: string                                      // HTTP URL e.g. /api/jobs/{jobId}/video
-  phrases: TranscriptPhrase[]
+  phrases: CompositionPhrase[]
   style: StyleProps
   speakerStyles: Record<string, SpeakerStyleOverride>  // per-speaker style overrides keyed by speaker ID
+  animationPreset?: AnimationPreset                     // global default animation preset for all phrases
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { HexColorPicker, HexColorInput } from 'react-colorful'
 import { FONT_NAMES, getFontFamily } from '@eigen/remotion-composition'
-import type { AnimationType, SpeakerStyleOverride } from '@eigen/remotion-composition'
+import type { SpeakerStyleOverride } from '@eigen/remotion-composition'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import './SpeakerStylePanel.css'
 
@@ -21,7 +21,7 @@ function getSpeakerColor(speakerId: string): string {
   return SPEAKER_COLORS[isNaN(idx) ? 0 : idx]
 }
 
-type StyleField = keyof Omit<SpeakerStyleOverride, 'animationType'>
+type StyleField = keyof SpeakerStyleOverride
 
 interface SpeakerSectionProps {
   speakerId: string
@@ -52,8 +52,6 @@ function SpeakerSection({ speakerId, displayName, override, onSet, onClear, defa
 
   const hasOverride = (field: StyleField) => field in override
 
-  const animationType: AnimationType = (override.animationType ?? 'none') as AnimationType
-
   return (
     <div className="speaker-section">
       <button
@@ -71,21 +69,6 @@ function SpeakerSection({ speakerId, displayName, override, onSet, onClear, defa
 
       {open && (
         <div className="speaker-section__body">
-          {/* Animation type */}
-          <div className="speaker-section__control-row">
-            <label className="speaker-section__field-label">Animation</label>
-            <select
-              className="speaker-section__select"
-              value={animationType}
-              onChange={(e) => onSet({ animationType: e.target.value as AnimationType })}
-            >
-              <option value="none">None</option>
-              <option value="pop">Pop</option>
-              <option value="slide-up">Slide Up</option>
-              <option value="bounce">Bounce</option>
-            </select>
-          </div>
-
           {/* Font family override */}
           <div className="speaker-section__control-row">
             <label className="speaker-section__toggle-label">

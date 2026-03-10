@@ -1,10 +1,9 @@
 import { HexColorPicker, HexColorInput } from 'react-colorful'
 import { FONT_NAMES, getFontFamily } from '@eigen/remotion-composition'
-import type { AnimationType } from '@eigen/remotion-composition'
 import { useSubtitleStore, type PhraseStyleOverride } from '../../store/subtitleStore.ts'
 import '../StylePanel/SpeakerStylePanel.css'
 
-type StyleField = keyof Omit<PhraseStyleOverride, 'animationType'>
+type StyleField = keyof PhraseStyleOverride
 
 interface PhraseStylePanelProps {
   phraseIndex: number
@@ -38,8 +37,6 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
 
   const hasOverride = (field: StyleField) => field in override
 
-  const animationType: AnimationType = (override.animationType ?? 'none') as AnimationType
-
   return (
     <div className="speaker-style-panel">
       {/* Phrase preview text */}
@@ -49,21 +46,6 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
 
       <div className="speaker-section">
         <div className="speaker-section__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-          {/* Animation type */}
-          <div className="speaker-section__control-row">
-            <label className="speaker-section__field-label">Animation</label>
-            <select
-              className="speaker-section__select"
-              value={animationType}
-              onChange={(e) => setPhraseStyle(phraseIndex, { animationType: e.target.value as AnimationType })}
-            >
-              <option value="none">None</option>
-              <option value="pop">Pop</option>
-              <option value="slide-up">Slide Up</option>
-              <option value="bounce">Bounce</option>
-            </select>
-          </div>
-
           {/* Font family override */}
           <div className="speaker-section__control-row">
             <label className="speaker-section__toggle-label">
