@@ -1,0 +1,110 @@
+.phase-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: var(--spacing-md);
+}
+
+.phase-panel__heading {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* ---- Generic control row ---- */
+.phase-panel__control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.phase-panel__control--disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.phase-panel__control-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.phase-panel__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.phase-panel__value {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  min-width: 3.5em;
+  text-align: right;
+}
+
+/* ---- Slider ---- */
+.phase-panel__slider {
+  width: 100%;
+  accent-color: var(--color-accent-green);
+  cursor: pointer;
+  height: 4px;
+}
+
+/* ---- Select ---- */
+.phase-panel__select {
+  width: 100%;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  outline: none;
+  cursor: pointer;
+}
+
+.phase-panel__select:focus {
+  border-color: var(--color-accent-green);
+}
+
+/* ---- Radio group for scope ---- */
+.phase-panel__radio-group {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.phase-panel__radio-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.phase-panel__radio-label input[type='radio'] {
+  accent-color: var(--color-accent-green);
+  cursor: pointer;
+}
+
+/* ---- Checkbox for mirror toggle ---- */
+.phase-panel__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.phase-panel__checkbox-label input[type='checkbox'] {
+  accent-color: var(--color-accent-green);
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+}
