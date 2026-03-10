@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 7 of 7 (Text Animation Creator — IN PROGRESS)
-Plan: 3 of 5 complete (07-01, 07-02, 07-03 done)
-Status: Phase 7 executing. Plans 01-03 complete. Plans 04-05 pending.
-Last activity: 2026-03-10 — 07-03 complete: useAnimationPresets hook + PreviewPanel serialization boundary resolution + PhraseStylePanel preset picker
+Plan: 4 of 5 complete (07-01, 07-02, 07-03, 07-04 done)
+Status: Phase 7 executing. Plans 01-04 complete. Plan 05 pending.
+Last activity: 2026-03-10 — 07-04 complete: AnimationEditor UI (PresetList, AnimationPreview, PhaseTimeline, PhasePanel, useDebounced)
 
 Progress: [████████████████████] 86% (6 complete phases + 1 in progress)
 
@@ -34,14 +34,13 @@ Progress: [████████████████████] 86% (6 
 | 04.1-multi-speaker-diarization | 2 | ~2 days | — |
 | 05-server-render-and-output | 2/3 | ~18 min | — |
 | 06-styling | 5/5 | ~39 min | — |
-| 07-text-animation-creator | 3/5 | 16 min | 5 min |
+| 07-text-animation-creator | 4/5 | 20 min | 5 min |
 
 **Recent Trend:**
-- Phase 06-01 complete (5 min) — Styling data layer: extended StyleProps, per-speaker overrides, 8 Google Fonts, full stack speakerStyles propagation
-- Phase 06-02 complete (~2 min) — Style Controls UI: StylePanel (7 controls), SpeakerStylePanel (per-speaker overrides + animation), Transcript/Style tab bar in SubtitlesPage
 - Phase 06-03 complete (~25 min) — 4-stage nav shell: StageTabBar, SpeakersStage, collapsible PreviewPanel, SubtitlesPage restructured to stage-conditional rendering
 - Phase 07-01 complete (6 min) — AnimationPreset type hierarchy, CompositionPhrase serialization boundary type, animations.ts computation engine, SubtitleOverlay animation integration
 - Phase 07-03 complete (3 min) — useAnimationPresets hook, PreviewPanel serialization boundary preset resolution, PhraseStylePanel animation preset picker, undo/redo support for animation state
+- Phase 07-04 complete (4 min) — AnimationEditor UI: PresetList + AnimationPreview + PhaseTimeline + PhasePanel + useDebounced, all TypeScript-verified
 
 *Updated after each plan completion*
 
@@ -166,6 +165,9 @@ Recent decisions affecting current work:
 - [07-03]: useAnimationPresets uses refreshTick counter pattern — increment triggers useEffect re-fetch; all CRUD mutations call refresh() after success
 - [07-03]: Select value of empty string represents "use global default" — maps cleanly to val || null in onChange handler for setPhraseAnimationPresetId
 - [07-03]: SubtitleComposition already forwarded animationPreset to SubtitleOverlay in 07-01 — no changes needed in 07-03
+- [07-04]: Remotion Player generic constraint: PreviewComposition must be cast via `unknown as React.ComponentType<Record<string,unknown>>` — same pattern as Root.tsx Composition cast
+- [07-04]: AnimationEditor editing state (selectedPresetId) is separate from global active state (activeAnimationPresetId) — editing ≠ applying
+- [07-04]: PhaseTimeline exit drag inverts delta — dragging right shrinks exit duration (handle is left boundary of exit block, so handle moving right = exit block left-edge moving right = exit shrinks)
 
 ### Roadmap Evolution
 
@@ -190,11 +192,10 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-10
-Stopped at: Completed 07-03-PLAN.md (useAnimationPresets hook + PreviewPanel serialization boundary resolution + PhraseStylePanel preset picker)
+Stopped at: Completed 07-04-PLAN.md (AnimationEditor UI — PresetList + AnimationPreview + PhaseTimeline + PhasePanel + useDebounced)
 
 Next planned work:
-  1. Phase 7 Plan 04: Animation Editor tab (global preset selector, preset management UI)
-  2. Phase 7 Plan 05: Server render integration (pass animationPreset in render inputProps)
+  1. Phase 7 Plan 05: Wire AnimationEditor into StageTabBar and SubtitlesPage; server render integration for animationPreset
 
-Resume with: /gsd:execute-phase 07-text-animation-creator plan 04
+Resume with: /gsd:execute-phase 07-text-animation-creator plan 05
 Resume file: None
