@@ -1,0 +1,107 @@
+.animation-editor {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: 1fr;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ---- Left sidebar: preset list ---- */
+.animation-editor__sidebar {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.animation-editor__loading {
+  padding: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* ---- Right main area ---- */
+.animation-editor__main {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  gap: var(--spacing-md);
+  background: var(--color-bg-base);
+}
+
+.animation-editor__no-selection {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.animation-editor__no-selection p {
+  margin: 0;
+  max-width: 280px;
+}
+
+/* ---- Top bar: preset name + actions ---- */
+.animation-editor__top-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.animation-editor__name-input {
+  flex: 1;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  outline: none;
+  min-width: 0;
+}
+
+.animation-editor__name-input:focus {
+  border-color: var(--color-accent-green);
+}
+
+.animation-editor__name-input:disabled {
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.animation-editor__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.animation-editor__action-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.animation-editor__action-btn:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+.animation-editor__action-btn--active {
+  border-color: var(--color-accent-green);
+  color: var(--color-accent-green);
+}
