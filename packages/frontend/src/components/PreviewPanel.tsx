@@ -3,6 +3,7 @@ import { Player, type PlayerRef } from '@remotion/player'
 import { SubtitleComposition } from '@eigen/remotion-composition'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
 import { useWaveform } from '../hooks/useWaveform.ts'
+import { useAnimationPresets } from '../hooks/useAnimationPresets.ts'
 import './PreviewPanel.css'
 
 interface PreviewPanelProps {
@@ -18,6 +19,9 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
   const videoMetadata = useSubtitleStore((s) => s.videoMetadata)
   const style = useSubtitleStore((s) => s.style)
   const speakerStyles = useSubtitleStore((s) => s.speakerStyles)
+  const activeAnimationPresetId = useSubtitleStore((s) => s.activeAnimationPresetId)
+  const phraseAnimationPresetIds = useSubtitleStore((s) => s.phraseAnimationPresetIds)
+  const { presets } = useAnimationPresets()
 
   const playerRef = useRef<PlayerRef>(null)
   const { waveform } = useWaveform(jobId)
@@ -119,13 +123,39 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
   const inputProps = useMemo(() => {
     if (!jobId || !session) return null
     const videoSrc = `/api/jobs/${jobId}/video`
+
+    // Resolve the global active animation preset from the presets list.
+    // The Remotion composition runs at a serialization boundary — it cannot access
+    // hooks, stores, or APIs. All preset IDs must be resolved to full objects here.
+    const animationPreset = activeAnimationPresetId
+      ? presets.find((p) => p.id === activeAnimationPresetId) ?? undefined
+      : undefined
+
+    // Resolve per-phrase animation preset IDs to full AnimationPreset objects.
+    // SubtitleOverlay uses: phrase.animationPreset ?? globalAnimationPreset (prop)
+    const phrases = session.phrases.map((p, i) => {
+      const phraseOverrideId = phraseAnimationPresetIds[i]
+      const phraseAnimationPreset = phraseOverrideId
+        ? presets.find((pr) => pr.id === phraseOverrideId) ?? undefined
+        : undefined
+      return {
+        words: p.words,
+        dominantSpeaker: p.dominantSpeaker,
+        lingerDuration: p.lingerDuration,
+        styleOverride: p.styleOverride,
+        // Per-phrase resolved AnimationPreset (full object, not just an ID).
+        animationPreset: phraseAnimationPreset,
+      }
+    })
+
     return {
       videoSrc,
-      phrases: session.phrases.map((p) => ({ words: p.words, dominantSpeaker: p.dominantSpeaker, lingerDuration: p.lingerDuration, styleOverride: p.styleOverride })),
+      phrases,
       style,
       speakerStyles,
+      animationPreset,
     }
-  }, [jobId, session, style, speakerStyles])
+  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets])
 
   if (!jobId || !session || !videoMetadata || !inputProps) {
     return null

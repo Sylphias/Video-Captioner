@@ -1,6 +1,7 @@
 import { HexColorPicker, HexColorInput } from 'react-colorful'
 import { FONT_NAMES, getFontFamily } from '@eigen/remotion-composition'
 import { useSubtitleStore, type PhraseStyleOverride } from '../../store/subtitleStore.ts'
+import { useAnimationPresets } from '../../hooks/useAnimationPresets.ts'
 import '../StylePanel/SpeakerStylePanel.css'
 
 type StyleField = keyof PhraseStyleOverride
@@ -13,11 +14,18 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
   const phrase = useSubtitleStore((s) => s.session?.phrases[phraseIndex])
   const setPhraseStyle = useSubtitleStore((s) => s.setPhraseStyle)
   const clearPhraseStyle = useSubtitleStore((s) => s.clearPhraseStyle)
+  const phraseAnimationPresetIds = useSubtitleStore((s) => s.phraseAnimationPresetIds)
+  const setPhraseAnimationPresetId = useSubtitleStore((s) => s.setPhraseAnimationPresetId)
+  const activePresetId = useSubtitleStore((s) => s.activeAnimationPresetId)
+  const { presets } = useAnimationPresets()
 
   if (!phrase) return null
 
   const override = (phrase.styleOverride ?? {}) as PhraseStyleOverride
   const phraseText = phrase.words.map((w) => w.word).join(' ')
+
+  // Current per-phrase animation override (if any)
+  const phrasePresetId = phraseAnimationPresetIds[phraseIndex] ?? null
 
   const setField = (field: StyleField, value: string | number) => {
     setPhraseStyle(phraseIndex, { [field]: value } as PhraseStyleOverride)
@@ -46,6 +54,30 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
 
       <div className="speaker-section">
         <div className="speaker-section__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+          {/* Animation preset override */}
+          <div className="speaker-section__control-row">
+            <label className="speaker-section__field-label">Animation Preset</label>
+            <select
+              className="speaker-section__select"
+              value={phrasePresetId ?? ''}
+              onChange={(e) => {
+                const val = e.target.value
+                setPhraseAnimationPresetId(phraseIndex, val || null)
+              }}
+            >
+              <option value="">
+                {activePresetId
+                  ? `Use global default (${presets.find((p) => p.id === activePresetId)?.name ?? 'Unknown'})`
+                  : 'Use global default (None)'}
+              </option>
+              {presets.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}{p.isBuiltin ? ' (built-in)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Font family override */}
           <div className="speaker-section__control-row">
             <label className="speaker-section__toggle-label">
