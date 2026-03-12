@@ -245,9 +245,9 @@ export function computeAnimationStyles(
   const frameIntoPhrase = frame - phraseStartFrame
   const totalPhraseFrames = phraseEndFrame - phraseStartFrame
 
-  if (frameIntoPhrase < 0 || frameIntoPhrase > totalPhraseFrames) {
-    return {}
-  }
+  // Before enter: stay invisible. After exit: stay invisible during linger.
+  if (frameIntoPhrase < 0) return { opacity: 0 }
+  if (frameIntoPhrase > totalPhraseFrames) return { opacity: 0 }
 
   const { enterFrames, exitFrames } = clampFrames(phraseStartSec, phraseEndSec, preset, fps)
 
@@ -306,9 +306,9 @@ export function computeWordAnimationStyles(
   const frameIntoPhrase = frame - phraseStartFrame
   const totalPhraseFrames = phraseEndFrame - phraseStartFrame
 
-  if (frameIntoPhrase < 0 || frameIntoPhrase > totalPhraseFrames) {
-    return {}
-  }
+  // Before enter: stay invisible. After exit: stay invisible during linger.
+  if (frameIntoPhrase < 0) return { opacity: 0 }
+  if (frameIntoPhrase > totalPhraseFrames) return { opacity: 0 }
 
   const { enterFrames, exitFrames } = clampFrames(phraseStartSec, phraseEndSec, preset, fps)
 

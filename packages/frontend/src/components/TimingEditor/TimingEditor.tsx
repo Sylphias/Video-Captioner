@@ -83,6 +83,7 @@ export function TimingEditor({
 }: TimingEditorProps) {
   const session = useSubtitleStore((s) => s.session)
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
+  const globalLingerDuration = useSubtitleStore((s) => s.style.lingerDuration ?? 1.0)
   const {
     splitPhrase,
     mergePhrase,
@@ -515,8 +516,11 @@ export function TimingEditor({
 
                     const firstWord = phrase.words[0]
                     const lastWord = phrase.words[phrase.words.length - 1]
+                    const lingerSec = phrase.lingerDuration ?? globalLingerDuration
                     const left = firstWord.start * PIXELS_PER_SECOND
-                    const width = Math.max(4, (lastWord.end - firstWord.start) * PIXELS_PER_SECOND)
+                    const wordsWidth = (lastWord.end - firstWord.start) * PIXELS_PER_SECOND
+                    const lingerWidth = lingerSec * PIXELS_PER_SECOND
+                    const width = Math.max(4, wordsWidth + lingerWidth)
 
                     const isSelected = selectedPhraseIndex === phraseIndex
                     const isEditing = editingPhraseIndex === phraseIndex
@@ -544,6 +548,13 @@ export function TimingEditor({
                         draggable={!isEditing}
                         onDragStart={(e) => handleDragStart(e, phraseIndex)}
                       >
+                        {/* Linger tail — semi-transparent extension after last word */}
+                        {lingerWidth > 0 && (
+                          <span
+                            className="timing-editor__linger-tail"
+                            style={{ left: wordsWidth, width: lingerWidth }}
+                          />
+                        )}
                         {/* Word-end markers (red lines showing where each word ends) */}
                         {phrase.words.length > 1 && phrase.words.slice(0, -1).map((w, wi) => (
                           <span

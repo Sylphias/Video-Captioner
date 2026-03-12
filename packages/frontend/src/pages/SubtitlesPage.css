@@ -263,7 +263,7 @@
   width: 100%;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   padding: var(--spacing-md);
   background-color: var(--color-bg-surface);
   border: 1px solid var(--color-border);

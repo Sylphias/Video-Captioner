@@ -87,7 +87,8 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
         }
 
         const phraseStart = activePhrase.words[0].start
-        const phraseEnd = activePhrase.words[activePhrase.words.length - 1].end
+        const phraseLingerSec = activePhrase.lingerDuration ?? style.lingerDuration ?? 1.0
+        const phraseEnd = activePhrase.words[activePhrase.words.length - 1].end + phraseLingerSec
 
         const hasStroke = effectiveStyle.strokeWidth > 0
 

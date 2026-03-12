@@ -414,6 +414,18 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
+/* ── Linger tail (semi-transparent extension after last word) ───────────── */
+
+.timing-editor__linger-tail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 1px dashed rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* ── Word-end markers (red lines within phrase blocks) ──────────────────── */
 
 .timing-editor__word-end-marker {
