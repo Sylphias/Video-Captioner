@@ -175,8 +175,9 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- [Phase 7 — in progress]: Overlapping subtitle positioning — first speaker's text stays in row 1, incoming speaker takes row 2; when first speaker disappears, second speaker stays in row 2 until it ends (stable slot assignment, no upward shifting). See Thoughts.md for detailed frame-by-frame spec.
+- [Phase 7 — DONE]: Overlapping subtitle positioning — stable slot allocation implemented with same-speaker replacement
 - [Phase 7 — in progress]: Human verification checkpoint for 07-05 Task 2 (full animation workflow UAT)
+- [Future UX]: Configurable subtitle lane gap — control the vertical spacing between overlapping subtitle rows (currently hardcoded OVERLAP_OFFSET_PCT = 8). Add to Global Styling panel with a visual preview showing lane positions on the video.
 - [Phase 4 — deferred UX]: Drag-to-adjust timestamps on WordCell — more ergonomic than typing timestamp values
 - [Phase 4 — deferred UX]: Split button hit area too small when words are close — wider hit area or alternative interaction
 - [Phase 5+]: SRT import + word alignment — Import SRT from DaVinci Resolve, align with Whisper word timestamps using rough timestamp matching. SRT provides accurate text, Whisper provides per-word timing. Merge to get accurate text with word-level timestamps.

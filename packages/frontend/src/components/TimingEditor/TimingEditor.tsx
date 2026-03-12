@@ -633,6 +633,7 @@ export function TimingEditor({
           onAddWord={() => {
             addWord(selectedPhraseIndex)
           }}
+          globalLingerDuration={globalLingerDuration}
           onLingerChange={(lingerSec) => {
             setPhraseLinger(selectedPhraseIndex, lingerSec)
           }}
@@ -693,6 +694,7 @@ interface PhraseDetailPanelProps {
   onSplitPhrase: (splitBeforeWordIndex: number) => void
   onMergePhrase: () => void
   onAddWord: () => void
+  globalLingerDuration: number
   onLingerChange: (lingerSec: number) => void
   onReassignSpeaker: (speakerId: string) => void
   onSeekTo: (timeSec: number) => void
@@ -708,11 +710,12 @@ function PhraseDetailPanel({
   onSplitPhrase,
   onMergePhrase,
   onAddWord,
+  globalLingerDuration,
   onLingerChange,
   onReassignSpeaker,
   onSeekTo,
 }: PhraseDetailPanelProps) {
-  const lingerValue = phrase.lingerDuration ?? 1.0
+  const lingerValue = phrase.lingerDuration ?? globalLingerDuration
   const speakerLabel = phrase.dominantSpeaker
     ? (speakerNames[phrase.dominantSpeaker] ?? phrase.dominantSpeaker)
     : null
