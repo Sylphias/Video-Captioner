@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 7 of 7 (Text Animation Creator — IN PROGRESS)
-Plan: 4 of 5 complete (07-01, 07-02, 07-03, 07-04 done)
-Status: Phase 7 executing. Plans 01-04 complete. Plan 05 pending.
-Last activity: 2026-03-10 — 07-04 complete: AnimationEditor UI (PresetList, AnimationPreview, PhaseTimeline, PhasePanel, useDebounced)
+Plan: 5 of 5 code complete (07-01 through 07-05 Task 1 done). Human verification checkpoint pending.
+Status: Phase 7 executing. All code committed. Animation timing fixes applied (f485b2f). Human verification checkpoint in progress.
+Last activity: 2026-03-12 — 07-05 Task 1 committed (0465e7a), animation/linger timing fixes (f485b2f)
 
 Progress: [████████████████████] 86% (6 complete phases + 1 in progress)
 
@@ -175,6 +175,8 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
+- [Phase 7 — in progress]: Overlapping subtitle positioning — first speaker's text stays in row 1, incoming speaker takes row 2; when first speaker disappears, second speaker stays in row 2 until it ends (stable slot assignment, no upward shifting). See Thoughts.md for detailed frame-by-frame spec.
+- [Phase 7 — in progress]: Human verification checkpoint for 07-05 Task 2 (full animation workflow UAT)
 - [Phase 4 — deferred UX]: Drag-to-adjust timestamps on WordCell — more ergonomic than typing timestamp values
 - [Phase 4 — deferred UX]: Split button hit area too small when words are close — wider hit area or alternative interaction
 - [Phase 5+]: SRT import + word alignment — Import SRT from DaVinci Resolve, align with Whisper word timestamps using rough timestamp matching. SRT provides accurate text, Whisper provides per-word timing. Merge to get accurate text with word-level timestamps.
@@ -191,11 +193,19 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-10
-Stopped at: Completed 07-04-PLAN.md (AnimationEditor UI — PresetList + AnimationPreview + PhaseTimeline + PhasePanel + useDebounced)
+Last session: 2026-03-12
+Stopped at: Phase 7 all code committed (plans 01-05 Task 1). Linger/animation timing fixes applied. Human verification checkpoint in progress.
+
+Fixes applied during verification:
+  - Exit animation now plays at end of linger (phraseEnd includes lingerDuration)
+  - animations.ts returns opacity:0 for out-of-range frames (prevents reappear after exit)
+  - Timeline phrase blocks visually include linger duration (dashed tail indicator)
+  - Editor section overflow: auto (was hidden, clipping TimingEditor content)
 
 Next planned work:
-  1. Phase 7 Plan 05: Wire AnimationEditor into StageTabBar and SubtitlesPage; server render integration for animationPreset
+  1. Fix overlapping subtitle positioning (stable slot assignment per Thoughts.md)
+  2. Complete human verification checkpoint (07-05 Task 2)
+  3. Run phase verification, mark Phase 7 complete
 
-Resume with: /gsd:execute-phase 07-text-animation-creator plan 05
-Resume file: None
+Resume with: Continue verification — fix overlap positioning, then re-run UAT checklist
+Resume file: Thoughts.md (overlap positioning spec)
