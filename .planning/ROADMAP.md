@@ -19,7 +19,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4.1: Multi-Speaker Diarization and Speaker Lanes** (INSERTED) - Speaker detection via pyannote, color-coded speaker lanes, rename/reassign UI
 - [x] **Phase 5: Server Render and Output** - Render final MP4 in a worker thread, stream progress via SSE, deliver download
 - [x] **Phase 6: Editing Workflow Redesign** - Restructure editing into 2-stage workflow (Timeline, Text) with collapsible preview, StyleDrawer, undo/redo, waveform timeline
-- [ ] **Phase 7: Text Animation Creator** - Create and store reusable text animations for vertical/horizontal video resolutions; local DB or file storage for animation presets
+- [x] **Phase 7: Text Animation Creator** - Create and store reusable text animations for vertical/horizontal video resolutions; local DB or file storage for animation presets
+- [ ] **Phase 8: Keyframe Position Animation** - Keyframe-based subtitle position animation: define text x/y position over time with easing controls, visual keyframe editor, support for horizontal and vertical video
 
 ## Phase Details
 
@@ -155,16 +156,29 @@ Plans:
 **Plans:** 5 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Animation type system and Remotion rendering engine: AnimationPreset types, animations.ts helpers, SubtitleOverlay integration
-- [ ] 07-02-PLAN.md — Backend SQLite preset storage: better-sqlite3 plugin, CRUD routes, 7 built-in preset seeding
-- [ ] 07-03-PLAN.md — Frontend state and preview wiring: useAnimationPresets hook, store extensions, PreviewPanel + PhraseStylePanel integration
-- [ ] 07-04-PLAN.md — Animation Editor UI: PresetList, PhaseTimeline, PhasePanel, AnimationPreview, useDebounced hook
-- [ ] 07-05-PLAN.md — Stage tab integration and end-to-end verification: Animation tab in StageTabBar, SubtitlesPage wiring, human verification
+- [x] 07-01-PLAN.md — Animation type system and Remotion rendering engine: AnimationPreset types, animations.ts helpers, SubtitleOverlay integration
+- [x] 07-02-PLAN.md — Backend SQLite preset storage: better-sqlite3 plugin, CRUD routes, 7 built-in preset seeding
+- [x] 07-03-PLAN.md — Frontend state and preview wiring: useAnimationPresets hook, store extensions, PreviewPanel + PhraseStylePanel integration
+- [x] 07-04-PLAN.md — Animation Editor UI: PresetList, PhaseTimeline, PhasePanel, AnimationPreview, useDebounced hook
+- [x] 07-05-PLAN.md — Stage tab integration and end-to-end verification: Animation tab in StageTabBar, SubtitlesPage wiring, human verification
+
+### Phase 8: Keyframe Position Animation
+
+**Goal**: Users can animate subtitle position over time using keyframes with configurable easing, enabling dynamic text movement for both horizontal (16:9) and vertical (9:16) video
+**Depends on**: Phase 7
+**Success Criteria** (what must be TRUE):
+  1. User can define position keyframes (x%, y%) at specific times within a phrase's lifetime
+  2. User can set easing functions between keyframes (linear, ease-in, ease-out, ease-in-out, cubic bezier)
+  3. Subtitle position interpolates smoothly between keyframes during playback
+  4. Keyframe editor provides visual UI for adding, removing, and adjusting keyframes
+  5. Position animations work correctly for both horizontal and vertical video aspect ratios
+  6. Position keyframes can be saved as part of animation presets for reuse
+**Plans:** TBD (requires research and planning)
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -175,4 +189,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4.1 Multi-Speaker Diarization | 2/2 | ✓ Complete | 2026-03-05 |
 | 5. Server Render and Output | 2/2 | ✓ Complete | 2026-03-06 |
 | 6. Editing Workflow Redesign | 7/7 | ✓ Complete | 2026-03-10 |
-| 7. Text Animation Creator | 0/5 | Planned | - |
+| 7. Text Animation Creator | 5/5 | ✓ Complete | 2026-03-13 |
+| 8. Keyframe Position Animation | 0/? | Planned | - |

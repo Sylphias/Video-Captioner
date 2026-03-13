@@ -2,11 +2,11 @@
 
 ## What This Is
 
-A personal video tools suite with a web frontend and backend, hosted on an M4 Mac Mini and accessible from other devices on the local network. The platform provides a tabbed interface for switching between different video tools. The first tool is a dynamic subtitle generator that creates word-highlighted subtitles with live preview and final video rendering.
+A subtitle editor for video creators, with a web frontend and backend hosted on an M4 Mac Mini. Upload a video, auto-transcribe with speaker detection, edit and style subtitles with animated text effects, then render the final video with burned-in subtitles.
 
 ## Core Value
 
-Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
+Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, visual styling, and text animation.
 
 ## Requirements
 
@@ -16,14 +16,15 @@ Users can upload a video and get back a rendered video with accurate, dynamicall
 
 ### Active
 
-- [ ] Web-based tool suite with header navigation tabs for switching between tools
-- [ ] Backend API to handle video processing, transcription, and rendering
 - [ ] Upload video and generate word-level timestamped transcript using a free, accuracy-optimized speech-to-text model
+- [ ] Auto-detect speakers via diarization with manual rename/reassign
 - [ ] Edit transcript in a text editor with visible timestamps — fix words, adjust timing
 - [ ] Auto-group words into subtitle segments based on silence detection, with manual override to adjust break points
 - [ ] Karaoke-style subtitle mode — all words in a phrase visible, current word highlighted in a different color
 - [ ] Customize subtitle fonts, font stroke, and highlight color
 - [ ] Configurable subtitle positioning on the video (top/middle/bottom or percentage)
+- [ ] Create and apply reusable text animation presets (enter/hold/exit transitions with configurable easing)
+- [ ] Keyframe-based subtitle position animation — define text position over time with easing, for both horizontal and vertical video
 - [ ] Live preview of subtitled video in the browser before final render (via Remotion)
 - [ ] Render final video with burned-in subtitles and download the result
 - [ ] Runs on M4 Mac Mini, accessible on local network
@@ -57,7 +58,7 @@ Users can upload a video and get back a rendered video with accurate, dynamicall
 |----------|-----------|---------|
 | Remotion for video composition | User-specified; React-based video framework with browser preview and server-side rendering | — Pending |
 | Free self-hosted transcription (Whisper-based) | Must be free, accurate, and run on local hardware with word-level timestamps | — Pending |
-| Web frontend with tabbed navigation | Extensible UI for adding future tools to the suite | — Pending |
+| Web frontend | Subtitle-focused editing workflow with staged tabs (Timeline, Text, Animation) | — Pending |
 | Single-user local deployment | Personal tool, no need for auth or cloud infrastructure | — Pending |
 | M4 Mac Mini only (no Windows) | Simplifies transcription setup — single platform target | — Pending |
 
