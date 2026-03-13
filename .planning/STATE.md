@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 7 of 7 (Text Animation Creator — IN PROGRESS)
-Plan: 5 of 5 code complete (07-01 through 07-05 Task 1 done). Human verification checkpoint pending.
-Status: Phase 7 executing. All code committed. Animation timing fixes applied (f485b2f). Human verification checkpoint in progress.
-Last activity: 2026-03-12 — 07-05 Task 1 committed (0465e7a), animation/linger timing fixes (f485b2f)
+Phase: 7 of 7 (Text Animation Creator — COMPLETE)
+Plan: 5 of 5 — all complete, human verification passed
+Status: Phase 7 complete. All original milestone phases done. Considering new phase for animation motion/positioning.
+Last activity: 2026-03-13 — 07-05 verification passed, stable slot allocation committed (a8c5aae)
 
-Progress: [████████████████████] 86% (6 complete phases + 1 in progress)
+Progress: [████████████████████] 100% (7 of 7 phases complete)
 
 ## Performance Metrics
 
@@ -176,7 +176,7 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - [Phase 7 — DONE]: Overlapping subtitle positioning — stable slot allocation implemented with same-speaker replacement
-- [Phase 7 — in progress]: Human verification checkpoint for 07-05 Task 2 (full animation workflow UAT)
+- [Phase 7 — DONE]: Human verification checkpoint for 07-05 Task 2 — all 10 UAT areas passed
 - [Future UX]: Configurable subtitle lane gap — control the vertical spacing between overlapping subtitle rows (currently hardcoded OVERLAP_OFFSET_PCT = 8). Add to Global Styling panel with a visual preview showing lane positions on the video.
 - [Phase 4 — deferred UX]: Drag-to-adjust timestamps on WordCell — more ergonomic than typing timestamp values
 - [Phase 4 — deferred UX]: Split button hit area too small when words are close — wider hit area or alternative interaction
@@ -194,19 +194,12 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-12
-Stopped at: Phase 7 all code committed (plans 01-05 Task 1). Linger/animation timing fixes applied. Human verification checkpoint in progress.
-
-Fixes applied during verification:
-  - Exit animation now plays at end of linger (phraseEnd includes lingerDuration)
-  - animations.ts returns opacity:0 for out-of-range frames (prevents reappear after exit)
-  - Timeline phrase blocks visually include linger duration (dashed tail indicator)
-  - Editor section overflow: auto (was hidden, clipping TimingEditor content)
+Last session: 2026-03-13
+Stopped at: Phase 7 fully complete. All 7 milestone phases done. User wants to:
+  1. Add new phase for animation motion/positioning on video
+  2. Redefine app focus to subtitle-specific (not general video tools suite)
 
 Next planned work:
-  1. Fix overlapping subtitle positioning (stable slot assignment per Thoughts.md)
-  2. Complete human verification checkpoint (07-05 Task 2)
-  3. Run phase verification, mark Phase 7 complete
-
-Resume with: Continue verification — fix overlap positioning, then re-run UAT checklist
-Resume file: Thoughts.md (overlap positioning spec)
+  - Discuss new phase scope (animation motion paths/positioning)
+  - Update PROJECT.md to reflect subtitle-focused app identity
+  - Potentially start new milestone
