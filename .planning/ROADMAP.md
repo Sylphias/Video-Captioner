@@ -173,7 +173,14 @@ Plans:
   4. Keyframe editor provides visual UI for adding, removing, and adjusting keyframes
   5. Position animations work correctly for both horizontal and vertical video aspect ratios
   6. Position keyframes can be saved as part of animation presets for reuse
-**Plans:** TBD (requires research and planning)
+**Plans:** 5 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Keyframe data model, interpolation engine, bezier-easing, API compatibility
+- [ ] 08-02-PLAN.md — BezierEditor SVG component and EasingPicker dropdown with curve thumbnails
+- [ ] 08-03-PLAN.md — Animation Builder preview canvas with drag-to-position, aspect ratio switching, builder store
+- [ ] 08-04-PLAN.md — Keyframe timeline with multi-property track rows, diamond editing, easing controls
+- [ ] 08-05-PLAN.md — App.tsx tab integration, SubtitleOverlay keyframe rendering, end-to-end verification
 
 ## Progress
 
@@ -190,4 +197,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Server Render and Output | 2/2 | ✓ Complete | 2026-03-06 |
 | 6. Editing Workflow Redesign | 7/7 | ✓ Complete | 2026-03-10 |
 | 7. Text Animation Creator | 5/5 | ✓ Complete | 2026-03-13 |
-| 8. Keyframe Position Animation | 0/? | Planned | - |
+| 8. Keyframe Position Animation | 0/5 | Planned | - |
