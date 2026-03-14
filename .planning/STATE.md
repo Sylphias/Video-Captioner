@@ -174,6 +174,9 @@ Recent decisions affecting current work:
 - [08-01]: phraseProgress (0.0-1.0) is the single normalized time axis for keyframe interpolation, computed as frameIntoPhrase/totalPhraseFrames
 - [08-01]: keyframeStyles merged after phase styles using mergeStyles — keyframe transforms stack on top of enter/exit/active transforms
 - [08-01]: PUT /api/presets/:id preserves existing keyframeTracks when body.keyframeTracks is undefined (partial update semantics)
+- [08-02]: BezierEditor uses actual CSS token names from tokens.css (--color-bg-elevated, --color-accent-green) not plan shorthand aliases (--surface-2, --accent) — always match tokens.css
+- [08-02]: EasingPicker uses button elements for dropdown options (not option/select) to support inline SVG thumbnails
+- [08-02]: Pointer capture set on individual SVG circle handles; pointermove handled on parent SVG — allows dragging outside the circle without losing capture
 
 ### Roadmap Evolution
 
@@ -201,7 +204,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-14
-Stopped at: Phase 8 08-01 complete — keyframe data model and interpolation engine (d2708f6, c7ac7d2)
+Stopped at: Phase 8 08-02 complete — BezierEditor and EasingPicker reusable components (8c22e8d, 979ecd4)
 
 Next planned work:
   - Continue Phase 8: 08-02 (BezierEditor + EasingPicker UI components)
