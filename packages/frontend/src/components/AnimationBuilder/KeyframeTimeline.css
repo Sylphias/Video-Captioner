@@ -1,0 +1,187 @@
+.keyframe-timeline {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-surface);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Time ruler at top */
+.keyframe-timeline__ruler {
+  display: flex;
+  height: 20px;
+  position: relative;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.keyframe-timeline__ruler-spacer {
+  width: 60px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+}
+
+.keyframe-timeline__ruler-track {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+.keyframe-timeline__ruler-label {
+  position: absolute;
+  font-size: 9px;
+  color: var(--color-text-secondary);
+  transform: translateX(-50%);
+  top: 3px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Playhead in ruler */
+.keyframe-timeline__playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-accent-green);
+  z-index: 10;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+/* Container for all track rows — relative so playhead can span them */
+.keyframe-timeline__tracks {
+  position: relative;
+  flex: 1;
+}
+
+/* Playhead overlay row: aligns with label + track layout */
+.keyframe-timeline__playhead-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Matches the 60px label column width */
+.keyframe-timeline__playhead-spacer {
+  width: 60px;
+  flex-shrink: 0;
+}
+
+/* The remaining track area where the playhead line lives */
+.keyframe-timeline__playhead-track {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Playhead vertical line spanning all tracks */
+.keyframe-timeline__playhead-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-accent-green);
+  opacity: 0.6;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+/* Bottom action bar */
+.keyframe-timeline__bottom-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-top: 1px solid var(--color-border);
+  min-height: 32px;
+  flex-shrink: 0;
+  background: var(--color-bg-elevated);
+}
+
+.keyframe-timeline__bottom-label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.keyframe-timeline__bottom-hint {
+  font-size: 11px;
+  color: var(--color-text-disabled);
+  font-style: italic;
+}
+
+.keyframe-timeline__value-input {
+  width: 60px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 12px;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.keyframe-timeline__value-input::-webkit-inner-spin-button,
+.keyframe-timeline__value-input::-webkit-outer-spin-button {
+  opacity: 0.5;
+}
+
+.keyframe-timeline__value-input:focus {
+  border-color: var(--color-accent-green);
+}
+
+.keyframe-timeline__bottom-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.keyframe-timeline__add-btn,
+.keyframe-timeline__delete-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  transition: opacity var(--transition-fast);
+}
+
+.keyframe-timeline__add-btn {
+  background: var(--color-accent-green);
+  color: var(--color-bg-surface);
+  border-color: var(--color-accent-green);
+}
+
+.keyframe-timeline__add-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.keyframe-timeline__add-btn:not(:disabled):hover {
+  opacity: 0.85;
+}
+
+.keyframe-timeline__delete-btn {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.keyframe-timeline__delete-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.keyframe-timeline__delete-btn:not(:disabled):hover {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: #fff;
+}

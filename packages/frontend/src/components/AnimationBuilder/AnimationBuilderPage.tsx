@@ -3,6 +3,7 @@ import type { AnimationPreset } from '@eigen/shared-types'
 import { useAnimationPresets } from '../../hooks/useAnimationPresets'
 import { useBuilderStore } from './useBuilderStore'
 import { KeyframePreview } from './KeyframePreview'
+import { KeyframeTimeline } from './KeyframeTimeline'
 import './AnimationBuilderPage.css'
 
 export function AnimationBuilderPage() {
@@ -172,9 +173,9 @@ export function AnimationBuilderPage() {
         <KeyframePreview />
       </div>
 
-      {/* Timeline placeholder — will be replaced in Plan 04 */}
+      {/* Keyframe timeline — replaced placeholder with real timeline */}
       <div className="animation-builder-page__timeline">
-        Keyframe Timeline — coming in next plan
+        <KeyframeTimeline />
       </div>
     </div>
   )
