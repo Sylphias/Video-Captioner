@@ -10,6 +10,7 @@ interface CreatePresetBody {
   enter: Record<string, unknown>
   active: Record<string, unknown>
   exit: Record<string, unknown>
+  keyframeTracks?: unknown[]
 }
 
 interface UpdatePresetBody {
@@ -18,6 +19,7 @@ interface UpdatePresetBody {
   enter?: Record<string, unknown>
   active?: Record<string, unknown>
   exit?: Record<string, unknown>
+  keyframeTracks?: unknown[]
 }
 
 // ── Row → response shape mapper ───────────────────────────────────────────────
@@ -81,7 +83,11 @@ async function presetsRoutes(fastify: FastifyInstance): Promise<void> {
 
     const id = crypto.randomUUID()
     const now = Date.now()
-    const params = JSON.stringify({ enter: body.enter, active: body.active, exit: body.exit })
+    const paramsObj: Record<string, unknown> = { enter: body.enter, active: body.active, exit: body.exit }
+    if (body.keyframeTracks !== undefined) {
+      paramsObj.keyframeTracks = body.keyframeTracks
+    }
+    const params = JSON.stringify(paramsObj)
 
     insertStmt.run(id, body.name, body.scope, params, now, now)
 
@@ -105,10 +111,15 @@ async function presetsRoutes(fastify: FastifyInstance): Promise<void> {
 
     // Merge with existing params
     const existingParams = JSON.parse(existing.params) as Record<string, unknown>
-    const mergedParams = {
+    const mergedParams: Record<string, unknown> = {
       enter: body.enter ?? existingParams.enter,
       active: body.active ?? existingParams.active,
       exit: body.exit ?? existingParams.exit,
+    }
+    // Preserve or update keyframeTracks: if provided in body, use it; if not, keep existing
+    const updatedKeyframeTracks = body.keyframeTracks ?? existingParams.keyframeTracks
+    if (updatedKeyframeTracks !== undefined) {
+      mergedParams.keyframeTracks = updatedKeyframeTracks
     }
 
     const updatedName = body.name ?? existing.name

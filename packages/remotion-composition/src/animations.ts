@@ -1,5 +1,6 @@
 import { interpolate, spring, Easing } from 'remotion'
-import type { AnimationPreset, AnimationPhaseConfig, ActivePhaseConfig, EasingType } from '@eigen/shared-types'
+import BezierEasing from 'bezier-easing'
+import type { AnimationPreset, AnimationPhaseConfig, ActivePhaseConfig, EasingType, KeyframeTrack, KeyframeEasing, MotionKeyframe } from '@eigen/shared-types'
 
 // ─── Easing mapper ─────────────────────────────────────────────────────────────
 
@@ -224,6 +225,104 @@ function clampFrames(
   return { enterFrames, exitFrames }
 }
 
+// ─── Keyframe interpolation engine ──────────────────────────────────────────
+
+function findKeyframeSegment(keyframes: MotionKeyframe[], t: number): number {
+  // Find which segment [i, i+1] the time t falls into
+  for (let i = 0; i < keyframes.length - 1; i++) {
+    if (t <= keyframes[i + 1].time) return i
+  }
+  return keyframes.length - 2 // clamp to last segment
+}
+
+function applyKeyframeEasing(t: number, easing: KeyframeEasing): number {
+  switch (easing.type) {
+    case 'linear': return t
+    case 'ease-in': return Easing.in(Easing.ease)(t)
+    case 'ease-out': return Easing.out(Easing.ease)(t)
+    case 'ease-in-out': return Easing.inOut(Easing.ease)(t)
+    case 'ease-in-cubic': return Easing.in(Easing.cubic)(t)
+    case 'ease-out-cubic': return Easing.out(Easing.cubic)(t)
+    case 'ease-in-out-cubic': return Easing.inOut(Easing.cubic)(t)
+    case 'bounce': return Easing.bounce(t)
+    case 'elastic': return Easing.elastic(1)(t)
+    case 'bezier': {
+      const fn = BezierEasing(easing.p1x, easing.p1y, easing.p2x, easing.p2y)
+      return fn(t)
+    }
+    default: return t
+  }
+}
+
+function interpolateTrack(track: KeyframeTrack, phraseProgress: number): number {
+  const kfs = track.keyframes
+  if (kfs.length === 0) return 0
+  if (kfs.length === 1) return kfs[0].value
+
+  // Clamp to track range
+  if (phraseProgress <= kfs[0].time) return kfs[0].value
+  if (phraseProgress >= kfs[kfs.length - 1].time) return kfs[kfs.length - 1].value
+
+  const segIdx = findKeyframeSegment(kfs, phraseProgress)
+  const t0 = kfs[segIdx].time
+  const t1 = kfs[segIdx + 1].time
+  const v0 = kfs[segIdx].value
+  const v1 = kfs[segIdx + 1].value
+  const easing = track.easings[segIdx] ?? { type: 'linear' as const }
+
+  const segProgress = t1 === t0 ? 1 : (phraseProgress - t0) / (t1 - t0)
+  const easedProgress = applyKeyframeEasing(segProgress, easing)
+
+  return v0 + (v1 - v0) * easedProgress
+}
+
+/**
+ * Compute CSS properties from keyframe tracks at a given phrase progress.
+ * Returns position (translate), scale, rotation, and opacity.
+ * When keyframeTracks is undefined or empty, returns empty object (backward compatible).
+ */
+export function computeKeyframeStyles(
+  keyframeTracks: KeyframeTrack[] | undefined,
+  phraseProgress: number,
+  width: number,
+  height: number,
+): React.CSSProperties {
+  if (!keyframeTracks || keyframeTracks.length === 0) return {}
+
+  const result: React.CSSProperties = {}
+  const transforms: string[] = []
+
+  for (const track of keyframeTracks) {
+    const value = interpolateTrack(track, phraseProgress)
+
+    switch (track.property) {
+      case 'x':
+        // x% maps to translateX relative to composition width
+        transforms.push(`translateX(${(value / 100) * width - width / 2}px)`)
+        break
+      case 'y':
+        // y% maps to translateY — override the base vertical positioning
+        transforms.push(`translateY(${(value / 100) * height - height / 2}px)`)
+        break
+      case 'scale':
+        transforms.push(`scale(${value})`)
+        break
+      case 'rotation':
+        transforms.push(`rotate(${value}deg)`)
+        break
+      case 'opacity':
+        result.opacity = value
+        break
+    }
+  }
+
+  if (transforms.length > 0) {
+    result.transform = transforms.join(' ')
+  }
+
+  return result
+}
+
 // ─── Main exports ──────────────────────────────────────────────────────────────
 
 /**
@@ -251,7 +350,13 @@ export function computeAnimationStyles(
 
   const { enterFrames, exitFrames } = clampFrames(phraseStartSec, phraseEndSec, preset, fps)
 
+  // Compute phrase progress for keyframe overlay (0-1 across full phrase lifetime)
+  const phraseProgress = totalPhraseFrames > 0 ? frameIntoPhrase / totalPhraseFrames : 0
+  const kfStyles = computeKeyframeStyles(preset.keyframeTracks, phraseProgress, width, height)
+
   // Determine current phase
+  let phaseStyles: React.CSSProperties
+
   if (frameIntoPhrase < enterFrames) {
     // Enter phase
     const enterProgress = enterFrames > 0
@@ -262,27 +367,29 @@ export function computeAnimationStyles(
         })
       : 1
 
-    return applyEnterAnimation(enterProgress, preset.enter, frameIntoPhrase, fps, width, height)
+    phaseStyles = applyEnterAnimation(enterProgress, preset.enter, frameIntoPhrase, fps, width, height)
+  } else {
+    const framesBeforeExit = totalPhraseFrames - exitFrames
+    if (frameIntoPhrase >= framesBeforeExit) {
+      // Exit phase
+      const frameIntoExit = frameIntoPhrase - framesBeforeExit
+      const exitProgress = exitFrames > 0
+        ? interpolate(frameIntoExit, [0, exitFrames], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+            easing: getEasingFn(preset.exit.easing),
+          })
+        : 1
+
+      phaseStyles = applyExitAnimation(exitProgress, preset.exit, frameIntoExit, fps, width, height)
+    } else {
+      // Active phase
+      const activeFrame = frameIntoPhrase - enterFrames
+      phaseStyles = applyActiveAnimation(activeFrame, fps, preset.active, height)
+    }
   }
 
-  const framesBeforeExit = totalPhraseFrames - exitFrames
-  if (frameIntoPhrase >= framesBeforeExit) {
-    // Exit phase
-    const frameIntoExit = frameIntoPhrase - framesBeforeExit
-    const exitProgress = exitFrames > 0
-      ? interpolate(frameIntoExit, [0, exitFrames], [0, 1], {
-          extrapolateLeft: 'clamp',
-          extrapolateRight: 'clamp',
-          easing: getEasingFn(preset.exit.easing),
-        })
-      : 1
-
-    return applyExitAnimation(exitProgress, preset.exit, frameIntoExit, fps, width, height)
-  }
-
-  // Active phase
-  const activeFrame = frameIntoPhrase - enterFrames
-  return applyActiveAnimation(activeFrame, fps, preset.active, height)
+  return mergeStyles(phaseStyles, kfStyles)
 }
 
 /**
@@ -312,8 +419,14 @@ export function computeWordAnimationStyles(
 
   const { enterFrames, exitFrames } = clampFrames(phraseStartSec, phraseEndSec, preset, fps)
 
+  // Compute phrase progress for keyframe overlay (0-1 across full phrase lifetime)
+  const phraseProgress = totalPhraseFrames > 0 ? frameIntoPhrase / totalPhraseFrames : 0
+  const kfStyles = computeKeyframeStyles(preset.keyframeTracks, phraseProgress, width, height)
+
   // Apply stagger offset: earlier words start earlier
   const staggeredFrame = Math.max(0, frameIntoPhrase - wordIndex * staggerFrames)
+
+  let phaseStyles: React.CSSProperties
 
   if (staggeredFrame < enterFrames) {
     // Enter phase (with stagger)
@@ -325,27 +438,29 @@ export function computeWordAnimationStyles(
         })
       : 1
 
-    return applyEnterAnimation(enterProgress, preset.enter, staggeredFrame, fps, width, height)
+    phaseStyles = applyEnterAnimation(enterProgress, preset.enter, staggeredFrame, fps, width, height)
+  } else {
+    const framesBeforeExit = totalPhraseFrames - exitFrames
+    if (frameIntoPhrase >= framesBeforeExit) {
+      // Exit phase (no stagger for exit — all words exit together)
+      const frameIntoExit = frameIntoPhrase - framesBeforeExit
+      const exitProgress = exitFrames > 0
+        ? interpolate(frameIntoExit, [0, exitFrames], [0, 1], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+            easing: getEasingFn(preset.exit.easing),
+          })
+        : 1
+
+      phaseStyles = applyExitAnimation(exitProgress, preset.exit, frameIntoExit, fps, width, height)
+    } else {
+      // Active phase
+      const activeFrame = frameIntoPhrase - enterFrames
+      phaseStyles = applyActiveAnimation(activeFrame, fps, preset.active, height)
+    }
   }
 
-  const framesBeforeExit = totalPhraseFrames - exitFrames
-  if (frameIntoPhrase >= framesBeforeExit) {
-    // Exit phase (no stagger for exit — all words exit together)
-    const frameIntoExit = frameIntoPhrase - framesBeforeExit
-    const exitProgress = exitFrames > 0
-      ? interpolate(frameIntoExit, [0, exitFrames], [0, 1], {
-          extrapolateLeft: 'clamp',
-          extrapolateRight: 'clamp',
-          easing: getEasingFn(preset.exit.easing),
-        })
-      : 1
-
-    return applyExitAnimation(exitProgress, preset.exit, frameIntoExit, fps, width, height)
-  }
-
-  // Active phase
-  const activeFrame = frameIntoPhrase - enterFrames
-  return applyActiveAnimation(activeFrame, fps, preset.active, height)
+  return mergeStyles(phaseStyles, kfStyles)
 }
 
 // Export mergeStyles for use in SubtitleOverlay
