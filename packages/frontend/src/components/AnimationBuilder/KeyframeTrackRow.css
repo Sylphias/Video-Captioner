@@ -1,0 +1,139 @@
+.keyframe-track-row {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+.keyframe-track-row--selected {
+  background: rgba(76, 175, 114, 0.05);
+}
+
+/* Property label on the left */
+.keyframe-track-row__label {
+  width: 60px;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.keyframe-track-row__label:hover {
+  color: var(--color-text-primary);
+}
+
+/* Track area: the horizontal zone where keyframes live */
+.keyframe-track-row__track {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg-surface);
+  cursor: crosshair;
+}
+
+/* Gridlines at 25%, 50%, 75% */
+.keyframe-track-row__gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-border);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Segment line between consecutive keyframes */
+.keyframe-track-row__segment {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: var(--color-text-secondary);
+  opacity: 0.5;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.keyframe-track-row__segment:hover {
+  opacity: 0.9;
+  background: var(--color-accent-green);
+}
+
+/* Keyframe diamond */
+.keyframe-track-row__diamond {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  top: 50%;
+  cursor: grab;
+  z-index: 2;
+  border: 1px solid var(--color-border);
+}
+
+.keyframe-track-row__diamond:active {
+  cursor: grabbing;
+}
+
+.keyframe-track-row__diamond--selected {
+  background: var(--color-accent-green);
+  border-color: var(--color-accent-green);
+}
+
+.keyframe-track-row__diamond--default {
+  background: var(--color-text-secondary);
+  border-color: var(--color-text-secondary);
+}
+
+.keyframe-track-row__diamond--default:hover {
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+}
+
+/* Context menu (right-click) */
+.keyframe-track-row__context-menu {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  min-width: 140px;
+}
+
+.keyframe-track-row__context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.keyframe-track-row__context-menu-item:hover {
+  background: var(--color-bg-hover);
+}
+
+/* EasingPicker popover */
+.keyframe-track-row__easing-popover {
+  z-index: 1000;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  max-width: 240px;
+}
