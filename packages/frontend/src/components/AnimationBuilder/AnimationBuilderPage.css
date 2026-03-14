@@ -1,0 +1,104 @@
+.animation-builder-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+  gap: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Header row: preset selector + action buttons */
+.animation-builder-page__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.animation-builder-page__loading {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.animation-builder-page__preset-select {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 14px;
+  min-width: 200px;
+  cursor: pointer;
+  outline: none;
+}
+
+.animation-builder-page__preset-select:focus {
+  border-color: var(--color-accent-green);
+}
+
+.animation-builder-page__actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Buttons */
+.animation-builder-page__btn {
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  line-height: 1.4;
+  transition: opacity var(--transition-fast);
+}
+
+.animation-builder-page__btn--primary {
+  background: var(--color-accent-green);
+  color: var(--color-bg-surface);
+  border-color: var(--color-accent-green);
+}
+
+.animation-builder-page__btn--secondary {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.animation-builder-page__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.animation-builder-page__btn--secondary:not(:disabled):hover {
+  background: var(--color-bg-hover);
+}
+
+/* Error message */
+.animation-builder-page__error {
+  font-size: 13px;
+  color: var(--color-error);
+  flex-shrink: 0;
+}
+
+/* Preview area: fills available vertical space */
+.animation-builder-page__preview {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Timeline placeholder */
+.animation-builder-page__timeline {
+  flex-shrink: 0;
+  height: 200px;
+  background: var(--color-bg-surface);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
