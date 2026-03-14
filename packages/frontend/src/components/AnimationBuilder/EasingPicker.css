@@ -1,0 +1,110 @@
+.easing-picker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.easing-picker__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* Trigger button */
+.easing-picker__button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-family: var(--font-family);
+  text-align: left;
+  min-width: 160px;
+  transition: border-color var(--transition-fast);
+}
+
+.easing-picker__button:hover {
+  border-color: var(--color-border-focus);
+}
+
+.easing-picker__button:focus-visible {
+  outline: 2px solid var(--color-accent-green);
+  outline-offset: 1px;
+}
+
+.easing-picker__button-label {
+  flex: 1;
+}
+
+.easing-picker__chevron {
+  font-size: 9px;
+  color: var(--color-text-secondary);
+}
+
+/* SVG thumbnails */
+.easing-picker__thumbnail {
+  flex-shrink: 0;
+  stroke: var(--color-text-secondary);
+  stroke-width: 1.5;
+  fill: none;
+  overflow: visible;
+}
+
+.easing-picker__option--selected .easing-picker__thumbnail {
+  stroke: var(--color-accent-green);
+}
+
+/* Dropdown panel */
+.easing-picker__dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  z-index: 100;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Option rows */
+.easing-picker__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-family: var(--font-family);
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.easing-picker__option:hover {
+  background: var(--color-bg-elevated);
+}
+
+.easing-picker__option--selected {
+  background: var(--color-bg-elevated);
+  color: var(--color-accent-green);
+}
+
+/* BezierEditor inline container */
+.easing-picker__bezier-container {
+  padding: 8px 0;
+  border-top: 1px solid var(--color-border);
+  margin-top: 2px;
+}
