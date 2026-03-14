@@ -3,7 +3,7 @@ import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { TranscriptWord } from '@eigen/shared-types'
 import type { AnimationPreset } from '@eigen/shared-types'
 import type { StyleProps, SpeakerStyleOverride, CompositionPhrase } from './types'
-import { computeAnimationStyles, computeWordAnimationStyles, mergeStyles } from './animations'
+import { computeAnimationStyles, computeWordAnimationStyles, computeKeyframeStyles, mergeStyles } from './animations'
 
 /**
  * Binary search: find the index of the last word whose start <= currentTimeSec.
@@ -171,20 +171,59 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
           ? (() => { const { ['--textSliceProgress' as keyof React.CSSProperties]: _, ...rest } = phraseAnimStyles as Record<string, unknown>; return rest as React.CSSProperties })()
           : phraseAnimStyles
 
+        // Compute keyframe-driven position/scale/rotation/opacity at phrase level.
+        // For phrase-scope: computeAnimationStyles already includes keyframe styles
+        // internally, so only add keyframeAnimStyles for word-scope presets (where
+        // cleanPhraseAnimStyles is {}) to avoid doubling transforms.
+        const phraseProgress = (() => {
+          const totalPhraseFrames = Math.round((phraseEnd - phraseStart) * fps)
+          const frameIntoPhrase = frame - Math.round(phraseStart * fps)
+          return totalPhraseFrames > 0 ? Math.max(0, Math.min(1, frameIntoPhrase / totalPhraseFrames)) : 0
+        })()
+
+        const hasPositionKeyframes = effectivePreset?.keyframeTracks?.some(
+          (t) => t.property === 'x' || t.property === 'y'
+        ) ?? false
+
+        // Only compute and merge keyframe styles at container level for word-scope
+        // (phrase-scope already has them merged inside cleanPhraseAnimStyles).
+        const containerKeyframeStyles: React.CSSProperties =
+          (effectivePreset?.scope === 'word' && effectivePreset.keyframeTracks && effectivePreset.keyframeTracks.length > 0)
+            ? computeKeyframeStyles(effectivePreset.keyframeTracks, phraseProgress, width, height)
+            : {}
+
+        const baseStyle: React.CSSProperties = hasPositionKeyframes
+          ? {
+              // When keyframes control position, use absolute center as origin
+              // so keyframe translateX/Y moves text to the authored position
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              textAlign: 'center',
+              fontSize: effectiveStyle.fontSize,
+              fontFamily: effectiveStyle.fontFamily,
+              fontWeight: effectiveStyle.fontWeight,
+              lineHeight: 1.4,
+            }
+          : {
+              // Default slot-based positioning
+              position: 'absolute',
+              top: `${top}%`,
+              transform: 'translateY(-50%)',
+              left: '5%',
+              right: '5%',
+              textAlign: 'center',
+              fontSize: effectiveStyle.fontSize,
+              fontFamily: effectiveStyle.fontFamily,
+              fontWeight: effectiveStyle.fontWeight,
+              lineHeight: 1.4,
+            }
+
         const containerStyle: React.CSSProperties = mergeStyles(
-          {
-            position: 'absolute',
-            top: `${top}%`,
-            transform: 'translateY(-50%)',
-            left: '5%',
-            right: '5%',
-            textAlign: 'center',
-            fontSize: effectiveStyle.fontSize,
-            fontFamily: effectiveStyle.fontFamily,
-            fontWeight: effectiveStyle.fontWeight,
-            lineHeight: 1.4,
-          },
+          baseStyle,
           cleanPhraseAnimStyles,
+          containerKeyframeStyles,
         )
 
         const wordCount = activePhrase.words.length
