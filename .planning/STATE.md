@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 8 of 8 (Keyframe Position Animation — IN PROGRESS)
-Plan: 3 of 5 — 08-03 complete (KeyframePreview, MotionPathOverlay, useBuilderStore, AnimationBuilderPage)
-Status: Phase 8 active. 08-01 COMPLETE: keyframe types, interpolation engine, bezier-easing, backend API compatibility. 08-02 COMPLETE: BezierEditor and EasingPicker reusable components. 08-03 COMPLETE: Animation Builder preview canvas with drag-to-position, motion path overlay, useBuilderStore, AnimationBuilderPage root layout.
-Last activity: 2026-03-14 — 08-03 complete: useBuilderStore (Zustand), KeyframePreview (Remotion Player + drag overlay + RAF playhead), MotionPathOverlay (SVG), AnimationBuilderPage (preset CRUD + layout) (8da5240)
+Plan: 4 of 5 — 08-04 complete (KeyframeTrackRow, KeyframeTimeline, AnimationBuilderPage updated)
+Status: Phase 8 active. 08-01 COMPLETE: keyframe types, interpolation engine, bezier-easing, backend API compatibility. 08-02 COMPLETE: BezierEditor and EasingPicker reusable components. 08-03 COMPLETE: Animation Builder preview canvas with drag-to-position, motion path overlay, useBuilderStore, AnimationBuilderPage root layout. 08-04 COMPLETE: KeyframeTimeline editor panel with 5 property track rows, draggable diamonds, EasingPicker per segment, playhead sync, bottom value-edit bar.
+Last activity: 2026-03-14 — 08-04 complete: KeyframeTrackRow (draggable diamonds + EasingPicker popover), KeyframeTimeline (ruler + playhead + 5 rows + bottom bar), AnimationBuilderPage updated to render real timeline (79686d8, 5813328)
 
-Progress: [████████████████████] 100% (7 of 8 phases complete for original phases; Phase 8 3/5 plans done)
+Progress: [████████████████████] 100% (7 of 8 phases complete for original phases; Phase 8 4/5 plans done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
-- Average duration: 12 min
-- Total execution time: ~162 min
+- Total plans completed: 17
+- Average duration: 11 min
+- Total execution time: ~166 min
 
 **By Phase:**
 
@@ -37,10 +37,9 @@ Progress: [████████████████████] 100% (7
 | 07-text-animation-creator | 4/5 | 20 min | 5 min |
 
 **Recent Trend:**
-- Phase 06-03 complete (~25 min) — 4-stage nav shell: StageTabBar, SpeakersStage, collapsible PreviewPanel, SubtitlesPage restructured to stage-conditional rendering
-- Phase 07-01 complete (6 min) — AnimationPreset type hierarchy, CompositionPhrase serialization boundary type, animations.ts computation engine, SubtitleOverlay animation integration
-- Phase 07-03 complete (3 min) — useAnimationPresets hook, PreviewPanel serialization boundary preset resolution, PhraseStylePanel animation preset picker, undo/redo support for animation state
 - Phase 07-04 complete (4 min) — AnimationEditor UI: PresetList + AnimationPreview + PhaseTimeline + PhasePanel + useDebounced, all TypeScript-verified
+- Phase 08-03 complete (4 min) — useBuilderStore (Zustand), KeyframePreview (Remotion Player + drag overlay + RAF playhead), MotionPathOverlay (SVG), AnimationBuilderPage (preset CRUD + layout)
+- Phase 08-04 complete (4 min) — KeyframeTrackRow (draggable diamonds + EasingPicker popover), KeyframeTimeline (ruler + 5 rows + playhead + bottom bar), AnimationBuilderPage wired
 
 *Updated after each plan completion*
 
@@ -182,6 +181,9 @@ Recent decisions affecting current work:
 - [08-03]: addKeyframe deduplicates at same time (within 0.01s tolerance) — prevents creating duplicate keyframes during drag-while-paused
 - [08-03]: MotionPathOverlay takes compositionWidth/Height as props (not from store) — decoupled, reusable, testable
 - [08-03]: AnimationBuilderPage uses hasInitialized guard to load first preset once on mount without re-triggering on parent re-renders
+- [08-04]: Playhead line alignment in KeyframeTimeline uses flex overlay row with 60px spacer + flex-1 track, avoiding CSS calc with mixed units (px + %)
+- [08-04]: Context menu and EasingPicker popover use position:fixed at click coordinates — works regardless of ancestor overflow:hidden
+- [08-04]: selectedKeyframeIndex scoped to selected property row — KeyframeTrackRow receives null when it is not the active row
 
 ### Roadmap Evolution
 
@@ -209,8 +211,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-14
-Stopped at: Phase 8 08-03 complete — AnimationBuilderPage, KeyframePreview, useBuilderStore, MotionPathOverlay (a3ab786, 8da5240)
+Stopped at: Phase 8 08-04 complete — KeyframeTrackRow, KeyframeTimeline, AnimationBuilderPage timeline wired (79686d8, 5813328)
 
 Next planned work:
-  - Continue Phase 8: 08-04 (KeyframeTrack timeline editor panel)
-  - 08-05 (verification / integration)
+  - Continue Phase 8: 08-05 (verification / integration — e2e keyframe animation in Remotion preview)
