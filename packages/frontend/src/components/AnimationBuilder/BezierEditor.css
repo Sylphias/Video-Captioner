@@ -1,0 +1,47 @@
+.bezier-editor {
+  display: inline-block;
+  background: var(--color-bg-elevated);
+  border-radius: 6px;
+  padding: 8px;
+  box-sizing: content-box;
+}
+
+.bezier-editor__svg {
+  display: block;
+  user-select: none;
+}
+
+.bezier-editor__curve {
+  stroke: var(--color-accent-green);
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+}
+
+.bezier-editor__handle-line {
+  stroke: var(--color-text-secondary);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+}
+
+.bezier-editor__handle {
+  fill: var(--color-accent-green);
+  cursor: grab;
+  transition: r 100ms ease;
+}
+
+.bezier-editor__handle:hover {
+  r: 8;
+}
+
+.bezier-editor__handle:active {
+  cursor: grabbing;
+}
+
+.bezier-editor__reference {
+  stroke: var(--color-text-secondary);
+  stroke-width: 1;
+  opacity: 0.3;
+  pointer-events: none;
+}
