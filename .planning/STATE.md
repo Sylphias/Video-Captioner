@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 7 — Text Animation Creator
+**Current focus:** Phase 8 — Keyframe Position Animation
 
 ## Current Position
 
-Phase: 7 of 7 (Text Animation Creator — COMPLETE)
-Plan: 5 of 5 — all complete, human verification passed
-Status: Phase 7 complete. All original milestone phases done. Considering new phase for animation motion/positioning.
-Last activity: 2026-03-13 — 07-05 verification passed, stable slot allocation committed (a8c5aae)
+Phase: 8 of 8 (Keyframe Position Animation — IN PROGRESS)
+Plan: 2 of 5 — 08-02 complete (BezierEditor SVG component + EasingPicker dropdown)
+Status: Phase 8 active. 08-01 COMPLETE: keyframe types, interpolation engine, bezier-easing, backend API compatibility. 08-02 COMPLETE: BezierEditor and EasingPicker reusable components.
+Last activity: 2026-03-14 — 08-02 complete: BezierEditor (SVG cubic bezier curve editor with draggable handles), EasingPicker (9-preset dropdown with thumbnails + custom inline bezier) (979ecd4)
 
-Progress: [████████████████████] 100% (7 of 7 phases complete)
+Progress: [████████████████████] 100% (7 of 8 phases complete for original phases; Phase 8 1/5 plans done)
 
 ## Performance Metrics
 
@@ -168,6 +168,12 @@ Recent decisions affecting current work:
 - [07-04]: Remotion Player generic constraint: PreviewComposition must be cast via `unknown as React.ComponentType<Record<string,unknown>>` — same pattern as Root.tsx Composition cast
 - [07-04]: AnimationEditor editing state (selectedPresetId) is separate from global active state (activeAnimationPresetId) — editing ≠ applying
 - [07-04]: PhaseTimeline exit drag inverts delta — dragging right shrinks exit duration (handle is left boundary of exit block, so handle moving right = exit block left-edge moving right = exit shrinks)
+- [08-01]: bezier-easing ships its own TypeScript types (src/index.d.ts) — no @types/bezier-easing needed
+- [08-01]: x/y keyframe values use % units mapped to pixel offsets via (value/100)*dimension - dimension/2 centering
+- [08-01]: keyframeTracks at AnimationPreset level applies across full phrase lifetime, orthogonal to enter/active/exit phase config
+- [08-01]: phraseProgress (0.0-1.0) is the single normalized time axis for keyframe interpolation, computed as frameIntoPhrase/totalPhraseFrames
+- [08-01]: keyframeStyles merged after phase styles using mergeStyles — keyframe transforms stack on top of enter/exit/active transforms
+- [08-01]: PUT /api/presets/:id preserves existing keyframeTracks when body.keyframeTracks is undefined (partial update semantics)
 
 ### Roadmap Evolution
 
@@ -194,12 +200,11 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-13
-Stopped at: Phase 7 fully complete. All 7 milestone phases done. User wants to:
-  1. Add new phase for animation motion/positioning on video
-  2. Redefine app focus to subtitle-specific (not general video tools suite)
+Last session: 2026-03-14
+Stopped at: Phase 8 08-01 complete — keyframe data model and interpolation engine (d2708f6, c7ac7d2)
 
 Next planned work:
-  - Discuss new phase scope (animation motion paths/positioning)
-  - Update PROJECT.md to reflect subtitle-focused app identity
-  - Potentially start new milestone
+  - Continue Phase 8: 08-02 (BezierEditor + EasingPicker UI components)
+  - 08-03 (KeyframeTrack editor panel)
+  - 08-04 (preview integration)
+  - 08-05 (verification)
