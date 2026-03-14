@@ -14,6 +14,7 @@
   "dependencies": {
     "@eigen/shared-types": "*",
     "@remotion/google-fonts": "4.0.379",
+    "bezier-easing": "^2.1.0",
     "remotion": "4.0.379"
   },
   "devDependencies": {

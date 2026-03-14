@@ -83,4 +83,40 @@ export interface AnimationPreset {
   exit: AnimationPhaseConfig & { mirrorEnter: boolean }  // exit can mirror enter by default
   createdAt: number
   updatedAt: number
+  keyframeTracks?: KeyframeTrack[]  // optional, undefined = no keyframe animation (backward compatible)
+}
+
+// ─── Keyframe animation types ─────────────────────────────────────────────────
+
+export type KeyframeableProperty = 'x' | 'y' | 'scale' | 'rotation' | 'opacity'
+
+export interface CubicBezierEasing {
+  type: 'bezier'
+  p1x: number  // 0-1
+  p1y: number  // unconstrained (allows overshoot)
+  p2x: number  // 0-1
+  p2y: number  // unconstrained
+}
+
+export type KeyframeEasing =
+  | { type: 'linear' }
+  | { type: 'ease-in' }
+  | { type: 'ease-out' }
+  | { type: 'ease-in-out' }
+  | { type: 'ease-in-cubic' }
+  | { type: 'ease-out-cubic' }
+  | { type: 'ease-in-out-cubic' }
+  | { type: 'bounce' }
+  | { type: 'elastic' }
+  | CubicBezierEasing
+
+export interface MotionKeyframe {
+  time: number    // 0.0-1.0, fraction of phrase lifetime
+  value: number   // units depend on property: % for x/y, multiplier for scale, degrees for rotation, 0-1 for opacity
+}
+
+export interface KeyframeTrack {
+  property: KeyframeableProperty
+  keyframes: MotionKeyframe[]
+  easings: KeyframeEasing[]   // length = keyframes.length - 1 (one per segment between keyframe pairs)
 }
