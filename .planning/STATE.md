@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 8 of 8 (Keyframe Position Animation — IN PROGRESS)
-Plan: 2 of 5 — 08-02 complete (BezierEditor SVG component + EasingPicker dropdown)
-Status: Phase 8 active. 08-01 COMPLETE: keyframe types, interpolation engine, bezier-easing, backend API compatibility. 08-02 COMPLETE: BezierEditor and EasingPicker reusable components.
-Last activity: 2026-03-14 — 08-02 complete: BezierEditor (SVG cubic bezier curve editor with draggable handles), EasingPicker (9-preset dropdown with thumbnails + custom inline bezier) (979ecd4)
+Plan: 3 of 5 — 08-03 complete (KeyframePreview, MotionPathOverlay, useBuilderStore, AnimationBuilderPage)
+Status: Phase 8 active. 08-01 COMPLETE: keyframe types, interpolation engine, bezier-easing, backend API compatibility. 08-02 COMPLETE: BezierEditor and EasingPicker reusable components. 08-03 COMPLETE: Animation Builder preview canvas with drag-to-position, motion path overlay, useBuilderStore, AnimationBuilderPage root layout.
+Last activity: 2026-03-14 — 08-03 complete: useBuilderStore (Zustand), KeyframePreview (Remotion Player + drag overlay + RAF playhead), MotionPathOverlay (SVG), AnimationBuilderPage (preset CRUD + layout) (8da5240)
 
-Progress: [████████████████████] 100% (7 of 8 phases complete for original phases; Phase 8 1/5 plans done)
+Progress: [████████████████████] 100% (7 of 8 phases complete for original phases; Phase 8 3/5 plans done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
+- Total plans completed: 16
 - Average duration: 12 min
-- Total execution time: ~158 min
+- Total execution time: ~162 min
 
 **By Phase:**
 
@@ -177,6 +177,11 @@ Recent decisions affecting current work:
 - [08-02]: BezierEditor uses actual CSS token names from tokens.css (--color-bg-elevated, --color-accent-green) not plan shorthand aliases (--surface-2, --accent) — always match tokens.css
 - [08-02]: EasingPicker uses button elements for dropdown options (not option/select) to support inline SVG thumbnails
 - [08-02]: Pointer capture set on individual SVG circle handles; pointermove handled on parent SVG — allows dragging outside the circle without losing capture
+- [08-03]: RAF polling reads getCurrentFrame() from PlayerRef — Remotion Player has no frame-change event; polling is the correct approach for playhead sync
+- [08-03]: setPointerCapture on drag overlay pointerdown — ensures pointermove fires even when pointer leaves overlay bounds during fast drag
+- [08-03]: addKeyframe deduplicates at same time (within 0.01s tolerance) — prevents creating duplicate keyframes during drag-while-paused
+- [08-03]: MotionPathOverlay takes compositionWidth/Height as props (not from store) — decoupled, reusable, testable
+- [08-03]: AnimationBuilderPage uses hasInitialized guard to load first preset once on mount without re-triggering on parent re-renders
 
 ### Roadmap Evolution
 
@@ -204,10 +209,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-14
-Stopped at: Phase 8 08-02 complete — BezierEditor and EasingPicker reusable components (8c22e8d, 979ecd4)
+Stopped at: Phase 8 08-03 complete — AnimationBuilderPage, KeyframePreview, useBuilderStore, MotionPathOverlay (a3ab786, 8da5240)
 
 Next planned work:
-  - Continue Phase 8: 08-02 (BezierEditor + EasingPicker UI components)
-  - 08-03 (KeyframeTrack editor panel)
-  - 08-04 (preview integration)
-  - 08-05 (verification)
+  - Continue Phase 8: 08-04 (KeyframeTrack timeline editor panel)
+  - 08-05 (verification / integration)
