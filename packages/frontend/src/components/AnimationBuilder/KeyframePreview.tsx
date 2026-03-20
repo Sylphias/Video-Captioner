@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useRef, useState, useEffect, useMemo, useCallback, type CSSProperties } from 'react'
 import { Player } from '@remotion/player'
 import type { PlayerRef } from '@remotion/player'
 import { AbsoluteFill } from 'remotion'
@@ -21,17 +21,15 @@ const ASPECT_RATIOS: Record<AspectRatio, { width: number; height: number }> = {
 
 // ─── Preview constants ─────────────────────────────────────────────────────────
 
-const PREVIEW_FPS = 30
 const PREVIEW_DURATION_SEC = 5
-const PREVIEW_DURATION_FRAMES = PREVIEW_DURATION_SEC * PREVIEW_FPS
-// Phrase runs from 0.5s to 4.0s (frames 15-120)
+// Phrase runs from 0.5s to 4.0s
 const PHRASE_START_SEC = 0.5
 const PHRASE_END_SEC = 4.0
 
 const PREVIEW_STYLE: StyleProps = {
   highlightColor: '#FFFF00',
   baseColor: '#FFFFFF',
-  fontSize: 36,
+  fontSize: 24,
   fontFamily: 'Inter',
   fontWeight: 700,
   strokeColor: '#000000',
@@ -46,7 +44,7 @@ const PREVIEW_STYLE: StyleProps = {
 
 const EMPTY_SPEAKER_STYLES: Record<string, SpeakerStyleOverride> = {}
 
-// ─── Inner composition (defined outside to avoid recreation on each render) ───
+// ─── Inner composition ─────────────────────────────────────────────────────────
 
 interface BuilderPreviewCompositionProps {
   preset: AnimationPreset | null
@@ -54,7 +52,6 @@ interface BuilderPreviewCompositionProps {
 }
 
 function BuilderPreviewComposition({ preset, sampleText }: BuilderPreviewCompositionProps) {
-  // Build sample phrases from sampleText
   const words = sampleText.trim().split(/\s+/).filter(Boolean)
   const wordCount = words.length
   const phraseSpan = PHRASE_END_SEC - PHRASE_START_SEC
@@ -91,39 +88,191 @@ function BuilderPreviewComposition({ preset, sampleText }: BuilderPreviewComposi
 export function KeyframePreview() {
   const playerRef = useRef<PlayerRef>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [canvasHeight, setCanvasHeight] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(true)
 
   const preset = useBuilderStore((s) => s.preset)
+  const fps = useBuilderStore((s) => s.fps)
   const sampleText = useBuilderStore((s) => s.sampleText)
   const setSampleText = useBuilderStore((s) => s.setSampleText)
   const aspectRatio = useBuilderStore((s) => s.aspectRatio)
   const setAspectRatio = useBuilderStore((s) => s.setAspectRatio)
   const showMotionPath = useBuilderStore((s) => s.showMotionPath)
   const setShowMotionPath = useBuilderStore((s) => s.setShowMotionPath)
-  const playheadProgress = useBuilderStore((s) => s.playheadProgress)
-  const setPlayheadProgress = useBuilderStore((s) => s.setPlayheadProgress)
+  const selectedPhase = useBuilderStore((s) => s.selectedPhase)
+  const enterDurationFrames = useBuilderStore((s) => s.enterDurationFrames)
+  const activeCycleDurationFrames = useBuilderStore((s) => s.activeCycleDurationFrames)
+  const setPlayheadFrame = useBuilderStore((s) => s.setPlayheadFrame)
+  const playheadFrame = useBuilderStore((s) => s.playheadFrame)
   const addKeyframe = useBuilderStore((s) => s.addKeyframe)
+  const buildKeyframePhases = useBuilderStore((s) => s.buildKeyframePhases)
+  const setSeekToPhaseFrame = useBuilderStore((s) => s.setSeekToPhaseFrame)
+  const exitDurationFrames = useBuilderStore((s) => s.exitDurationFrames)
+
+  const previewFps = fps
+  const previewDurationFrames = PREVIEW_DURATION_SEC * previewFps
+
+  // Play/pause toggle
+  const togglePlayPause = useCallback(() => {
+    const player = playerRef.current
+    if (!player) return
+    if (isPlaying) {
+      player.pause()
+    } else {
+      player.play()
+    }
+  }, [isPlaying])
+
+  // Listen for play/pause events from the Player.
+  // Re-attach when Player remounts (key changes with aspectRatio/canvasHeight/previewFps).
+  const playerKey = `${aspectRatio}-${canvasHeight}-${previewFps}`
+  useEffect(() => {
+    const onPlay = () => setIsPlaying(true)
+    const onPause = () => setIsPlaying(false)
+    // Small delay to let the new Player mount and populate the ref
+    const timer = setTimeout(() => {
+      const player = playerRef.current
+      if (!player) return
+      player.addEventListener('play', onPlay)
+      player.addEventListener('pause', onPause)
+      // Player has autoPlay, so it starts playing on mount
+      setIsPlaying(true)
+    }, 50)
+    return () => {
+      clearTimeout(timer)
+      const player = playerRef.current
+      if (player) {
+        player.removeEventListener('play', onPlay)
+        player.removeEventListener('pause', onPause)
+      }
+    }
+  }, [playerKey])
+
+  // Spacebar global play/pause (only when not typing in an input)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.code !== 'Space') return
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      e.preventDefault()
+      togglePlayPause()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [togglePlayPause])
+
+  // Register seek callback so the timeline can seek the player
+  useEffect(() => {
+    const seekFn = (phaseFrame: number) => {
+      const player = playerRef.current
+      if (!player) return
+
+      const state = useBuilderStore.getState()
+      // Convert phase frame back to composition frame
+      let phaseOffsetSec = 0
+      if (state.selectedPhase === 'active') {
+        phaseOffsetSec = state.enterDurationFrames / state.fps
+      } else if (state.selectedPhase === 'exit') {
+        phaseOffsetSec = (state.enterDurationFrames + state.activeCycleDurationFrames) / state.fps
+      }
+      const timeSec = PHRASE_START_SEC + phaseOffsetSec + (phaseFrame / state.fps)
+      const compositionFrame = Math.round(timeSec * previewFps)
+      player.seekTo(compositionFrame)
+      player.pause()
+    }
+    setSeekToPhaseFrame(seekFn)
+    return () => setSeekToPhaseFrame(null)
+  }, [previewFps, setSeekToPhaseFrame])
 
   const { width: compWidth, height: compHeight } = ASPECT_RATIOS[aspectRatio]
 
-  // Memoize inputProps — always defined (preset can be null)
+  // Build a working preset that uses the current phase keyframe tracks
+  const workingPreset = useMemo<AnimationPreset | null>(() => {
+    const phases = buildKeyframePhases()
+    const hasTracks = phases.enter.tracks.length > 0 || phases.active.tracks.length > 0 || phases.exit.tracks.length > 0
+
+    if (!preset) {
+      if (!hasTracks) return null
+      const noPhase = { type: 'none' as const, durationSec: 0, easing: 'linear' as const, params: {} }
+      return {
+        id: '__builder__',
+        name: 'Builder Preview',
+        scope: 'phrase' as const,
+        isBuiltin: false,
+        enter: noPhase,
+        active: { type: 'none' as const, cycleDurationSec: 0, intensity: 0 },
+        exit: { ...noPhase, mirrorEnter: false },
+        createdAt: 0,
+        updatedAt: 0,
+        keyframeTracks: phases,
+      } satisfies AnimationPreset
+    }
+    return { ...preset, keyframeTracks: phases }
+  }, [preset, buildKeyframePhases])
+
+  // Observe canvas container height
+  useEffect(() => {
+    const el = canvasRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      setCanvasHeight(entry.contentRect.height)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Compute Player style
+  const playerStyle = useMemo<CSSProperties>(() => {
+    if (canvasHeight <= 0) return { width: '100%', borderRadius: 6, display: 'block' }
+    const arRatio = compWidth / compHeight
+    const fitWidth = Math.floor(canvasHeight * arRatio)
+    return {
+      width: fitWidth,
+      height: canvasHeight,
+      borderRadius: 4,
+      display: 'block',
+      outline: '1px solid var(--color-border)',
+    }
+  }, [canvasHeight, compWidth, compHeight])
+
   const inputProps = useMemo<BuilderPreviewCompositionProps>(
-    () => ({ preset, sampleText }),
-    [preset, sampleText],
+    () => ({ preset: workingPreset, sampleText }),
+    [workingPreset, sampleText],
   )
 
-  // Poll the Remotion Player for current playhead time via requestAnimationFrame
+  // Poll the Remotion Player for current playhead time and compute frame within current phase
   useEffect(() => {
     function poll() {
       const player = playerRef.current
       if (player) {
         const frame = player.getCurrentFrame()
-        // Normalize to phrase lifetime [0, 1]: frame maps to seconds, then to phrase fraction
-        const currentTimeSec = frame / PREVIEW_FPS
+        const currentTimeSec = frame / previewFps
         const phraseSpan = PHRASE_END_SEC - PHRASE_START_SEC
-        const progress = Math.max(0, Math.min(1, (currentTimeSec - PHRASE_START_SEC) / phraseSpan))
-        setPlayheadProgress(progress)
+
+        // Compute time into phrase
+        const timeIntoPhrase = Math.max(0, currentTimeSec - PHRASE_START_SEC)
+        const phraseTimeSec = Math.min(timeIntoPhrase, phraseSpan)
+
+        // Convert to keyframe-space frame
+        const kfFrame = phraseTimeSec * fps
+
+        // Determine phase boundaries in keyframe-space
+        const enterEnd = enterDurationFrames
+        const activeEnd = enterEnd + activeCycleDurationFrames
+
+        let frameInPhase: number
+        if (kfFrame < enterEnd) {
+          frameInPhase = selectedPhase === 'enter' ? kfFrame : 0
+        } else if (kfFrame < activeEnd) {
+          frameInPhase = selectedPhase === 'active' ? kfFrame - enterEnd : 0
+        } else {
+          frameInPhase = selectedPhase === 'exit' ? kfFrame - activeEnd : 0
+        }
+
+        setPlayheadFrame(Math.max(0, frameInPhase))
       }
       rafRef.current = requestAnimationFrame(poll)
     }
@@ -133,9 +282,9 @@ export function KeyframePreview() {
         cancelAnimationFrame(rafRef.current)
       }
     }
-  }, [setPlayheadProgress])
+  }, [setPlayheadFrame, previewFps, fps, selectedPhase, enterDurationFrames, activeCycleDurationFrames])
 
-  // Compute position percentage from a pointer event relative to the overlay
+  // Compute position from pointer event
   const computePosition = useCallback(
     (e: React.PointerEvent<HTMLDivElement>): { xPct: number; yPct: number } | null => {
       const overlay = overlayRef.current
@@ -154,11 +303,11 @@ export function KeyframePreview() {
       setIsDragging(true)
       const pos = computePosition(e)
       if (pos) {
-        addKeyframe('x', playheadProgress, pos.xPct)
-        addKeyframe('y', playheadProgress, pos.yPct)
+        addKeyframe('x', playheadFrame, pos.xPct)
+        addKeyframe('y', playheadFrame, pos.yPct)
       }
     },
-    [computePosition, addKeyframe, playheadProgress],
+    [computePosition, addKeyframe, playheadFrame],
   )
 
   const handlePointerMove = useCallback(
@@ -166,20 +315,26 @@ export function KeyframePreview() {
       if (!isDragging) return
       const pos = computePosition(e)
       if (pos) {
-        addKeyframe('x', playheadProgress, pos.xPct)
-        addKeyframe('y', playheadProgress, pos.yPct)
+        addKeyframe('x', playheadFrame, pos.xPct)
+        addKeyframe('y', playheadFrame, pos.yPct)
       }
     },
-    [isDragging, computePosition, addKeyframe, playheadProgress],
+    [isDragging, computePosition, addKeyframe, playheadFrame],
   )
 
   const handlePointerUp = useCallback(() => {
     setIsDragging(false)
   }, [])
 
+  // Compute playhead progress bar fraction
+  const currentPhaseDuration = selectedPhase === 'enter' ? enterDurationFrames
+    : selectedPhase === 'active' ? activeCycleDurationFrames
+    : useBuilderStore.getState().exitDurationFrames
+  const playheadFraction = currentPhaseDuration > 0 ? playheadFrame / currentPhaseDuration : 0
+
   return (
     <div className="keyframe-preview">
-      {/* Toolbar: aspect ratio + sample text + motion path toggle */}
+      {/* Toolbar */}
       <div className="keyframe-preview__toolbar">
         <div className="keyframe-preview__aspect-group">
           {(['16:9', '9:16', '1:1'] as AspectRatio[]).map((ar) => (
@@ -211,26 +366,34 @@ export function KeyframePreview() {
           />
           Motion path
         </label>
+
+        <button
+          type="button"
+          className="keyframe-preview__play-btn"
+          onClick={togglePlayPause}
+          title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+        >
+          {isPlaying ? '\u23F8' : '\u25B6'}
+        </button>
       </div>
 
-      {/* Canvas: Player + overlays */}
-      <div className="keyframe-preview__canvas">
+      {/* Canvas */}
+      <div ref={canvasRef} className="keyframe-preview__canvas">
         <Player
           ref={playerRef}
-          key={aspectRatio}
+          key={`${aspectRatio}-${canvasHeight}-${previewFps}`}
           component={BuilderPreviewComposition as unknown as React.ComponentType<Record<string, unknown>>}
-          durationInFrames={PREVIEW_DURATION_FRAMES}
+          durationInFrames={previewDurationFrames}
           compositionWidth={compWidth}
           compositionHeight={compHeight}
-          fps={PREVIEW_FPS}
+          fps={previewFps}
           loop
           autoPlay
-          style={{ width: '100%', borderRadius: 6, display: 'block' }}
+          style={playerStyle}
           inputProps={inputProps as unknown as Record<string, unknown>}
           acknowledgeRemotionLicense
         />
 
-        {/* Motion path SVG overlay — pointer-events: none, passes clicks through */}
         {showMotionPath && (
           <MotionPathOverlay
             compositionWidth={compWidth}
@@ -238,7 +401,6 @@ export function KeyframePreview() {
           />
         )}
 
-        {/* Drag overlay — catches pointer events for drag-to-position */}
         <div
           ref={overlayRef}
           className="keyframe-preview__drag-overlay"
@@ -254,7 +416,7 @@ export function KeyframePreview() {
       <div className="keyframe-preview__progress-bar">
         <div
           className="keyframe-preview__progress-fill"
-          style={{ width: `${playheadProgress * 100}%` }}
+          style={{ width: `${Math.min(1, playheadFraction) * 100}%` }}
         />
       </div>
     </div>

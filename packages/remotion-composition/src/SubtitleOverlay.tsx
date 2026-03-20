@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { TranscriptWord } from '@eigen/shared-types'
 import type { AnimationPreset } from '@eigen/shared-types'
+import { isLegacyKeyframeTracks } from '@eigen/shared-types'
 import type { StyleProps, SpeakerStyleOverride, CompositionPhrase } from './types'
 import { computeAnimationStyles, computeWordAnimationStyles, computeKeyframeStyles, mergeStyles } from './animations'
 
@@ -181,14 +182,27 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
           return totalPhraseFrames > 0 ? Math.max(0, Math.min(1, frameIntoPhrase / totalPhraseFrames)) : 0
         })()
 
-        const hasPositionKeyframes = effectivePreset?.keyframeTracks?.some(
-          (t) => t.property === 'x' || t.property === 'y'
-        ) ?? false
+        const hasPositionKeyframes = (() => {
+          const kf = effectivePreset?.keyframeTracks
+          if (!kf) return false
+          if (isLegacyKeyframeTracks(kf)) {
+            return kf.some((t) => t.property === 'x' || t.property === 'y')
+          }
+          // KeyframePhases: check all phases for x/y tracks
+          const allTracks = [...kf.enter.tracks, ...kf.active.tracks, ...kf.exit.tracks]
+          return allTracks.some((t) => t.property === 'x' || t.property === 'y')
+        })()
 
         // Only compute and merge keyframe styles at container level for word-scope
         // (phrase-scope already has them merged inside cleanPhraseAnimStyles).
+        const hasAnyKeyframes = (() => {
+          const kf = effectivePreset?.keyframeTracks
+          if (!kf) return false
+          if (isLegacyKeyframeTracks(kf)) return kf.length > 0
+          return kf.enter.tracks.length > 0 || kf.active.tracks.length > 0 || kf.exit.tracks.length > 0
+        })()
         const containerKeyframeStyles: React.CSSProperties =
-          (effectivePreset?.scope === 'word' && effectivePreset.keyframeTracks && effectivePreset.keyframeTracks.length > 0)
+          (effectivePreset?.scope === 'word' && hasAnyKeyframes)
             ? computeKeyframeStyles(effectivePreset.keyframeTracks, phraseProgress, width, height)
             : {}
 

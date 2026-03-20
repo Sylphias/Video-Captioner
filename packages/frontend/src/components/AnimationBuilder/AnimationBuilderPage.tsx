@@ -1,52 +1,72 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import type { AnimationPreset } from '@eigen/shared-types'
+import type { AnimationPreset, KeyframePhases } from '@eigen/shared-types'
+import { isLegacyKeyframeTracks } from '@eigen/shared-types'
 import { useAnimationPresets } from '../../hooks/useAnimationPresets'
 import { useBuilderStore } from './useBuilderStore'
 import { KeyframePreview } from './KeyframePreview'
 import { KeyframeTimeline } from './KeyframeTimeline'
+import { KeyframeDrawer } from './KeyframeDrawer'
 import './AnimationBuilderPage.css'
+
+/** Load keyframe phases from a preset into the builder store. */
+function loadPresetIntoStore(preset: AnimationPreset) {
+  const store = useBuilderStore.getState()
+  store.setPreset(preset)
+
+  const kf = preset.keyframeTracks
+  if (kf && !isLegacyKeyframeTracks(kf)) {
+    // New KeyframePhases format
+    store.loadKeyframePhases(kf)
+  } else {
+    // Legacy or no keyframe tracks — reset to defaults
+    store.loadKeyframePhases({
+      fps: 30,
+      enter: { durationFrames: 9, tracks: [] },
+      active: { durationFrames: 30, tracks: [], cycleDurationFrames: 30 },
+      exit: { durationFrames: 9, tracks: [] },
+    })
+  }
+}
 
 export function AnimationBuilderPage() {
   const { presets, loading } = useAnimationPresets()
 
   const preset = useBuilderStore((s) => s.preset)
   const setPreset = useBuilderStore((s) => s.setPreset)
-  const keyframeTracks = useBuilderStore((s) => s.keyframeTracks)
-  const setKeyframeTracks = useBuilderStore((s) => s.setKeyframeTracks)
+  const buildKeyframePhases = useBuilderStore((s) => s.buildKeyframePhases)
+  const loadKeyframePhases = useBuilderStore((s) => s.loadKeyframePhases)
 
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Load the first preset on initial render once presets are available
+  // Load the first preset on initial render
   const [hasInitialized, setHasInitialized] = useState(false)
   useEffect(() => {
     if (!hasInitialized && presets.length > 0) {
-      const first = presets[0]
-      setPreset(first)
-      setKeyframeTracks(first.keyframeTracks ?? [])
+      loadPresetIntoStore(presets[0])
       setHasInitialized(true)
     }
-  }, [presets, hasInitialized, setPreset, setKeyframeTracks])
+  }, [presets, hasInitialized])
 
-  // Preset selector change handler
+  // Preset selector change
   const handlePresetChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const id = e.target.value
       const selected = presets.find((p) => p.id === id)
       if (selected) {
-        setPreset(selected)
-        setKeyframeTracks(selected.keyframeTracks ?? [])
+        loadPresetIntoStore(selected)
       }
     },
-    [presets, setPreset, setKeyframeTracks],
+    [presets],
   )
 
-  // Save — PUT to /api/presets/:id with updated keyframeTracks
+  // Save — PUT to /api/presets/:id with KeyframePhases
   const handleSave = useCallback(async () => {
     if (!preset) return
     setSaving(true)
     setSaveError(null)
     try {
+      const keyframeTracks = buildKeyframePhases()
       const res = await fetch(`/api/presets/${preset.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -63,9 +83,9 @@ export function AnimationBuilderPage() {
     } finally {
       setSaving(false)
     }
-  }, [preset, keyframeTracks, setPreset])
+  }, [preset, buildKeyframePhases, setPreset])
 
-  // Save As — POST to /api/presets to create a new preset
+  // Save As — POST to create a new preset
   const handleSaveAs = useCallback(async () => {
     if (!preset) return
     const name = window.prompt('New preset name:', `${preset.name} (copy)`)
@@ -74,6 +94,7 @@ export function AnimationBuilderPage() {
     setSaving(true)
     setSaveError(null)
     try {
+      const keyframeTracks = buildKeyframePhases()
       const body = {
         name: name.trim(),
         scope: preset.scope,
@@ -92,31 +113,35 @@ export function AnimationBuilderPage() {
         throw new Error(`Save As failed (HTTP ${res.status}): ${text}`)
       }
       const created = (await res.json()) as AnimationPreset
-      setPreset(created)
-      setKeyframeTracks(created.keyframeTracks ?? [])
+      loadPresetIntoStore(created)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Save As failed')
     } finally {
       setSaving(false)
     }
-  }, [preset, keyframeTracks, setPreset, setKeyframeTracks])
+  }, [preset, buildKeyframePhases])
 
-  // New — clear builder state to start fresh
+  // New — clear builder state
   const handleNew = useCallback(() => {
     setPreset(null)
-    setKeyframeTracks([])
+    loadKeyframePhases({
+      fps: 30,
+      enter: { durationFrames: 9, tracks: [] },
+      active: { durationFrames: 30, tracks: [], cycleDurationFrames: 30 },
+      exit: { durationFrames: 9, tracks: [] },
+    })
     setSaveError(null)
-  }, [setPreset, setKeyframeTracks])
+  }, [setPreset, loadKeyframePhases])
 
   const isBuiltin = preset?.isBuiltin ?? false
   const canSave = !!preset && !isBuiltin && !saving
 
   return (
     <div className="animation-builder-page">
-      {/* Header: preset selector + action buttons */}
+      {/* Header */}
       <div className="animation-builder-page__header">
         {loading ? (
-          <span className="animation-builder-page__loading">Loading presets…</span>
+          <span className="animation-builder-page__loading">Loading presets...</span>
         ) : (
           <select
             className="animation-builder-page__preset-select"
@@ -124,7 +149,7 @@ export function AnimationBuilderPage() {
             onChange={handlePresetChange}
             aria-label="Select preset"
           >
-            {!preset && <option value="">— No preset selected —</option>}
+            {!preset && <option value="">-- No preset selected --</option>}
             {presets.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}{p.isBuiltin ? ' (built-in)' : ''}
@@ -161,22 +186,21 @@ export function AnimationBuilderPage() {
         </div>
       </div>
 
-      {/* Error message if save fails */}
       {saveError && (
         <div className="animation-builder-page__error" role="alert">
           {saveError}
         </div>
       )}
 
-      {/* Main preview area */}
       <div className="animation-builder-page__preview">
         <KeyframePreview />
       </div>
 
-      {/* Keyframe timeline — replaced placeholder with real timeline */}
       <div className="animation-builder-page__timeline">
         <KeyframeTimeline />
       </div>
+
+      <KeyframeDrawer />
     </div>
   )
 }

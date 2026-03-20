@@ -6,7 +6,9 @@ import './KeyframeTrackRow.css'
 interface KeyframeTrackRowProps {
   property: KeyframeableProperty
   track: KeyframeTrack | undefined
-  playheadProgress: number
+  phaseDurationFrames: number
+  pxPerFrame: number
+  trackContentWidth: number
   selectedKeyframeIndex: number | null
   isSelected: boolean
   onSelectProperty: () => void
@@ -15,18 +17,9 @@ interface KeyframeTrackRowProps {
   onMoveKeyframe: (index: number, newTime: number) => void
   onSelectKeyframe: (index: number | null) => void
   onSetEasing: (segmentIndex: number, easing: KeyframeEasing) => void
+  onSeekToFrame?: (frame: number) => void
 }
 
-// Label mapping for each property
-const PROPERTY_LABELS: Record<KeyframeableProperty, string> = {
-  x: 'X',
-  y: 'Y',
-  scale: 'Scale',
-  rotation: 'Rot.',
-  opacity: 'Opac.',
-}
-
-// Default values when adding a new keyframe for each property
 const DEFAULT_VALUES: Record<KeyframeableProperty, number> = {
   x: 50,
   y: 75,
@@ -35,7 +28,6 @@ const DEFAULT_VALUES: Record<KeyframeableProperty, number> = {
   opacity: 1,
 }
 
-// Popover state for EasingPicker
 interface EasingPopover {
   segmentIndex: number
   x: number
@@ -45,7 +37,9 @@ interface EasingPopover {
 export function KeyframeTrackRow({
   property,
   track,
-  playheadProgress,
+  phaseDurationFrames,
+  pxPerFrame,
+  trackContentWidth,
   selectedKeyframeIndex,
   isSelected,
   onSelectProperty,
@@ -54,6 +48,7 @@ export function KeyframeTrackRow({
   onMoveKeyframe,
   onSelectKeyframe,
   onSetEasing,
+  onSeekToFrame,
 }: KeyframeTrackRowProps) {
   const trackRef = useRef<HTMLDivElement>(null)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
@@ -64,6 +59,25 @@ export function KeyframeTrackRow({
 
   const keyframes = track?.keyframes ?? []
   const easings = track?.easings ?? []
+
+  // Convert frame number to pixel position
+  const frameToPx = useCallback(
+    (frame: number) => frame * pxPerFrame,
+    [pxPerFrame],
+  )
+
+  // Convert a pixel X position (relative to trackRef) to a frame number
+  const pixelToFrame = useCallback(
+    (clientX: number): number => {
+      const trackEl = trackRef.current
+      if (!trackEl || phaseDurationFrames <= 0) return 0
+      const rect = trackEl.getBoundingClientRect()
+      const px = clientX - rect.left
+      const frame = Math.round(px / pxPerFrame)
+      return Math.max(0, Math.min(phaseDurationFrames, frame))
+    },
+    [phaseDurationFrames, pxPerFrame],
+  )
 
   // Close popover/context menu on outside click
   useEffect(() => {
@@ -102,15 +116,14 @@ export function KeyframeTrackRow({
   // Double-click on track area to add keyframe
   const handleTrackDoubleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect()
-      const time = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-      onAddKeyframe(time, DEFAULT_VALUES[property])
+      const frame = pixelToFrame(e.clientX)
+      onAddKeyframe(frame, DEFAULT_VALUES[property])
       onSelectProperty()
     },
-    [property, onAddKeyframe, onSelectProperty],
+    [property, pixelToFrame, onAddKeyframe, onSelectProperty],
   )
 
-  // Drag logic for diamonds using pointer capture
+  // Drag logic for diamonds
   const handleDiamondPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>, index: number) => {
       e.preventDefault()
@@ -126,13 +139,10 @@ export function KeyframeTrackRow({
   const handleDiamondPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>, index: number) => {
       if (draggingIndex !== index) return
-      const trackEl = trackRef.current
-      if (!trackEl) return
-      const rect = trackEl.getBoundingClientRect()
-      const newTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-      onMoveKeyframe(index, newTime)
+      const newFrame = pixelToFrame(e.clientX)
+      onMoveKeyframe(index, newFrame)
     },
-    [draggingIndex, onMoveKeyframe],
+    [draggingIndex, pixelToFrame, onMoveKeyframe],
   )
 
   const handleDiamondPointerUp = useCallback(
@@ -142,7 +152,6 @@ export function KeyframeTrackRow({
     [],
   )
 
-  // Click on diamond to select
   const handleDiamondClick = useCallback(
     (e: React.MouseEvent, index: number) => {
       e.stopPropagation()
@@ -152,7 +161,6 @@ export function KeyframeTrackRow({
     [onSelectKeyframe, onSelectProperty],
   )
 
-  // Right-click on diamond for context menu
   const handleDiamondContextMenu = useCallback(
     (e: React.MouseEvent, index: number) => {
       e.preventDefault()
@@ -162,7 +170,6 @@ export function KeyframeTrackRow({
     [],
   )
 
-  // Click on segment between keyframes to open EasingPicker
   const handleSegmentClick = useCallback(
     (e: React.MouseEvent, segmentIndex: number) => {
       e.stopPropagation()
@@ -190,7 +197,6 @@ export function KeyframeTrackRow({
   const handleContextMenuSetEasing = useCallback(
     (e: React.MouseEvent) => {
       if (contextMenu !== null) {
-        // Show easing for the segment before this keyframe (index - 1) or after (index)
         const segIdx = Math.max(0, contextMenu.index - 1)
         if (easings.length > 0 && segIdx < easings.length) {
           setEasingPopover({ segmentIndex: segIdx, x: e.clientX, y: e.clientY })
@@ -201,49 +207,44 @@ export function KeyframeTrackRow({
     [contextMenu, easings.length],
   )
 
-  const label = PROPERTY_LABELS[property]
+  // Compute gridline positions (every N frames depending on zoom)
+  const gridlines = computeGridlinePx(phaseDurationFrames, pxPerFrame, trackContentWidth)
 
   return (
     <div
-      className={[
-        'keyframe-track-row',
-        isSelected ? 'keyframe-track-row--selected' : '',
-      ].join(' ').trim()}
+      className={`keyframe-track-row${isSelected ? ' keyframe-track-row--selected' : ''}`}
       role="row"
     >
-      {/* Property label */}
-      <div
-        className="keyframe-track-row__label"
-        onClick={onSelectProperty}
-        role="rowheader"
-      >
-        {label}
-      </div>
-
-      {/* Track area */}
       <div
         ref={trackRef}
         className="keyframe-track-row__track"
+        style={{ width: trackContentWidth }}
         onDoubleClick={handleTrackDoubleClick}
-        onClick={() => onSelectProperty()}
+        onClick={(e) => {
+          onSelectProperty()
+          if (onSeekToFrame) {
+            const frame = pixelToFrame(e.clientX)
+            onSeekToFrame(frame)
+          }
+        }}
         role="presentation"
       >
-        {/* Grid lines at 25%, 50%, 75% */}
-        <div className="keyframe-track-row__gridline" style={{ left: '25%' }} />
-        <div className="keyframe-track-row__gridline" style={{ left: '50%' }} />
-        <div className="keyframe-track-row__gridline" style={{ left: '75%' }} />
+        {/* Grid lines */}
+        {gridlines.map((px) => (
+          <div key={px} className="keyframe-track-row__gridline" style={{ left: px }} />
+        ))}
 
         {/* Segment lines between consecutive keyframes */}
         {keyframes.map((kf, i) => {
           if (i === keyframes.length - 1) return null
           const nextKf = keyframes[i + 1]
-          const left = kf.time * 100
-          const width = (nextKf.time - kf.time) * 100
+          const leftPx = frameToPx(kf.time)
+          const widthPx = frameToPx(nextKf.time) - leftPx
           return (
             <div
               key={`seg-${i}`}
               className="keyframe-track-row__segment"
-              style={{ left: `${left}%`, width: `${width}%` }}
+              style={{ left: leftPx, width: widthPx }}
               onClick={(e) => handleSegmentClick(e, i)}
               title={`Easing: ${easings[i]?.type ?? 'ease-in-out'}`}
             />
@@ -256,45 +257,32 @@ export function KeyframeTrackRow({
           return (
             <div
               key={`kf-${i}`}
-              className={[
-                'keyframe-track-row__diamond',
-                isKfSelected
-                  ? 'keyframe-track-row__diamond--selected'
-                  : 'keyframe-track-row__diamond--default',
-              ].join(' ')}
-              style={{ left: `${kf.time * 100}%` }}
+              className={`keyframe-track-row__diamond${isKfSelected ? ' keyframe-track-row__diamond--selected' : ' keyframe-track-row__diamond--default'}`}
+              style={{ left: frameToPx(kf.time) }}
               onPointerDown={(e) => handleDiamondPointerDown(e, i)}
               onPointerMove={(e) => handleDiamondPointerMove(e, i)}
               onPointerUp={(e) => handleDiamondPointerUp(e, i)}
               onClick={(e) => handleDiamondClick(e, i)}
               onContextMenu={(e) => handleDiamondContextMenu(e, i)}
               role="button"
-              aria-label={`Keyframe at ${Math.round(kf.time * 100)}%`}
+              aria-label={`Keyframe at frame ${Math.round(kf.time)}`}
             />
           )
         })}
       </div>
 
-      {/* Context menu (right-click on diamond) */}
+      {/* Context menu */}
       {contextMenu && (
         <div
           ref={contextMenuRef}
           className="keyframe-track-row__context-menu"
           style={{ position: 'fixed', top: contextMenu.y, left: contextMenu.x }}
         >
-          <button
-            type="button"
-            className="keyframe-track-row__context-menu-item"
-            onClick={handleContextMenuDelete}
-          >
+          <button type="button" className="keyframe-track-row__context-menu-item" onClick={handleContextMenuDelete}>
             Delete keyframe
           </button>
           {easings.length > 0 && (
-            <button
-              type="button"
-              className="keyframe-track-row__context-menu-item"
-              onClick={handleContextMenuSetEasing}
-            >
+            <button type="button" className="keyframe-track-row__context-menu-item" onClick={handleContextMenuSetEasing}>
               Set easing...
             </button>
           )}
@@ -317,4 +305,21 @@ export function KeyframeTrackRow({
       )}
     </div>
   )
+}
+
+/** Compute gridline pixel positions — one per frame or coarser based on zoom. */
+function computeGridlinePx(durationFrames: number, pxPerFrame: number, _contentWidth: number): number[] {
+  if (durationFrames <= 0) return []
+
+  // Place gridlines every N frames so they're spaced ~40px apart minimum
+  const minPxBetween = 40
+  const rawInterval = Math.ceil(minPxBetween / pxPerFrame)
+  const niceIntervals = [1, 2, 5, 10, 15, 30, 60]
+  const interval = niceIntervals.find((n) => n >= rawInterval) ?? rawInterval
+
+  const lines: number[] = []
+  for (let f = interval; f < durationFrames; f += interval) {
+    lines.push(f * pxPerFrame)
+  }
+  return lines
 }

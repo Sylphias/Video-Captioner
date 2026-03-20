@@ -83,10 +83,29 @@ export interface AnimationPreset {
   exit: AnimationPhaseConfig & { mirrorEnter: boolean }  // exit can mirror enter by default
   createdAt: number
   updatedAt: number
-  keyframeTracks?: KeyframeTrack[]  // optional, undefined = no keyframe animation (backward compatible)
+  keyframeTracks?: KeyframePhases | KeyframeTrack[]  // KeyframePhases (new) or legacy flat array; undefined = no keyframe animation
 }
 
 // ─── Keyframe animation types ─────────────────────────────────────────────────
+
+export type KeyframeFps = 24 | 30 | 60
+
+export interface PhaseKeyframeData {
+  durationFrames: number
+  tracks: KeyframeTrack[]  // MotionKeyframe.time = frame number (integer)
+}
+
+export interface KeyframePhases {
+  fps: KeyframeFps
+  enter: PhaseKeyframeData
+  active: PhaseKeyframeData & { cycleDurationFrames: number }
+  exit: PhaseKeyframeData
+}
+
+/** Type guard: returns true for legacy flat KeyframeTrack[] (backward compat) */
+export function isLegacyKeyframeTracks(v: unknown): v is KeyframeTrack[] {
+  return Array.isArray(v)
+}
 
 export type KeyframeableProperty = 'x' | 'y' | 'scale' | 'rotation' | 'opacity'
 

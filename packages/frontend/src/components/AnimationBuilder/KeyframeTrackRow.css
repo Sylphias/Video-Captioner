@@ -10,38 +10,15 @@
   background: rgba(76, 175, 114, 0.05);
 }
 
-/* Property label on the left */
-.keyframe-track-row__label {
-  width: 60px;
-  padding: 0 8px;
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  font-weight: 600;
-  cursor: pointer;
-  flex-shrink: 0;
-  user-select: none;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.keyframe-track-row__label:hover {
-  color: var(--color-text-primary);
-}
-
-/* Track area: the horizontal zone where keyframes live */
+/* Track area: explicit width set via style prop */
 .keyframe-track-row__track {
   position: relative;
-  flex: 1;
   height: 100%;
-  overflow: hidden;
   background: var(--color-bg-surface);
   cursor: crosshair;
 }
 
-/* Gridlines at 25%, 50%, 75% */
+/* Gridlines */
 .keyframe-track-row__gridline {
   position: absolute;
   top: 0;

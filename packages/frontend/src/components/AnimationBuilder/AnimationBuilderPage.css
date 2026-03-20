@@ -86,12 +86,12 @@
 .animation-builder-page__preview {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
 /* Keyframe timeline section */
 .animation-builder-page__timeline {
   flex-shrink: 0;
-  height: 220px;
-  overflow: hidden;
+  min-height: 230px;
+  overflow: visible;
 }

@@ -1,6 +1,7 @@
 import { interpolate, spring, Easing } from 'remotion'
 import BezierEasing from 'bezier-easing'
-import type { AnimationPreset, AnimationPhaseConfig, ActivePhaseConfig, EasingType, KeyframeTrack, KeyframeEasing, MotionKeyframe } from '@eigen/shared-types'
+import type { AnimationPreset, AnimationPhaseConfig, ActivePhaseConfig, EasingType, KeyframeTrack, KeyframeEasing, MotionKeyframe, KeyframePhases } from '@eigen/shared-types'
+import { isLegacyKeyframeTracks } from '@eigen/shared-types'
 
 // ─── Easing mapper ─────────────────────────────────────────────────────────────
 
@@ -277,31 +278,36 @@ function interpolateTrack(track: KeyframeTrack, phraseProgress: number): number 
 }
 
 /**
- * Compute CSS properties from keyframe tracks at a given phrase progress.
- * Returns position (translate), scale, rotation, and opacity.
- * When keyframeTracks is undefined or empty, returns empty object (backward compatible).
+ * Interpolate a track at a given frame number (integer).
+ * Same logic as interpolateTrack but treats keyframe.time as a frame index.
  */
-export function computeKeyframeStyles(
-  keyframeTracks: KeyframeTrack[] | undefined,
-  phraseProgress: number,
+function interpolateTrackAtFrame(track: KeyframeTrack, frame: number): number {
+  // Reuse interpolateTrack — frame acts as the "time" value
+  return interpolateTrack(track, frame)
+}
+
+/**
+ * Convert tracks to CSS properties for a set of tracks at a given frame.
+ */
+function tracksToStyles(
+  tracks: KeyframeTrack[],
+  time: number,
   width: number,
   height: number,
 ): React.CSSProperties {
-  if (!keyframeTracks || keyframeTracks.length === 0) return {}
+  if (tracks.length === 0) return {}
 
   const result: React.CSSProperties = {}
   const transforms: string[] = []
 
-  for (const track of keyframeTracks) {
-    const value = interpolateTrack(track, phraseProgress)
+  for (const track of tracks) {
+    const value = interpolateTrack(track, time)
 
     switch (track.property) {
       case 'x':
-        // x% maps to translateX relative to composition width
         transforms.push(`translateX(${(value / 100) * width - width / 2}px)`)
         break
       case 'y':
-        // y% maps to translateY — override the base vertical positioning
         transforms.push(`translateY(${(value / 100) * height - height / 2}px)`)
         break
       case 'scale':
@@ -321,6 +327,84 @@ export function computeKeyframeStyles(
   }
 
   return result
+}
+
+/**
+ * Compute CSS properties from keyframe tracks at a given phrase progress.
+ * Returns position (translate), scale, rotation, and opacity.
+ * When keyframeTracks is undefined or empty, returns empty object (backward compatible).
+ * Supports both legacy KeyframeTrack[] (percentage-based) and new KeyframePhases (frame-based).
+ */
+export function computeKeyframeStyles(
+  keyframeTracks: KeyframePhases | KeyframeTrack[] | undefined,
+  phraseProgress: number,
+  width: number,
+  height: number,
+): React.CSSProperties {
+  if (!keyframeTracks) return {}
+
+  // Legacy flat array — percentage-based
+  if (isLegacyKeyframeTracks(keyframeTracks)) {
+    if (keyframeTracks.length === 0) return {}
+    return tracksToStyles(keyframeTracks, phraseProgress, width, height)
+  }
+
+  // New KeyframePhases — caller should use computePhaseKeyframeStyles instead
+  // This path is a fallback; it treats phraseProgress as a fraction across all three phases
+  return computePhaseKeyframeStylesFromProgress(keyframeTracks, phraseProgress, width, height)
+}
+
+/**
+ * Compute keyframe styles for the new three-phase system.
+ * Given the current phase name and frame within that phase.
+ */
+export function computePhaseKeyframeStyles(
+  phases: KeyframePhases,
+  phaseName: 'enter' | 'active' | 'exit',
+  frameInPhase: number,
+  width: number,
+  height: number,
+): React.CSSProperties {
+  const phaseData = phases[phaseName]
+  const tracks = phaseData.tracks
+  if (tracks.length === 0) return {}
+
+  // For active phase, loop the frame within cycle duration
+  let frame = frameInPhase
+  if (phaseName === 'active') {
+    const cycleDur = (phaseData as typeof phases.active).cycleDurationFrames
+    if (cycleDur > 0) {
+      frame = frameInPhase % cycleDur
+    }
+  }
+
+  return tracksToStyles(tracks, frame, width, height)
+}
+
+/**
+ * Fallback: compute phase keyframe styles from a 0-1 progress value.
+ * Maps progress to the appropriate phase and frame.
+ */
+function computePhaseKeyframeStylesFromProgress(
+  phases: KeyframePhases,
+  phraseProgress: number,
+  width: number,
+  height: number,
+): React.CSSProperties {
+  const totalFrames = phases.enter.durationFrames + phases.active.cycleDurationFrames + phases.exit.durationFrames
+  if (totalFrames === 0) return {}
+
+  const currentFrame = phraseProgress * totalFrames
+  const enterEnd = phases.enter.durationFrames
+  const activeEnd = enterEnd + phases.active.cycleDurationFrames
+
+  if (currentFrame < enterEnd) {
+    return computePhaseKeyframeStyles(phases, 'enter', currentFrame, width, height)
+  } else if (currentFrame < activeEnd) {
+    return computePhaseKeyframeStyles(phases, 'active', currentFrame - enterEnd, width, height)
+  } else {
+    return computePhaseKeyframeStyles(phases, 'exit', currentFrame - activeEnd, width, height)
+  }
 }
 
 // ─── Main exports ──────────────────────────────────────────────────────────────
@@ -350,11 +434,41 @@ export function computeAnimationStyles(
 
   const { enterFrames, exitFrames } = clampFrames(phraseStartSec, phraseEndSec, preset, fps)
 
-  // Compute phrase progress for keyframe overlay (0-1 across full phrase lifetime)
-  const phraseProgress = totalPhraseFrames > 0 ? frameIntoPhrase / totalPhraseFrames : 0
-  const kfStyles = computeKeyframeStyles(preset.keyframeTracks, phraseProgress, width, height)
+  // New KeyframePhases path: when present, use frame-based phase keyframes
+  const kfData = preset.keyframeTracks
+  const hasPhaseKeyframes = kfData && !isLegacyKeyframeTracks(kfData)
 
-  // Determine current phase
+  let kfStyles: React.CSSProperties = {}
+
+  if (hasPhaseKeyframes) {
+    const phases = kfData as KeyframePhases
+    // Convert composition frame to keyframe-fps frame
+    const kfEnterFrames = phases.enter.durationFrames
+    const kfExitFrames = phases.exit.durationFrames
+    const kfFps = phases.fps
+
+    // Map composition frameIntoPhrase to keyframe-space frame
+    const kfFrame = (frameIntoPhrase / fps) * kfFps
+
+    // Derive phase boundaries in keyframe-fps space
+    const totalKfSec = totalPhraseFrames / fps
+    const kfTotalFrames = totalKfSec * kfFps
+    const kfActiveEnd = kfTotalFrames - kfExitFrames
+
+    if (kfFrame < kfEnterFrames) {
+      kfStyles = computePhaseKeyframeStyles(phases, 'enter', kfFrame, width, height)
+    } else if (kfFrame < kfActiveEnd) {
+      kfStyles = computePhaseKeyframeStyles(phases, 'active', kfFrame - kfEnterFrames, width, height)
+    } else {
+      kfStyles = computePhaseKeyframeStyles(phases, 'exit', kfFrame - kfActiveEnd, width, height)
+    }
+  } else {
+    // Legacy percentage-based keyframes
+    const phraseProgress = totalPhraseFrames > 0 ? frameIntoPhrase / totalPhraseFrames : 0
+    kfStyles = computeKeyframeStyles(kfData, phraseProgress, width, height)
+  }
+
+  // Determine current phase for enter/active/exit animations
   let phaseStyles: React.CSSProperties
 
   if (frameIntoPhrase < enterFrames) {
@@ -419,9 +533,33 @@ export function computeWordAnimationStyles(
 
   const { enterFrames, exitFrames } = clampFrames(phraseStartSec, phraseEndSec, preset, fps)
 
-  // Compute phrase progress for keyframe overlay (0-1 across full phrase lifetime)
-  const phraseProgress = totalPhraseFrames > 0 ? frameIntoPhrase / totalPhraseFrames : 0
-  const kfStyles = computeKeyframeStyles(preset.keyframeTracks, phraseProgress, width, height)
+  // Keyframe styles (same phase-aware logic as phrase-scope)
+  const kfData = preset.keyframeTracks
+  const hasPhaseKeyframes = kfData && !isLegacyKeyframeTracks(kfData)
+
+  let kfStyles: React.CSSProperties = {}
+
+  if (hasPhaseKeyframes) {
+    const phases = kfData as KeyframePhases
+    const kfFps = phases.fps
+    const kfEnterFrames = phases.enter.durationFrames
+    const kfExitFrames = phases.exit.durationFrames
+    const kfFrame = (frameIntoPhrase / fps) * kfFps
+    const totalKfSec = totalPhraseFrames / fps
+    const kfTotalFrames = totalKfSec * kfFps
+    const kfActiveEnd = kfTotalFrames - kfExitFrames
+
+    if (kfFrame < kfEnterFrames) {
+      kfStyles = computePhaseKeyframeStyles(phases, 'enter', kfFrame, width, height)
+    } else if (kfFrame < kfActiveEnd) {
+      kfStyles = computePhaseKeyframeStyles(phases, 'active', kfFrame - kfEnterFrames, width, height)
+    } else {
+      kfStyles = computePhaseKeyframeStyles(phases, 'exit', kfFrame - kfActiveEnd, width, height)
+    }
+  } else {
+    const phraseProgress = totalPhraseFrames > 0 ? frameIntoPhrase / totalPhraseFrames : 0
+    kfStyles = computeKeyframeStyles(kfData, phraseProgress, width, height)
+  }
 
   // Apply stagger offset: earlier words start earlier
   const staggeredFrame = Math.max(0, frameIntoPhrase - wordIndex * staggerFrames)

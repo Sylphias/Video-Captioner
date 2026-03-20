@@ -10,7 +10,7 @@ interface CreatePresetBody {
   enter: Record<string, unknown>
   active: Record<string, unknown>
   exit: Record<string, unknown>
-  keyframeTracks?: unknown[]
+  keyframeTracks?: unknown  // KeyframePhases (object) or legacy KeyframeTrack[] (array)
 }
 
 interface UpdatePresetBody {
@@ -19,7 +19,7 @@ interface UpdatePresetBody {
   enter?: Record<string, unknown>
   active?: Record<string, unknown>
   exit?: Record<string, unknown>
-  keyframeTracks?: unknown[]
+  keyframeTracks?: unknown  // KeyframePhases (object) or legacy KeyframeTrack[] (array)
 }
 
 // ── Row → response shape mapper ───────────────────────────────────────────────

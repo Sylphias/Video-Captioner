@@ -8,25 +8,264 @@
   user-select: none;
 }
 
-/* Time ruler at top */
-.keyframe-timeline__ruler {
+/* ─── Phase selector bar ───────────────────────────────────────────────────── */
+
+.keyframe-timeline__phase-bar {
   display: flex;
-  height: 20px;
-  position: relative;
+  height: 32px;
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
-.keyframe-timeline__ruler-spacer {
-  width: 60px;
-  flex-shrink: 0;
-  border-right: 1px solid var(--color-border);
+.keyframe-timeline__phase-block-wrap {
+  position: relative;
+  display: flex;
+  min-width: 0;
 }
 
-.keyframe-timeline__ruler-track {
-  position: relative;
+.keyframe-timeline__phase-block {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 4px;
+  min-width: 0;
+  transition: background var(--transition-fast);
+}
+
+.keyframe-timeline__phase-block--enter {
+  background: rgba(76, 175, 114, 0.15);
+  color: var(--color-accent-green);
+}
+
+.keyframe-timeline__phase-block--active {
+  background: rgba(100, 149, 237, 0.15);
+  color: #6495ed;
+}
+
+.keyframe-timeline__phase-block--exit {
+  background: rgba(231, 111, 81, 0.15);
+  color: #e76f51;
+}
+
+/* Selected phase highlight */
+.keyframe-timeline__phase-block--enter.keyframe-timeline__phase-block--active {
+  background: rgba(76, 175, 114, 0.35);
+  box-shadow: inset 0 -2px 0 var(--color-accent-green);
+}
+.keyframe-timeline__phase-block--active.keyframe-timeline__phase-block--active {
+  background: rgba(100, 149, 237, 0.35);
+  box-shadow: inset 0 -2px 0 #6495ed;
+}
+.keyframe-timeline__phase-block--exit.keyframe-timeline__phase-block--active {
+  background: rgba(231, 111, 81, 0.35);
+  box-shadow: inset 0 -2px 0 #e76f51;
+}
+
+.keyframe-timeline__phase-label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.keyframe-timeline__phase-frames-input {
+  width: 36px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: inherit;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 11px;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.keyframe-timeline__phase-frames-input::-webkit-inner-spin-button,
+.keyframe-timeline__phase-frames-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.keyframe-timeline__phase-frames-input:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.keyframe-timeline__phase-unit {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+.keyframe-timeline__phase-sec {
+  font-size: 9px;
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+/* Drag handle between phases */
+.keyframe-timeline__phase-handle {
+  position: absolute;
+  right: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 10;
+  background: transparent;
+}
+
+.keyframe-timeline__phase-handle:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ─── FPS button group ─────────────────────────────────────────────────────── */
+
+.keyframe-timeline__fps-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+.keyframe-timeline__fps-btn {
+  padding: 2px 6px;
+  font-size: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.keyframe-timeline__fps-btn--active {
+  background: var(--color-accent-green);
+  color: var(--color-bg-surface);
+  border-color: var(--color-accent-green);
+}
+
+.keyframe-timeline__fps-btn:not(.keyframe-timeline__fps-btn--active):hover {
+  background: var(--color-bg-elevated);
+}
+
+.keyframe-timeline__fps-label {
+  font-size: 9px;
+  color: var(--color-text-disabled);
+  margin-left: 2px;
+}
+
+/* ─── Zoom button group ────────────────────────────────────────────────────── */
+
+.keyframe-timeline__zoom-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+.keyframe-timeline__zoom-btn {
+  padding: 2px 7px;
+  font-size: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background var(--transition-fast);
+}
+
+.keyframe-timeline__zoom-btn--fit {
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+.keyframe-timeline__zoom-btn:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+/* ─── Scrollable area (ruler + tracks) ─────────────────────────────────────── */
+
+.keyframe-timeline__scroll-area {
   flex: 1;
   overflow: hidden;
+  position: relative;
+}
+
+.keyframe-timeline__scroll-body {
+  display: flex;
+  height: 100%;
+}
+
+/* Fixed labels column on the left */
+.keyframe-timeline__labels-col {
+  width: 60px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--color-border);
+  z-index: 2;
+  background: var(--color-bg-surface);
+}
+
+.keyframe-timeline__ruler-spacer {
+  height: 20px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.keyframe-timeline__label-cell {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.keyframe-timeline__label-cell:hover {
+  color: var(--color-text-primary);
+}
+
+.keyframe-timeline__label-cell--selected {
+  background: rgba(76, 175, 114, 0.05);
+  color: var(--color-text-primary);
+}
+
+/* Scrollable right area */
+.keyframe-timeline__scrollable {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Inner content with explicit width (zoom-controlled) */
+.keyframe-timeline__content {
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ruler row */
+.keyframe-timeline__ruler-track {
+  position: relative;
+  height: 20px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
 }
 
 .keyframe-timeline__ruler-label {
@@ -51,35 +290,10 @@
   transform: translateX(-50%);
 }
 
-/* Container for all track rows — relative so playhead can span them */
+/* Tracks container (all rows + spanning playhead line) */
 .keyframe-timeline__tracks {
   position: relative;
   flex: 1;
-}
-
-/* Playhead overlay row: aligns with label + track layout */
-.keyframe-timeline__playhead-row {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  pointer-events: none;
-  z-index: 5;
-}
-
-/* Matches the 60px label column width */
-.keyframe-timeline__playhead-spacer {
-  width: 60px;
-  flex-shrink: 0;
-}
-
-/* The remaining track area where the playhead line lives */
-.keyframe-timeline__playhead-track {
-  position: relative;
-  flex: 1;
-  overflow: hidden;
 }
 
 /* Playhead vertical line spanning all tracks */
@@ -92,6 +306,7 @@
   opacity: 0.6;
   pointer-events: none;
   transform: translateX(-50%);
+  z-index: 5;
 }
 
 /* Bottom action bar */
