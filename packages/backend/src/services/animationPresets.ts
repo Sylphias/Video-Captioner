@@ -83,16 +83,6 @@ const BUILTIN_PRESETS: BuiltinPreset[] = [
     },
   },
   {
-    id: 'builtin-typewriter',
-    name: 'Typewriter',
-    scope: 'phrase',
-    params: {
-      enter: { type: 'typewriter', durationSec: 0.8, easing: 'linear', params: {} },
-      active: { type: 'pulse', cycleDurationSec: 0.5, intensity: 0.3 },
-      exit: { mirrorEnter: false, type: 'fade', durationSec: 0.15, easing: 'ease-in', params: {} },
-    },
-  },
-  {
     id: 'builtin-blur-reveal',
     name: 'Blur Reveal',
     scope: 'phrase',

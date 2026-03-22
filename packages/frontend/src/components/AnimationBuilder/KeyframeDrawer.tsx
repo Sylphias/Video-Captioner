@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { KeyframeableProperty, KeyframeEasing } from '@eigen/shared-types'
+import type { KeyframeableProperty } from '@eigen/shared-types'
 import { useBuilderStore } from './useBuilderStore'
-import { EasingPicker } from './EasingPicker'
 import './KeyframeDrawer.css'
 
 const ALL_PROPERTIES: KeyframeableProperty[] = ['x', 'y', 'scale', 'rotation', 'opacity']
@@ -123,7 +122,6 @@ export function KeyframeDrawer() {
   const updateKeyframeValue = useBuilderStore((s) => s.updateKeyframeValue)
   const updateKeyframeTime = useBuilderStore((s) => s.updateKeyframeTime)
   const removeKeyframe = useBuilderStore((s) => s.removeKeyframe)
-  const setTrackEasing = useBuilderStore((s) => s.setTrackEasing)
   const setSelectedKeyframeIndex = useBuilderStore((s) => s.setSelectedKeyframeIndex)
   const setSelectedProperty = useBuilderStore((s) => s.setSelectedProperty)
 
@@ -145,11 +143,6 @@ export function KeyframeDrawer() {
 
   const isOpen = selectedKeyframe !== undefined && selectedProperty !== null && selectedKeyframeIndex !== null
 
-  // Get easing for the segment after this keyframe (if it exists)
-  const easingAfter = selectedTrack && selectedKeyframeIndex !== null && selectedKeyframeIndex < selectedTrack.easings.length
-    ? selectedTrack.easings[selectedKeyframeIndex]
-    : undefined
-
   const handleClose = useCallback(() => {
     setSelectedKeyframeIndex(null)
   }, [setSelectedKeyframeIndex])
@@ -161,22 +154,8 @@ export function KeyframeDrawer() {
     }
   }, [selectedProperty, selectedKeyframeIndex, removeKeyframe, setSelectedKeyframeIndex])
 
-  const handleEasingChange = useCallback(
-    (easing: KeyframeEasing) => {
-      if (selectedProperty && selectedKeyframeIndex !== null) {
-        setTrackEasing(selectedProperty, selectedKeyframeIndex, easing)
-      }
-    },
-    [selectedProperty, selectedKeyframeIndex, setTrackEasing],
-  )
-
   return (
     <>
-      {/* Overlay to close drawer */}
-      {isOpen && (
-        <div className="kf-drawer-overlay" onClick={handleClose} />
-      )}
-
       <div className={`kf-drawer${isOpen ? ' kf-drawer--open' : ''}`}>
         {/* Header */}
         <div className="kf-drawer__header">
@@ -215,20 +194,6 @@ export function KeyframeDrawer() {
                 label={`${PROPERTY_LABELS[selectedProperty]} value`}
               />
             </div>
-
-            {/* Easing (for the segment after this keyframe) */}
-            {easingAfter && (
-              <div className="kf-drawer__field">
-                <label className="kf-drawer__field-label">Easing (to next)</label>
-                <div className="kf-drawer__easing-wrap">
-                  <EasingPicker
-                    value={easingAfter}
-                    onChange={handleEasingChange}
-                    label="Segment easing"
-                  />
-                </div>
-              </div>
-            )}
 
             {/* Keyframe navigation */}
             <div className="kf-drawer__nav">

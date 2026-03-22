@@ -1,11 +1,22 @@
 import { create } from 'zustand'
-import type { KeyframeTrack, KeyframeEasing, AnimationPreset, KeyframeableProperty, KeyframeFps, KeyframePhases } from '@eigen/shared-types'
+import type { KeyframeTrack, KeyframeEasing, AnimationPreset, KeyframeableProperty, KeyframeFps, KeyframePhases, AnimationScope } from '@eigen/shared-types'
 import { isLegacyKeyframeTracks } from '@eigen/shared-types'
 
 type AspectRatio = '16:9' | '9:16' | '1:1'
 type PhaseName = 'enter' | 'active' | 'exit'
+type EditMode = 'enter-exit' | 'hold'
 
 interface BuilderState {
+  // Edit mode: enter/exit animations vs hold (active cycle) animations
+  editMode: EditMode
+  setEditMode: (mode: EditMode) => void
+
+  // Animation scope: phrase (all words together) or word (staggered)
+  scope: AnimationScope
+  setScope: (scope: AnimationScope) => void
+  staggerFrames: number
+  setStaggerFrames: (frames: number) => void
+
   // Preset being edited (loaded from API or new)
   preset: AnimationPreset | null
   setPreset: (p: AnimationPreset | null) => void
@@ -65,6 +76,48 @@ interface BuilderState {
   // Seek callback — registered by KeyframePreview, called by timeline to seek the Player
   seekToPhaseFrame: ((phaseFrame: number) => void) | null
   setSeekToPhaseFrame: (cb: ((phaseFrame: number) => void) | null) => void
+
+  // Undo / Redo
+  undo: () => void
+  redo: () => void
+}
+
+// ─── Undo / Redo ──────────────────────────────────────────────────────────────
+
+interface BuilderSnapshot {
+  scope: AnimationScope
+  staggerFrames: number
+  fps: KeyframeFps
+  enterDurationFrames: number
+  activeCycleDurationFrames: number
+  exitDurationFrames: number
+  enterTracks: KeyframeTrack[]
+  activeTracks: KeyframeTrack[]
+  exitTracks: KeyframeTrack[]
+}
+
+const MAX_UNDO = 50
+let undoStack: BuilderSnapshot[] = []
+let redoStack: BuilderSnapshot[] = []
+
+function captureSnapshot(state: BuilderState): BuilderSnapshot {
+  return {
+    scope: state.scope,
+    staggerFrames: state.staggerFrames,
+    fps: state.fps,
+    enterDurationFrames: state.enterDurationFrames,
+    activeCycleDurationFrames: state.activeCycleDurationFrames,
+    exitDurationFrames: state.exitDurationFrames,
+    enterTracks: state.enterTracks,
+    activeTracks: state.activeTracks,
+    exitTracks: state.exitTracks,
+  }
+}
+
+function pushUndo(state: BuilderState) {
+  undoStack.push(captureSnapshot(state))
+  if (undoStack.length > MAX_UNDO) undoStack.shift()
+  redoStack = []
 }
 
 const DEFAULT_EASING: KeyframeEasing = { type: 'ease-in-out' }
@@ -94,23 +147,47 @@ function modifyTracks(
 }
 
 export const useBuilderStore = create<BuilderState>((set, get) => ({
+  // Edit mode
+  editMode: 'enter-exit',
+  setEditMode: (mode) => set((state) => {
+    const update: Partial<BuilderState> = { editMode: mode }
+    if (mode === 'hold' && state.selectedPhase !== 'active') {
+      update.selectedPhase = 'active'
+    } else if (mode === 'enter-exit' && state.selectedPhase === 'active') {
+      update.selectedPhase = 'enter'
+    }
+    return update
+  }),
+
+  // Animation scope
+  scope: 'phrase' as AnimationScope,
+  setScope: (scope) => set({ scope }),
+  staggerFrames: 3,
+  setStaggerFrames: (frames) => { pushUndo(get()); set({ staggerFrames: frames }) },
+
   // Preset
   preset: null,
   setPreset: (p) => set({ preset: p }),
 
   // Phase-based keyframe state
-  fps: 30,
-  setFps: (fps) => set({ fps }),
+  fps: 60,
+  setFps: (fps) => { pushUndo(get()); set({ fps }) },
 
   selectedPhase: 'enter',
-  setSelectedPhase: (phase) => set({ selectedPhase: phase }),
+  setSelectedPhase: (phase) => {
+    const state = get()
+    // Guard: reject phases invalid for current mode
+    if (state.editMode === 'hold' && phase !== 'active') return
+    if (state.editMode === 'enter-exit' && phase === 'active') return
+    set({ selectedPhase: phase })
+  },
 
   enterDurationFrames: 9,    // 0.3s @ 30fps
-  setEnterDurationFrames: (frames) => set({ enterDurationFrames: frames }),
+  setEnterDurationFrames: (frames) => { pushUndo(get()); set({ enterDurationFrames: frames }) },
   activeCycleDurationFrames: 30,  // 1s @ 30fps
-  setActiveCycleDurationFrames: (frames) => set({ activeCycleDurationFrames: frames }),
+  setActiveCycleDurationFrames: (frames) => { pushUndo(get()); set({ activeCycleDurationFrames: frames }) },
   exitDurationFrames: 9,     // 0.3s @ 30fps
-  setExitDurationFrames: (frames) => set({ exitDurationFrames: frames }),
+  setExitDurationFrames: (frames) => { pushUndo(get()); set({ exitDurationFrames: frames }) },
 
   enterTracks: [],
   activeTracks: [],
@@ -130,7 +207,8 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
     }
   },
 
-  addKeyframe: (property, time, value) =>
+  addKeyframe: (property, time, value) => {
+    pushUndo(get())
     set((state) => {
       const trackKey = PHASE_TRACK_KEYS[state.selectedPhase]
       const tracks = [...state[trackKey]]
@@ -161,9 +239,11 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
       }
 
       return { [trackKey]: tracks }
-    }),
+    })
+  },
 
-  removeKeyframe: (property, index) =>
+  removeKeyframe: (property, index) => {
+    pushUndo(get())
     set((state) => {
       const trackKey = PHASE_TRACK_KEYS[state.selectedPhase]
       const tracks = modifyTracks(state[trackKey], property, (track) => {
@@ -176,9 +256,11 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
         return { ...track, keyframes, easings }
       })
       return { [trackKey]: tracks }
-    }),
+    })
+  },
 
-  updateKeyframeValue: (property, index, value) =>
+  updateKeyframeValue: (property, index, value) => {
+    pushUndo(get())
     set((state) => {
       const trackKey = PHASE_TRACK_KEYS[state.selectedPhase]
       const tracks = state[trackKey].map((track) => {
@@ -189,9 +271,11 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
         return { ...track, keyframes }
       })
       return { [trackKey]: tracks }
-    }),
+    })
+  },
 
-  updateKeyframeTime: (property, index, time) =>
+  updateKeyframeTime: (property, index, time) => {
+    pushUndo(get())
     set((state) => {
       const trackKey = PHASE_TRACK_KEYS[state.selectedPhase]
       const tracks = state[trackKey].map((track) => {
@@ -210,9 +294,11 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
         return { ...track, keyframes: sortedKeyframes, easings: sortedEasings }
       })
       return { [trackKey]: tracks }
-    }),
+    })
+  },
 
-  setTrackEasing: (property, segmentIndex, easing) =>
+  setTrackEasing: (property, segmentIndex, easing) => {
+    pushUndo(get())
     set((state) => {
       const trackKey = PHASE_TRACK_KEYS[state.selectedPhase]
       const tracks = state[trackKey].map((track) => {
@@ -223,7 +309,8 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
         return { ...track, easings }
       })
       return { [trackKey]: tracks }
-    }),
+    })
+  },
 
   buildKeyframePhases: (): KeyframePhases => {
     const state = get()
@@ -245,7 +332,10 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
     }
   },
 
-  loadKeyframePhases: (phases) =>
+  loadKeyframePhases: (phases) => {
+    // Loading a preset clears undo history
+    undoStack = []
+    redoStack = []
     set({
       fps: phases.fps,
       enterDurationFrames: phases.enter.durationFrames,
@@ -254,14 +344,15 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
       enterTracks: phases.enter.tracks,
       activeTracks: phases.active.tracks,
       exitTracks: phases.exit.tracks,
-    }),
+    })
+  },
 
   // Preview state
   aspectRatio: '16:9',
   setAspectRatio: (ar) => set({ aspectRatio: ar }),
   sampleText: 'Sample subtitle text here',
   setSampleText: (text) => set({ sampleText: text }),
-  showMotionPath: false,
+  showMotionPath: true,
   setShowMotionPath: (show) => set({ showMotionPath: show }),
 
   // Playhead (frame within current phase)
@@ -277,4 +368,18 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   // Seek callback
   seekToPhaseFrame: null,
   setSeekToPhaseFrame: (cb) => set({ seekToPhaseFrame: cb }),
+
+  // Undo / Redo
+  undo: () => {
+    const snapshot = undoStack.pop()
+    if (!snapshot) return
+    redoStack.push(captureSnapshot(get()))
+    set(snapshot)
+  },
+  redo: () => {
+    const snapshot = redoStack.pop()
+    if (!snapshot) return
+    undoStack.push(captureSnapshot(get()))
+    set(snapshot)
+  },
 }))

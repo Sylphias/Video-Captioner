@@ -7,6 +7,7 @@ import type { StyleProps, SpeakerStyleOverride, CompositionPhrase } from '@eigen
 import type { AnimationPreset } from '@eigen/shared-types'
 import { useBuilderStore } from './useBuilderStore'
 import { MotionPathOverlay } from './MotionPathOverlay'
+import { KeyframeDrawer } from './KeyframeDrawer'
 import './KeyframePreview.css'
 
 // ─── Aspect ratio dimensions ───────────────────────────────────────────────────
@@ -95,6 +96,8 @@ export function KeyframePreview() {
   const [isPlaying, setIsPlaying] = useState(true)
 
   const preset = useBuilderStore((s) => s.preset)
+  const scope = useBuilderStore((s) => s.scope)
+  const staggerFrames = useBuilderStore((s) => s.staggerFrames)
   const fps = useBuilderStore((s) => s.fps)
   const sampleText = useBuilderStore((s) => s.sampleText)
   const setSampleText = useBuilderStore((s) => s.setSampleText)
@@ -102,6 +105,7 @@ export function KeyframePreview() {
   const setAspectRatio = useBuilderStore((s) => s.setAspectRatio)
   const showMotionPath = useBuilderStore((s) => s.showMotionPath)
   const setShowMotionPath = useBuilderStore((s) => s.setShowMotionPath)
+  const editMode = useBuilderStore((s) => s.editMode)
   const selectedPhase = useBuilderStore((s) => s.selectedPhase)
   const enterDurationFrames = useBuilderStore((s) => s.enterDurationFrames)
   const activeCycleDurationFrames = useBuilderStore((s) => s.activeCycleDurationFrames)
@@ -111,6 +115,11 @@ export function KeyframePreview() {
   const buildKeyframePhases = useBuilderStore((s) => s.buildKeyframePhases)
   const setSeekToPhaseFrame = useBuilderStore((s) => s.setSeekToPhaseFrame)
   const exitDurationFrames = useBuilderStore((s) => s.exitDurationFrames)
+
+  // Subscribe to track data so workingPreset recomputes when keyframes change
+  const enterTracks = useBuilderStore((s) => s.enterTracks)
+  const activeTracks = useBuilderStore((s) => s.activeTracks)
+  const exitTracks = useBuilderStore((s) => s.exitTracks)
 
   const previewFps = fps
   const previewDurationFrames = PREVIEW_DURATION_SEC * previewFps
@@ -151,14 +160,36 @@ export function KeyframePreview() {
     }
   }, [playerKey])
 
-  // Spacebar global play/pause (only when not typing in an input)
+  // Spacebar play/pause + Left/Right arrow frame stepping (only when not typing in an input)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.code !== 'Space') return
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
-      e.preventDefault()
-      togglePlayPause()
+
+      if ((e.metaKey || e.ctrlKey) && e.code === 'KeyZ') {
+        e.preventDefault()
+        const store = useBuilderStore.getState()
+        if (e.shiftKey) {
+          store.redo()
+        } else {
+          store.undo()
+        }
+        return
+      }
+
+      if (e.code === 'Space') {
+        e.preventDefault()
+        togglePlayPause()
+      } else if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+        e.preventDefault()
+        const state = useBuilderStore.getState()
+        const seek = state.seekToPhaseFrame
+        if (!seek) return
+        const delta = e.code === 'ArrowRight' ? 1 : -1
+        const maxFrame = state.currentPhaseDurationFrames()
+        const newFrame = Math.max(0, Math.min(maxFrame, Math.round(state.playheadFrame) + delta))
+        seek(newFrame)
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
@@ -171,13 +202,19 @@ export function KeyframePreview() {
       if (!player) return
 
       const state = useBuilderStore.getState()
-      // Convert phase frame back to composition frame
       let phaseOffsetSec = 0
-      if (state.selectedPhase === 'active') {
+
+      if (state.editMode === 'hold') {
+        // Hold mode: active phase starts after enter
         phaseOffsetSec = state.enterDurationFrames / state.fps
-      } else if (state.selectedPhase === 'exit') {
-        phaseOffsetSec = (state.enterDurationFrames + state.activeCycleDurationFrames) / state.fps
+      } else {
+        // Enter/Exit mode
+        if (state.selectedPhase === 'exit') {
+          phaseOffsetSec = (state.enterDurationFrames + state.activeCycleDurationFrames) / state.fps
+        }
+        // 'enter' offset is 0
       }
+
       const timeSec = PHRASE_START_SEC + phaseOffsetSec + (phaseFrame / state.fps)
       const compositionFrame = Math.round(timeSec * previewFps)
       player.seekTo(compositionFrame)
@@ -196,11 +233,11 @@ export function KeyframePreview() {
 
     if (!preset) {
       if (!hasTracks) return null
-      const noPhase = { type: 'none' as const, durationSec: 0, easing: 'linear' as const, params: {} }
+      const noPhase = { type: 'none' as const, durationSec: 0, easing: 'linear' as const, params: { staggerFrames } }
       return {
         id: '__builder__',
         name: 'Builder Preview',
-        scope: 'phrase' as const,
+        scope,
         isBuiltin: false,
         enter: noPhase,
         active: { type: 'none' as const, cycleDurationSec: 0, intensity: 0 },
@@ -210,8 +247,25 @@ export function KeyframePreview() {
         keyframeTracks: phases,
       } satisfies AnimationPreset
     }
-    return { ...preset, keyframeTracks: phases }
-  }, [preset, buildKeyframePhases])
+    return {
+      ...preset,
+      scope,
+      enter: { ...preset.enter, params: { ...preset.enter.params, staggerFrames } },
+      keyframeTracks: phases,
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- enterTracks/activeTracks/exitTracks trigger recompute when keyframes change
+  }, [preset, scope, staggerFrames, buildKeyframePhases, enterTracks, activeTracks, exitTracks, enterDurationFrames, activeCycleDurationFrames, exitDurationFrames])
+
+  // Force the Player to re-render the current frame when tracks/durations change while paused.
+  // Remotion Player doesn't automatically re-render a paused frame when inputProps change.
+  useEffect(() => {
+    if (isPlaying) return
+    const player = playerRef.current
+    if (!player) return
+    // Seek to the same frame to force a re-render
+    const frame = player.getCurrentFrame()
+    player.seekTo(frame)
+  }, [enterTracks, activeTracks, exitTracks, enterDurationFrames, activeCycleDurationFrames, exitDurationFrames, scope, staggerFrames, isPlaying])
 
   // Observe canvas container height
   useEffect(() => {
@@ -259,17 +313,26 @@ export function KeyframePreview() {
         // Convert to keyframe-space frame
         const kfFrame = phraseTimeSec * fps
 
-        // Determine phase boundaries in keyframe-space
-        const enterEnd = enterDurationFrames
-        const activeEnd = enterEnd + activeCycleDurationFrames
-
         let frameInPhase: number
-        if (kfFrame < enterEnd) {
-          frameInPhase = selectedPhase === 'enter' ? kfFrame : 0
-        } else if (kfFrame < activeEnd) {
-          frameInPhase = selectedPhase === 'active' ? kfFrame - enterEnd : 0
+
+        if (editMode === 'hold') {
+          // Hold mode: map entire phrase to active cycle (looping)
+          frameInPhase = activeCycleDurationFrames > 0
+            ? kfFrame % activeCycleDurationFrames
+            : 0
         } else {
-          frameInPhase = selectedPhase === 'exit' ? kfFrame - activeEnd : 0
+          // Enter/Exit mode: determine phase boundaries
+          const enterEnd = enterDurationFrames
+          const activeEnd = enterEnd + activeCycleDurationFrames
+
+          if (kfFrame < enterEnd) {
+            frameInPhase = selectedPhase === 'enter' ? kfFrame : 0
+          } else if (kfFrame < activeEnd) {
+            // In the active gap — clamp to boundary of selected phase
+            frameInPhase = selectedPhase === 'enter' ? enterEnd : 0
+          } else {
+            frameInPhase = selectedPhase === 'exit' ? kfFrame - activeEnd : 0
+          }
         }
 
         setPlayheadFrame(Math.max(0, frameInPhase))
@@ -282,7 +345,7 @@ export function KeyframePreview() {
         cancelAnimationFrame(rafRef.current)
       }
     }
-  }, [setPlayheadFrame, previewFps, fps, selectedPhase, enterDurationFrames, activeCycleDurationFrames])
+  }, [setPlayheadFrame, previewFps, fps, editMode, selectedPhase, enterDurationFrames, activeCycleDurationFrames])
 
   // Compute position from pointer event
   const computePosition = useCallback(
@@ -377,8 +440,9 @@ export function KeyframePreview() {
         </button>
       </div>
 
-      {/* Canvas */}
+      {/* Canvas + Drawer */}
       <div ref={canvasRef} className="keyframe-preview__canvas">
+        <KeyframeDrawer />
         <Player
           ref={playerRef}
           key={`${aspectRatio}-${canvasHeight}-${previewFps}`}

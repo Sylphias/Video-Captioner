@@ -75,6 +75,100 @@
   background: var(--color-bg-hover);
 }
 
+.animation-builder-page__btn--danger {
+  background: var(--color-bg-elevated);
+  color: var(--color-error);
+  border-color: var(--color-border);
+}
+
+.animation-builder-page__btn--danger:not(:disabled):hover {
+  background: var(--color-error);
+  color: #fff;
+  border-color: var(--color-error);
+}
+
+/* Toggles row */
+.animation-builder-page__toggles-row {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* Mode toggle (Enter/Exit vs Hold) */
+.animation-builder-page__mode-toggle {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.animation-builder-page__mode-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.animation-builder-page__mode-btn:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.animation-builder-page__mode-btn:last-child {
+  border-radius: 0 4px 4px 0;
+  border-left: none;
+}
+
+.animation-builder-page__mode-btn--active {
+  background: var(--color-accent-green);
+  color: var(--color-bg-surface);
+  border-color: var(--color-accent-green);
+}
+
+.animation-builder-page__mode-btn:not(.animation-builder-page__mode-btn--active):hover {
+  background: var(--color-bg-elevated);
+}
+
+/* Stagger delay input (word-by-word mode) */
+.animation-builder-page__stagger-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.animation-builder-page__stagger-input {
+  width: 44px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.animation-builder-page__stagger-input::-webkit-inner-spin-button,
+.animation-builder-page__stagger-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.animation-builder-page__stagger-input:focus {
+  border-color: var(--color-accent-green);
+}
+
+.animation-builder-page__stagger-hint {
+  font-size: 10px;
+  color: var(--color-text-disabled);
+}
+
 /* Error message */
 .animation-builder-page__error {
   font-size: 13px;

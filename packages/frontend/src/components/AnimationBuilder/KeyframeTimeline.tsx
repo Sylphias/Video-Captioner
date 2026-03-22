@@ -67,6 +67,7 @@ const DEFAULT_PX_PER_FRAME = 20
 export function KeyframeTimeline() {
   const fps = useBuilderStore((s) => s.fps)
   const setFps = useBuilderStore((s) => s.setFps)
+  const editMode = useBuilderStore((s) => s.editMode)
   const selectedPhase = useBuilderStore((s) => s.selectedPhase)
   const setSelectedPhase = useBuilderStore((s) => s.setSelectedPhase)
   const enterDurationFrames = useBuilderStore((s) => s.enterDurationFrames)
@@ -98,8 +99,13 @@ export function KeyframeTimeline() {
     : selectedPhase === 'active' ? activeCycleDurationFrames
     : exitDurationFrames
 
-  // Total frames across all phases (for phase selector proportions)
-  const totalFrames = enterDurationFrames + activeCycleDurationFrames + exitDurationFrames
+  // Visible phases based on edit mode
+  const visiblePhases: PhaseName[] = editMode === 'hold' ? ['active'] : ['enter', 'exit']
+
+  // Total frames across visible phases (for phase selector proportions)
+  const totalFrames = editMode === 'hold'
+    ? activeCycleDurationFrames
+    : enterDurationFrames + exitDurationFrames
 
   // Selected keyframe object
   const selectedTrack = selectedProperty
@@ -171,10 +177,10 @@ export function KeyframeTimeline() {
 
   // ─── Phase drag handles ────────────────────────────────────────────────
   const phaseBarRef = useRef<HTMLDivElement>(null)
-  const [draggingHandle, setDraggingHandle] = useState<'enter-active' | 'active-exit' | null>(null)
+  const [draggingHandle, setDraggingHandle] = useState<'enter-exit' | null>(null)
 
   const handlePhasePointerDown = useCallback(
-    (handle: 'enter-active' | 'active-exit', e: React.PointerEvent) => {
+    (handle: 'enter-exit', e: React.PointerEvent) => {
       e.preventDefault()
       e.stopPropagation()
       ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
@@ -190,19 +196,13 @@ export function KeyframeTimeline() {
       const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
       const frameAtCursor = Math.round(fraction * totalFrames)
 
-      if (draggingHandle === 'enter-active') {
-        const newEnter = Math.max(1, Math.min(frameAtCursor, totalFrames - exitDurationFrames - 1))
-        const newActive = totalFrames - newEnter - exitDurationFrames
-        setEnterDurationFrames(newEnter)
-        setActiveCycleDurationFrames(Math.max(1, newActive))
-      } else {
-        const newExit = Math.max(1, Math.min(totalFrames - frameAtCursor, totalFrames - enterDurationFrames - 1))
-        const newActive = totalFrames - enterDurationFrames - newExit
-        setExitDurationFrames(newExit)
-        setActiveCycleDurationFrames(Math.max(1, newActive))
-      }
+      // In enter-exit mode: redistribute between enter and exit (totalFrames = enter + exit)
+      const newEnter = Math.max(1, Math.min(frameAtCursor, totalFrames - 1))
+      const newExit = Math.max(1, totalFrames - newEnter)
+      setEnterDurationFrames(newEnter)
+      setExitDurationFrames(newExit)
     },
-    [draggingHandle, totalFrames, enterDurationFrames, exitDurationFrames, setEnterDurationFrames, setActiveCycleDurationFrames, setExitDurationFrames],
+    [draggingHandle, totalFrames, setEnterDurationFrames, setExitDurationFrames],
   )
 
   const handlePhasePointerUp = useCallback(() => {
@@ -255,11 +255,11 @@ export function KeyframeTimeline() {
         onPointerUp={handlePhasePointerUp}
         onPointerCancel={handlePhasePointerUp}
       >
-        {(['enter', 'active', 'exit'] as PhaseName[]).map((phase, i) => {
+        {visiblePhases.map((phase, i) => {
           const frames = phase === 'enter' ? enterDurationFrames
             : phase === 'active' ? activeCycleDurationFrames
             : exitDurationFrames
-          const widthPct = totalFrames > 0 ? (frames / totalFrames) * 100 : 33.33
+          const widthPct = totalFrames > 0 ? (frames / totalFrames) * 100 : (100 / visiblePhases.length)
           const isActive = selectedPhase === phase
           const setFrames = phase === 'enter' ? setEnterDurationFrames
             : phase === 'active' ? setActiveCycleDurationFrames
@@ -268,7 +268,7 @@ export function KeyframeTimeline() {
             <div key={phase} className="keyframe-timeline__phase-block-wrap" style={{ width: `${widthPct}%` }}>
               <button
                 type="button"
-                className={`keyframe-timeline__phase-block keyframe-timeline__phase-block--${phase}${isActive ? ' keyframe-timeline__phase-block--active' : ''}`}
+                className={`keyframe-timeline__phase-block keyframe-timeline__phase-block--${phase}${isActive ? ' keyframe-timeline__phase-block--selected' : ''}`}
                 onClick={() => setSelectedPhase(phase)}
               >
                 <span className="keyframe-timeline__phase-label">{PHASE_LABELS[phase]}</span>
@@ -280,10 +280,11 @@ export function KeyframeTimeline() {
                 <span className="keyframe-timeline__phase-unit">f</span>
                 <span className="keyframe-timeline__phase-sec">({(frames / fps).toFixed(2)}s)</span>
               </button>
-              {i < 2 && (
+              {/* Drag handle between enter/exit in enter-exit mode */}
+              {editMode === 'enter-exit' && i < visiblePhases.length - 1 && (
                 <div
                   className="keyframe-timeline__phase-handle"
-                  onPointerDown={(e) => handlePhasePointerDown(i === 0 ? 'enter-active' : 'active-exit', e)}
+                  onPointerDown={(e) => handlePhasePointerDown('enter-exit', e)}
                 />
               )}
             </div>

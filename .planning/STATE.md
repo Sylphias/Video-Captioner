@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 ## Current Position
 
-Phase: 8 of 8 (Keyframe Position Animation — IN PROGRESS)
-Plan: 4 of 5 — 08-04 complete (KeyframeTrackRow, KeyframeTimeline, AnimationBuilderPage updated)
-Status: Phase 8 active. 08-01 COMPLETE: keyframe types, interpolation engine, bezier-easing, backend API compatibility. 08-02 COMPLETE: BezierEditor and EasingPicker reusable components. 08-03 COMPLETE: Animation Builder preview canvas with drag-to-position, motion path overlay, useBuilderStore, AnimationBuilderPage root layout. 08-04 COMPLETE: KeyframeTimeline editor panel with 5 property track rows, draggable diamonds, EasingPicker per segment, playhead sync, bottom value-edit bar.
-Last activity: 2026-03-14 — 08-04 complete: KeyframeTrackRow (draggable diamonds + EasingPicker popover), KeyframeTimeline (ruler + playhead + 5 rows + bottom bar), AnimationBuilderPage updated to render real timeline (79686d8, 5813328)
+Phase: 8 of 8 (Keyframe Position Animation — COMPLETE)
+Plan: 5 of 5 — all complete
+Status: Phase 8 COMPLETE. 08-01: keyframe types, interpolation engine, bezier-easing, backend API. 08-02: BezierEditor and EasingPicker components. 08-03: Animation Builder preview canvas, drag-to-position, motion path overlay, useBuilderStore. 08-04: KeyframeTimeline editor, track rows, EasingPicker, playhead sync. 08-05: Enter/Exit + Hold mode split, rendering pipeline (no double transforms, phase boundary continuity, force-seek), undo/redo, phrase/word scope toggle with stagger delay, preset CRUD (save/save-as/delete/refresh), FPS rescaling on preset load, inline drawer, arrow-key frame stepping.
+Last activity: 2026-03-23 — 08-05 complete: mode split, rendering fixes, undo/redo, word scope + stagger, preset management, FPS rescaling, keyboard controls
 
-Progress: [████████████████████] 100% (7 of 8 phases complete for original phases; Phase 8 4/5 plans done)
+Progress: [████████████████████] 100% (all 8 phases complete)
 
 ## Performance Metrics
 
@@ -40,6 +40,7 @@ Progress: [████████████████████] 100% (7
 - Phase 07-04 complete (4 min) — AnimationEditor UI: PresetList + AnimationPreview + PhaseTimeline + PhasePanel + useDebounced, all TypeScript-verified
 - Phase 08-03 complete (4 min) — useBuilderStore (Zustand), KeyframePreview (Remotion Player + drag overlay + RAF playhead), MotionPathOverlay (SVG), AnimationBuilderPage (preset CRUD + layout)
 - Phase 08-04 complete (4 min) — KeyframeTrackRow (draggable diamonds + EasingPicker popover), KeyframeTimeline (ruler + 5 rows + playhead + bottom bar), AnimationBuilderPage wired
+- Phase 08-05 in progress — Three-phase keyframe system (Enter/Active/Exit), Enter/Exit + Hold mode split, rendering pipeline fixes (double transform elimination, boundary frames, empty phase continuity)
 
 *Updated after each plan completion*
 
@@ -185,6 +186,23 @@ Recent decisions affecting current work:
 - [08-04]: Context menu and EasingPicker popover use position:fixed at click coordinates — works regardless of ancestor overflow:hidden
 - [08-04]: selectedKeyframeIndex scoped to selected property row — KeyframeTrackRow receives null when it is not the active row
 
+- [08-05]: Enter/Exit + Hold mode split — editMode in useBuilderStore constrains selectedPhase; timeline shows only relevant phases per mode
+- [08-05]: Preset classification uses both declarative config (enter/exit/active type !== 'none') and keyframe tracks presence — presets with both (Typewriter, Jiggle Pop) appear in both modes
+- [08-05]: When KeyframePhases present, renderer skips declarative phaseStyles entirely (return kfStyles early) — keyframe tracks are the canonical animation, declarative config is only for legacy/synthesis
+- [08-05]: Enter phase boundary inclusive (kfFrame <= kfEnterFrames) — last keyframe at durationFrames must be evaluated in enter context, not fall through to active
+- [08-05]: Empty phase fallback: active with no tracks holds enter's final values; exit with no tracks holds active's (or enter's) — prevents position snap when phases lack tracks
+- [08-05]: Remotion Player force-seek on track change — Player.seekTo(currentFrame) when paused forces re-render of current frame with updated inputProps
+- [08-05]: Delete keyframe uses Delete key only (not Backspace) with input/textarea guard — prevents accidental deletion while editing values in KeyframeDrawer
+- [08-05]: Phase boundary carry-over: getCarryOverValues + applyCarryOver ensure smooth transitions between phases by inheriting end values from previous phase
+- [08-05]: Undo/redo via snapshot stacks (max 50) — Cmd+Z / Cmd+Shift+Z; snapshots capture scope, staggerFrames, fps, durations, and all tracks; loading preset clears stacks
+- [08-05]: Scope toggle (phrase/word) in builder store — workingPreset overrides preset.scope; Save/Save As include scope
+- [08-05]: Word stagger delay configurable via staggerFrames field — shown only in word mode; stored in enter.params.staggerFrames; scaled on FPS change
+- [08-05]: FPS rescaling on preset load — rescalePhases converts frame counts and keyframe times proportionally so animations maintain same duration in seconds
+- [08-05]: Arrow key frame stepping (Left/Right) for precise frame-by-frame navigation while paused
+- [08-05]: Preset delete button — only user-created presets deletable; confirm dialog; refreshes dropdown after delete
+- [08-05]: Removed Typewriter built-in preset
+- [08-05]: KeyframeDrawer inline overlay — positioned absolute top-right of preview canvas, not fixed; doesn't push toolbar or timeline
+
 ### Roadmap Evolution
 
 - Phase 04.1 inserted after Phase 4: Multi-Speaker Diarization and Speaker Lanes (URGENT) — auto-detect speakers via pyannote.audio, propagate speaker labels through types/grouping/store/composition, add speaker lanes to editor UI with manual override
@@ -210,8 +228,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-14
-Stopped at: Phase 8 08-04 complete — KeyframeTrackRow, KeyframeTimeline, AnimationBuilderPage timeline wired (79686d8, 5813328)
+Last session: 2026-03-23
+Stopped at: Phase 8 complete — all plans done, committed
 
 Next planned work:
-  - Continue Phase 8: 08-05 (verification / integration — e2e keyframe animation in Remotion preview)
+  - All 8 phases complete. Future work: UX polish, additional animation presets, export improvements.

@@ -1,6 +1,6 @@
 import { interpolate, spring, Easing } from 'remotion'
 import BezierEasing from 'bezier-easing'
-import type { AnimationPreset, AnimationPhaseConfig, ActivePhaseConfig, EasingType, KeyframeTrack, KeyframeEasing, MotionKeyframe, KeyframePhases } from '@eigen/shared-types'
+import type { AnimationPreset, AnimationPhaseConfig, ActivePhaseConfig, EasingType, KeyframeTrack, KeyframeEasing, MotionKeyframe, KeyframePhases, KeyframeableProperty } from '@eigen/shared-types'
 import { isLegacyKeyframeTracks } from '@eigen/shared-types'
 
 // ─── Easing mapper ─────────────────────────────────────────────────────────────
@@ -358,6 +358,64 @@ export function computeKeyframeStyles(
  * Compute keyframe styles for the new three-phase system.
  * Given the current phase name and frame within that phase.
  */
+/**
+ * Compute the end values of a phase's tracks (value at the last keyframe of each track).
+ * Returns a map of property → value for carry-over into the next phase.
+ */
+function getPhaseEndValues(
+  phases: KeyframePhases,
+  phaseName: 'enter' | 'active' | 'exit',
+): Map<KeyframeableProperty, number> {
+  const result = new Map<KeyframeableProperty, number>()
+  const tracks = phases[phaseName].tracks
+  const duration = phaseName === 'enter' ? phases.enter.durationFrames
+    : phaseName === 'active' ? phases.active.cycleDurationFrames
+    : phases.exit.durationFrames
+  for (const track of tracks) {
+    result.set(track.property, interpolateTrack(track, duration))
+  }
+  return result
+}
+
+/**
+ * Get carry-over values for a phase from the preceding phase(s).
+ * Active carries from enter; exit carries from active (or enter if active is empty).
+ */
+function getCarryOverValues(
+  phases: KeyframePhases,
+  phaseName: 'enter' | 'active' | 'exit',
+): Map<KeyframeableProperty, number> {
+  if (phaseName === 'enter') return new Map()
+  if (phaseName === 'active') return getPhaseEndValues(phases, 'enter')
+  // Exit: prefer active end values, fall back to enter end values
+  const activeEnd = getPhaseEndValues(phases, 'active')
+  if (activeEnd.size > 0) return activeEnd
+  return getPhaseEndValues(phases, 'enter')
+}
+
+/**
+ * Apply carry-over values to tracks: replace each track's first keyframe value
+ * (if at time 0) with the carry-over value from the previous phase, ensuring
+ * smooth continuity at phase boundaries.
+ */
+function applyCarryOver(
+  tracks: KeyframeTrack[],
+  carryOver: Map<KeyframeableProperty, number>,
+): KeyframeTrack[] {
+  if (carryOver.size === 0) return tracks
+  return tracks.map((track) => {
+    const prev = carryOver.get(track.property)
+    if (prev === undefined) return track
+    if (track.keyframes.length === 0) return track
+    const first = track.keyframes[0]
+    if (first.time !== 0 || first.value === prev) return track
+    // Clone track with updated first keyframe
+    const keyframes = [...track.keyframes]
+    keyframes[0] = { ...first, value: prev }
+    return { ...track, keyframes }
+  })
+}
+
 export function computePhaseKeyframeStyles(
   phases: KeyframePhases,
   phaseName: 'enter' | 'active' | 'exit',
@@ -366,8 +424,20 @@ export function computePhaseKeyframeStyles(
   height: number,
 ): React.CSSProperties {
   const phaseData = phases[phaseName]
-  const tracks = phaseData.tracks
+  let tracks = phaseData.tracks
   if (tracks.length === 0) return {}
+
+  // Ensure continuity: carry over end values from previous phase
+  const carryOver = getCarryOverValues(phases, phaseName)
+  tracks = applyCarryOver(tracks, carryOver)
+
+  // For properties the previous phase animated but this phase doesn't,
+  // add a constant track to hold the carry-over value
+  for (const [prop, value] of carryOver) {
+    if (!tracks.some((t) => t.property === prop)) {
+      tracks = [...tracks, { property: prop, keyframes: [{ time: 0, value }], easings: [] }]
+    }
+  }
 
   // For active phase, loop the frame within cycle duration
   let frame = frameInPhase
@@ -398,12 +468,20 @@ function computePhaseKeyframeStylesFromProgress(
   const enterEnd = phases.enter.durationFrames
   const activeEnd = enterEnd + phases.active.cycleDurationFrames
 
-  if (currentFrame < enterEnd) {
+  if (currentFrame <= enterEnd) {
     return computePhaseKeyframeStyles(phases, 'enter', currentFrame, width, height)
   } else if (currentFrame < activeEnd) {
-    return computePhaseKeyframeStyles(phases, 'active', currentFrame - enterEnd, width, height)
+    return phases.active.tracks.length > 0
+      ? computePhaseKeyframeStyles(phases, 'active', currentFrame - enterEnd, width, height)
+      : computePhaseKeyframeStyles(phases, 'enter', enterEnd, width, height)
   } else {
-    return computePhaseKeyframeStyles(phases, 'exit', currentFrame - activeEnd, width, height)
+    if (phases.exit.tracks.length > 0) {
+      return computePhaseKeyframeStyles(phases, 'exit', currentFrame - activeEnd, width, height)
+    } else if (phases.active.tracks.length > 0) {
+      return computePhaseKeyframeStyles(phases, 'active', phases.active.cycleDurationFrames, width, height)
+    } else {
+      return computePhaseKeyframeStyles(phases, 'enter', enterEnd, width, height)
+    }
   }
 }
 
@@ -455,17 +533,34 @@ export function computeAnimationStyles(
     const kfTotalFrames = totalKfSec * kfFps
     const kfActiveEnd = kfTotalFrames - kfExitFrames
 
-    if (kfFrame < kfEnterFrames) {
+    if (kfFrame <= kfEnterFrames) {
+      // Enter phase (inclusive of last frame where keyframes sit at durationFrames)
       kfStyles = computePhaseKeyframeStyles(phases, 'enter', kfFrame, width, height)
     } else if (kfFrame < kfActiveEnd) {
-      kfStyles = computePhaseKeyframeStyles(phases, 'active', kfFrame - kfEnterFrames, width, height)
+      // Active phase: if no tracks, hold enter's final position
+      kfStyles = phases.active.tracks.length > 0
+        ? computePhaseKeyframeStyles(phases, 'active', kfFrame - kfEnterFrames, width, height)
+        : computePhaseKeyframeStyles(phases, 'enter', kfEnterFrames, width, height)
     } else {
-      kfStyles = computePhaseKeyframeStyles(phases, 'exit', kfFrame - kfActiveEnd, width, height)
+      // Exit phase: if no tracks, hold enter's final position (or active's)
+      if (phases.exit.tracks.length > 0) {
+        kfStyles = computePhaseKeyframeStyles(phases, 'exit', kfFrame - kfActiveEnd, width, height)
+      } else if (phases.active.tracks.length > 0) {
+        kfStyles = computePhaseKeyframeStyles(phases, 'active', phases.active.cycleDurationFrames, width, height)
+      } else {
+        kfStyles = computePhaseKeyframeStyles(phases, 'enter', kfEnterFrames, width, height)
+      }
     }
   } else {
     // Legacy percentage-based keyframes
     const phraseProgress = totalPhraseFrames > 0 ? frameIntoPhrase / totalPhraseFrames : 0
     kfStyles = computeKeyframeStyles(kfData, phraseProgress, width, height)
+  }
+
+  // When phase keyframes are present, they fully encode the animation —
+  // skip the declarative phaseStyles to avoid doubling transforms.
+  if (hasPhaseKeyframes) {
+    return kfStyles
   }
 
   // Determine current phase for enter/active/exit animations
@@ -533,7 +628,10 @@ export function computeWordAnimationStyles(
 
   const { enterFrames, exitFrames } = clampFrames(phraseStartSec, phraseEndSec, preset, fps)
 
-  // Keyframe styles (same phase-aware logic as phrase-scope)
+  // Apply stagger offset: earlier words start earlier
+  const staggeredFrame = Math.max(0, frameIntoPhrase - wordIndex * staggerFrames)
+
+  // Keyframe styles (same phase-aware logic as phrase-scope, but using staggered frame)
   const kfData = preset.keyframeTracks
   const hasPhaseKeyframes = kfData && !isLegacyKeyframeTracks(kfData)
 
@@ -544,25 +642,37 @@ export function computeWordAnimationStyles(
     const kfFps = phases.fps
     const kfEnterFrames = phases.enter.durationFrames
     const kfExitFrames = phases.exit.durationFrames
-    const kfFrame = (frameIntoPhrase / fps) * kfFps
+    // Use staggeredFrame so each word is at a different point in the animation
+    const kfFrame = (staggeredFrame / fps) * kfFps
     const totalKfSec = totalPhraseFrames / fps
     const kfTotalFrames = totalKfSec * kfFps
     const kfActiveEnd = kfTotalFrames - kfExitFrames
 
-    if (kfFrame < kfEnterFrames) {
+    if (kfFrame <= kfEnterFrames) {
       kfStyles = computePhaseKeyframeStyles(phases, 'enter', kfFrame, width, height)
     } else if (kfFrame < kfActiveEnd) {
-      kfStyles = computePhaseKeyframeStyles(phases, 'active', kfFrame - kfEnterFrames, width, height)
+      kfStyles = phases.active.tracks.length > 0
+        ? computePhaseKeyframeStyles(phases, 'active', kfFrame - kfEnterFrames, width, height)
+        : computePhaseKeyframeStyles(phases, 'enter', kfEnterFrames, width, height)
     } else {
-      kfStyles = computePhaseKeyframeStyles(phases, 'exit', kfFrame - kfActiveEnd, width, height)
+      if (phases.exit.tracks.length > 0) {
+        kfStyles = computePhaseKeyframeStyles(phases, 'exit', kfFrame - kfActiveEnd, width, height)
+      } else if (phases.active.tracks.length > 0) {
+        kfStyles = computePhaseKeyframeStyles(phases, 'active', phases.active.cycleDurationFrames, width, height)
+      } else {
+        kfStyles = computePhaseKeyframeStyles(phases, 'enter', kfEnterFrames, width, height)
+      }
     }
   } else {
     const phraseProgress = totalPhraseFrames > 0 ? frameIntoPhrase / totalPhraseFrames : 0
     kfStyles = computeKeyframeStyles(kfData, phraseProgress, width, height)
   }
 
-  // Apply stagger offset: earlier words start earlier
-  const staggeredFrame = Math.max(0, frameIntoPhrase - wordIndex * staggerFrames)
+  // When phase keyframes are present, they fully encode the animation
+  // (with stagger already applied above).
+  if (hasPhaseKeyframes) {
+    return kfStyles
+  }
 
   let phaseStyles: React.CSSProperties
 

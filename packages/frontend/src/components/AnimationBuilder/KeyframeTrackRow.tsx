@@ -101,11 +101,13 @@ export function KeyframeTrackRow({
     return () => document.removeEventListener('mousedown', handleDocumentClick)
   }, [easingPopover, contextMenu])
 
-  // Handle keyboard delete on selected keyframe
+  // Handle keyboard delete on selected keyframe (Delete key only, not Backspace)
   useEffect(() => {
     if (!isSelected) return
     function handleKeyDown(e: KeyboardEvent) {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedKeyframeIndex !== null) {
+      if (e.key === 'Delete' && selectedKeyframeIndex !== null) {
+        const tag = (e.target as HTMLElement)?.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
         onRemoveKeyframe(selectedKeyframeIndex)
       }
     }
@@ -131,9 +133,8 @@ export function KeyframeTrackRow({
       ;(e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId)
       setDraggingIndex(index)
       onSelectKeyframe(index)
-      onSelectProperty()
     },
-    [onSelectKeyframe, onSelectProperty],
+    [onSelectKeyframe],
   )
 
   const handleDiamondPointerMove = useCallback(
@@ -156,9 +157,8 @@ export function KeyframeTrackRow({
     (e: React.MouseEvent, index: number) => {
       e.stopPropagation()
       onSelectKeyframe(index)
-      onSelectProperty()
     },
-    [onSelectKeyframe, onSelectProperty],
+    [onSelectKeyframe],
   )
 
   const handleDiamondContextMenu = useCallback(
