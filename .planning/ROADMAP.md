@@ -20,7 +20,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Server Render and Output** - Render final MP4 in a worker thread, stream progress via SSE, deliver download
 - [x] **Phase 6: Editing Workflow Redesign** - Restructure editing into 2-stage workflow (Timeline, Text) with collapsible preview, StyleDrawer, undo/redo, waveform timeline
 - [x] **Phase 7: Text Animation Creator** - Create and store reusable text animations for vertical/horizontal video resolutions; local DB or file storage for animation presets
-- [ ] **Phase 8: Keyframe Position Animation** - Keyframe-based subtitle position animation: define text x/y position over time with easing controls, visual keyframe editor, support for horizontal and vertical video
+- [x] **Phase 8: Keyframe Position Animation** - Keyframe-based subtitle position animation: define text x/y position over time with easing controls, visual keyframe editor, support for horizontal and vertical video
+- [ ] **Phase 9: Speaker Lane Layout** - Configurable speaker lane positioning in the video: define where each speaker's subtitles appear, control lane gap/stacking, visual lane position editor with preview
+- [ ] **Phase 10: SRT Import and Text Correction** - Import SRT from DaVinci Resolve, align with Whisper word timestamps for accurate text with word-level timing
 
 ## Phase Details
 
@@ -182,10 +184,38 @@ Plans:
 - [ ] 08-04-PLAN.md — Keyframe timeline with multi-property track rows, diamond editing, easing controls
 - [ ] 08-05-PLAN.md — App.tsx tab integration, SubtitleOverlay keyframe rendering, end-to-end verification
 
+### Phase 9: Speaker Lane Layout
+
+**Goal**: Users can control where each speaker's subtitles appear on the video — define vertical positions per speaker, configure the gap between overlapping rows, and visually preview lane positions
+**Depends on**: Phase 8
+**Success Criteria** (what must be TRUE):
+  1. User can set a specific vertical position for each speaker's subtitles (not just a global default)
+  2. User can control the gap between overlapping subtitle rows (currently hardcoded at 8%)
+  3. Video preview updates in real-time as lane positions are adjusted
+  4. Lane positions are saved and applied correctly in the final rendered video
+  5. Positioning works correctly for both horizontal and vertical video aspect ratios
+**Plans:** 3 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Core types, store extension, SubtitleOverlay lane-based positioning, PreviewPanel plumbing
+- [ ] 09-02-PLAN.md — Backend lane presets SQLite plugin and CRUD routes
+- [ ] 09-03-PLAN.md — Lane controls panel, drag overlay, stage-aware visibility, preset UI, verification
+
+### Phase 10: SRT Import and Text Correction
+
+**Goal**: Users can import an SRT file (e.g. from DaVinci Resolve) and align it with Whisper word timestamps to get accurate text with word-level timing
+**Depends on**: Phase 9
+**Success Criteria** (what must be TRUE):
+  1. User can upload/import an SRT file alongside or after transcription
+  2. SRT text is aligned with Whisper word timestamps using rough timestamp matching
+  3. Resulting transcript has accurate text (from SRT) with precise per-word timing (from Whisper)
+  4. User can review and adjust the alignment before accepting
+**Plans:** TBD (to be defined during planning)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -197,4 +227,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Server Render and Output | 2/2 | ✓ Complete | 2026-03-06 |
 | 6. Editing Workflow Redesign | 7/7 | ✓ Complete | 2026-03-10 |
 | 7. Text Animation Creator | 5/5 | ✓ Complete | 2026-03-13 |
-| 8. Keyframe Position Animation | 0/5 | Planned | - |
+| 8. Keyframe Position Animation | 5/5 | ✓ Complete | 2026-03-25 |
+| 9. Speaker Lane Layout | 0/? | Next | - |
+| 10. SRT Import & Text Correction | 0/? | Planned | - |
