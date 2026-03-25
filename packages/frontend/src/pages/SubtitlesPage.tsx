@@ -10,6 +10,7 @@ import { StyleDrawer, type DrawerMode } from '../components/StyleDrawer/StyleDra
 import { TextEditor } from '../components/TextEditor/TextEditor.tsx'
 import { TimingEditor } from '../components/TimingEditor/TimingEditor.tsx'
 import { AnimationEditor } from '../components/AnimationEditor/AnimationEditor.tsx'
+import { LaneControlsPanel } from '../components/LaneControls/LaneControlsPanel.tsx'
 import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
 import { useUndoStore } from '../store/undoMiddleware.ts'
 import './SubtitlesPage.css'
@@ -114,6 +115,12 @@ export function SubtitlesPage() {
   // Subscribe to undo/redo availability for button states
   const canUndo = useUndoStore((s) => s.canUndo)
   const canRedo = useUndoStore((s) => s.canRedo)
+
+  // Lane controls state (needed by LaneControlsPanel when activeStage === 'timing')
+  const speakerLanes = useSubtitleStore((s) => s.speakerLanes)
+  const speakerNames = useSubtitleStore((s) => s.speakerNames)
+  const overlapGap = useSubtitleStore((s) => s.overlapGap)
+  const maxVisibleRows = useSubtitleStore((s) => s.maxVisibleRows)
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -433,12 +440,23 @@ export function SubtitlesPage() {
           className={`subtitles-page__top${previewCollapsed ? ' subtitles-page__top--collapsed' : ''}`}
           style={previewCollapsed ? undefined : { height: `${topPercent}%` }}
         >
-          <PreviewPanel
-            onSeekReady={(fn) => setSeekToTime(() => fn)}
-            onGetTimeReady={(fn) => setGetCurrentTime(() => fn)}
-            collapsed={previewCollapsed}
-            onToggleCollapse={() => setPreviewCollapsed((c) => !c)}
-          />
+          <div className={`subtitles-page__preview-with-lanes${activeStage === 'timing' ? ' subtitles-page__preview-with-lanes--active' : ''}`}>
+            {activeStage === 'timing' && !previewCollapsed && (
+              <LaneControlsPanel
+                speakerLanes={speakerLanes}
+                speakerNames={speakerNames}
+                overlapGap={overlapGap}
+                maxVisibleRows={maxVisibleRows}
+              />
+            )}
+            <PreviewPanel
+              onSeekReady={(fn) => setSeekToTime(() => fn)}
+              onGetTimeReady={(fn) => setGetCurrentTime(() => fn)}
+              collapsed={previewCollapsed}
+              onToggleCollapse={() => setPreviewCollapsed((c) => !c)}
+              showLaneControls={activeStage === 'timing'}
+            />
+          </div>
 
           {!previewCollapsed && (
             <div className="subtitles-page__top-controls">

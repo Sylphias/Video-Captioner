@@ -4,6 +4,7 @@ import { SubtitleComposition } from '@eigen/remotion-composition'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
 import { useWaveform } from '../hooks/useWaveform.ts'
 import { useAnimationPresets } from '../hooks/useAnimationPresets.ts'
+import { LaneDragOverlay } from './LaneDragOverlay.tsx'
 import './PreviewPanel.css'
 
 interface PreviewPanelProps {
@@ -11,9 +12,10 @@ interface PreviewPanelProps {
   onGetTimeReady?: (getTimeFn: () => number) => void
   collapsed?: boolean
   onToggleCollapse?: () => void
+  showLaneControls?: boolean
 }
 
-export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, onToggleCollapse }: PreviewPanelProps) {
+export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, onToggleCollapse, showLaneControls = false }: PreviewPanelProps) {
   const jobId = useSubtitleStore((s) => s.jobId)
   const session = useSubtitleStore((s) => s.session)
   const videoMetadata = useSubtitleStore((s) => s.videoMetadata)
@@ -22,11 +24,13 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
   const activeAnimationPresetId = useSubtitleStore((s) => s.activeAnimationPresetId)
   const phraseAnimationPresetIds = useSubtitleStore((s) => s.phraseAnimationPresetIds)
   const speakerLanes = useSubtitleStore((s) => s.speakerLanes)
+  const speakerNames = useSubtitleStore((s) => s.speakerNames)
   const overlapGap = useSubtitleStore((s) => s.overlapGap)
   const maxVisibleRows = useSubtitleStore((s) => s.maxVisibleRows)
   const { presets } = useAnimationPresets()
 
   const playerRef = useRef<PlayerRef>(null)
+  const playerWrapperRef = useRef<HTMLDivElement>(null)
   const { waveform } = useWaveform(jobId)
 
   // Derive max width from container height to maintain aspect ratio
@@ -199,7 +203,7 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
         </button>
       )}
       {/* Click video to play/pause */}
-      <div className="preview-panel__player-wrapper" onClick={togglePlayPause}>
+      <div ref={playerWrapperRef} className="preview-panel__player-wrapper" onClick={togglePlayPause}>
         <Player
           ref={playerRef}
           component={SubtitleComposition}
@@ -212,6 +216,16 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
           inputProps={inputProps}
           acknowledgeRemotionLicense
         />
+        {showLaneControls && session && (
+          <LaneDragOverlay
+            speakerLanes={speakerLanes}
+            speakerNames={speakerNames}
+            containerRef={playerWrapperRef}
+            currentFrame={currentFrame}
+            phrases={session.phrases}
+            fps={videoMetadata.fps}
+          />
+        )}
       </div>
 
       {/* Mini waveform scrubber */}

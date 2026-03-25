@@ -40,6 +40,18 @@
   padding-bottom: 0.5rem;
 }
 
+/* flex row wrapper: LaneControlsPanel + PreviewPanel */
+.subtitles-page__preview-with-lanes {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
 .subtitles-page__top-controls {
   display: flex;
   align-items: center;
