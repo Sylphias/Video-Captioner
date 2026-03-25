@@ -1,0 +1,50 @@
+/* Overlay container — covers the full player area, pointer-events disabled so clicks pass through */
+.lane-drag-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Individual drag handle — horizontal line */
+.lane-drag-overlay__handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px dashed transparent; /* color set inline */
+  transform: translateY(-50%);
+  pointer-events: auto;
+  cursor: ns-resize;
+}
+
+/* Per-phrase handles are right-aligned and shorter */
+.lane-drag-overlay__handle--phrase {
+  left: 55%;
+  border-top-style: dotted;
+  opacity: 0.85;
+}
+
+/* Label on the left of each handle */
+.lane-drag-overlay__label {
+  position: absolute;
+  left: 4px;
+  top: -9px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Phrase labels are slightly different */
+.lane-drag-overlay__label--phrase {
+  font-size: 9px;
+  font-weight: 400;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
