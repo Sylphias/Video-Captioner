@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 9 of 10 (Speaker Lane Layout — IN PROGRESS)
-Plan: 2 of ? — 09-02 complete
-Status: Phase 9 IN PROGRESS. 09-01: (research). 09-02: Lane preset CRUD backend — SQLite lane_presets.db with WAL mode, four REST endpoints at /api/lane-presets (GET/POST/PUT/DELETE), fastify.lanePresetsDb decorator, layout JSON stores speakerLanes/overlapGap/maxVisibleRows.
-Last activity: 2026-03-25 — 09-02 complete: lane preset CRUD backend with dedicated SQLite storage
+Plan: 2 of ? — 09-01 and 09-02 complete
+Status: Phase 9 IN PROGRESS. 09-01: SpeakerLane/LaneLayout/LanePreset types, speakerLanes/overlapGap/maxVisibleRows store fields with undo support, getLanePosition() fixed-lane positioning replacing assignSlots() in SubtitleOverlay, lane fields plumbed through PreviewPanel inputProps. 09-02: Lane preset CRUD backend — SQLite lane_presets.db with WAL mode, four REST endpoints at /api/lane-presets (GET/POST/PUT/DELETE), fastify.lanePresetsDb decorator, layout JSON stores speakerLanes/overlapGap/maxVisibleRows.
+Last activity: 2026-03-25 — 09-01 complete: speaker lane data model, store extension, fixed-lane positioning
 
 Progress: [████████████████░░░░] 80% (8 of 10 phases complete; Phase 9 next)
 
@@ -222,7 +222,11 @@ Recent decisions affecting current work:
 
 - [Phase 7 — DONE]: Overlapping subtitle positioning — stable slot allocation implemented with same-speaker replacement
 - [Phase 7 — DONE]: Human verification checkpoint for 07-05 Task 2 — all 10 UAT areas passed
-- [Future UX]: Configurable subtitle lane gap — control the vertical spacing between overlapping subtitle rows (currently hardcoded OVERLAP_OFFSET_PCT = 8). Add to Global Styling panel with a visual preview showing lane positions on the video.
+- [09-01]: speakerLanes is a separate Record<string, SpeakerLane> field — not inside speakerStyles.verticalPosition — keeps lane positions authoritative and decoupled from style overrides
+- [09-01]: assignSlots() greedy algorithm replaced entirely by getLanePosition() fixed-lane lookup — no fallback path kept
+- [09-01]: loadLaneLayout maps preset positions to current speakers by descending position order, not ID match — speaker IDs differ across videos
+- [09-01]: speakerLanes optional in SubtitleCompositionProps for backward compatibility with AnimationBuilder KeyframePreview
+- [Future UX — RESOLVED by 09-01]: Configurable subtitle lane gap — overlapGap field now in store (default 8); per-speaker fixed lanes replace greedy OVERLAP_OFFSET_PCT stacking
 - [Phase 4 — deferred UX]: Drag-to-adjust timestamps on WordCell — more ergonomic than typing timestamp values
 - [Phase 4 — deferred UX]: Split button hit area too small when words are close — wider hit area or alternative interaction
 - [Phase 5+]: SRT import + word alignment — Import SRT from DaVinci Resolve, align with Whisper word timestamps using rough timestamp matching. SRT provides accurate text, Whisper provides per-word timing. Merge to get accurate text with word-level timestamps.
@@ -240,7 +244,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: Completed 09-02-PLAN.md — lane preset CRUD backend
+Stopped at: Completed 09-01-PLAN.md — speaker lane core data model, store, and rendering
 
 Next planned work:
   - 09-03: Frontend lane preset UI (picker, save/load controls in the speaker lane layout panel)
