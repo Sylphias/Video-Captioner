@@ -7,6 +7,7 @@ import corsPlugin from './plugins/cors.ts'
 import multipartPlugin from './plugins/multipart.ts'
 import jobStorePlugin from './services/jobStore.ts'
 import animationPresetsPlugin from './services/animationPresets.ts'
+import lanePresetsPlugin from './services/lanePresets.ts'
 import uploadRoutes from './routes/upload.ts'
 import jobRoutes from './routes/jobs.ts'
 import transcribeRoutes from './routes/transcribe.ts'
@@ -14,6 +15,7 @@ import diarizeRoutes from './routes/diarize.ts'
 import renderRoutes from './routes/render.ts'
 import waveformRoutes from './routes/waveform.ts'
 import presetsRoutes from './routes/presets.ts'
+import lanePresetsRoutes from './routes/lanePresets.ts'
 import { initBundle } from './services/render.ts'
 
 // ESM __dirname equivalent
@@ -31,11 +33,12 @@ const fastify = Fastify({
   bodyLimit: 10 * 1024 * 1024 * 1024, // 10GB — video processing tool, no upload limit
 })
 
-// Register plugins in order: cors → multipart → jobStore → animationPresets → routes
+// Register plugins in order: cors → multipart → jobStore → animationPresets → lanePresets → routes
 await fastify.register(corsPlugin)
 await fastify.register(multipartPlugin)
 await fastify.register(jobStorePlugin)
 await fastify.register(animationPresetsPlugin)
+await fastify.register(lanePresetsPlugin)
 
 // Register route plugins after store is decorated
 await fastify.register(uploadRoutes)
@@ -45,6 +48,7 @@ await fastify.register(diarizeRoutes)
 await fastify.register(renderRoutes)
 await fastify.register(waveformRoutes)
 await fastify.register(presetsRoutes)
+await fastify.register(lanePresetsRoutes)
 
 // Health check endpoint
 fastify.get('/api/health', async (_request, _reply) => {
