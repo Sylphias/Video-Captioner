@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Transcript, VideoMetadata } from '@eigen/shared-types'
+import type { Transcript, VideoMetadata, SpeakerLane, LaneLayout } from '@eigen/shared-types'
 import type { StyleProps, SpeakerStyleOverride } from '@eigen/remotion-composition'
 import {
   type SessionWord,
@@ -29,6 +29,9 @@ interface SubtitleStore {
   speakerStyles: Record<string, SpeakerStyleOverride> // per-speaker style overrides
   activeAnimationPresetId: string | null              // globally active animation preset ID
   phraseAnimationPresetIds: Record<number, string>    // maps phrase index to override preset ID
+  speakerLanes: Record<string, SpeakerLane>           // per-speaker vertical position (keyed by speaker ID)
+  overlapGap: number                                  // % points between same-speaker stacked rows (default 8)
+  maxVisibleRows: number                              // max simultaneous speaker rows visible (default 4)
 
   // Actions
   setJob: (jobId: string, transcript: Transcript, videoMetadata: VideoMetadata) => void
@@ -59,6 +62,11 @@ interface SubtitleStore {
   clearPhraseStyle: (phraseIndex: number) => void
   setActiveAnimationPresetId: (id: string | null) => void
   setPhraseAnimationPresetId: (phraseIndex: number, presetId: string | null) => void
+  setSpeakerLane: (speakerId: string, position: number) => void
+  setOverlapGap: (gap: number) => void
+  setMaxVisibleRows: (n: number) => void
+  initSpeakerLanes: (speakerIds: string[]) => void
+  loadLaneLayout: (layout: LaneLayout) => void
 }
 
 const DEFAULT_STYLE: StyleProps = {
@@ -89,6 +97,9 @@ function captureSnapshot(state: {
   speakerStyles: Record<string, SpeakerStyleOverride>
   activeAnimationPresetId: string | null
   phraseAnimationPresetIds: Record<number, string>
+  speakerLanes: Record<string, SpeakerLane>
+  overlapGap: number
+  maxVisibleRows: number
 }): StateSnapshot {
   return {
     session: state.session
@@ -104,6 +115,9 @@ function captureSnapshot(state: {
     speakerStyles: structuredClone(state.speakerStyles) as Record<string, Record<string, unknown>>,
     activeAnimationPresetId: state.activeAnimationPresetId,
     phraseAnimationPresetIds: { ...state.phraseAnimationPresetIds },
+    speakerLanes: structuredClone(state.speakerLanes),
+    overlapGap: state.overlapGap,
+    maxVisibleRows: state.maxVisibleRows,
   }
 }
 
@@ -119,6 +133,9 @@ function pushUndo(state: {
   speakerStyles: Record<string, SpeakerStyleOverride>
   activeAnimationPresetId: string | null
   phraseAnimationPresetIds: Record<number, string>
+  speakerLanes: Record<string, SpeakerLane>
+  overlapGap: number
+  maxVisibleRows: number
 }): void {
   useUndoStore.getState().pushSnapshot(captureSnapshot(state))
 }
@@ -148,6 +165,9 @@ export function restoreSnapshot(snapshot: StateSnapshot): void {
       speakerStyles: structuredClone(snapshot.speakerStyles) as unknown as Record<string, SpeakerStyleOverride>,
       activeAnimationPresetId: snapshot.activeAnimationPresetId ?? null,
       phraseAnimationPresetIds: snapshot.phraseAnimationPresetIds ?? {},
+      speakerLanes: snapshot.speakerLanes ? structuredClone(snapshot.speakerLanes) as Record<string, SpeakerLane> : {},
+      overlapGap: snapshot.overlapGap ?? 8,
+      maxVisibleRows: snapshot.maxVisibleRows ?? 4,
     }
   })
 }
@@ -163,6 +183,9 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   speakerStyles: {},
   activeAnimationPresetId: null,
   phraseAnimationPresetIds: {},
+  speakerLanes: {},
+  overlapGap: 8,
+  maxVisibleRows: 4,
 
   setJob: (jobId, transcript, videoMetadata) => {
     const words: SessionWord[] = transcript.words.map((w) => ({ ...w }))
@@ -178,7 +201,14 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       videoMetadata,
       session: { words, phrases, manualSplitWordIndices: new Set() },
       speakerNames,
+      // Reset lane state on job load so initSpeakerLanes will re-distribute
+      speakerLanes: {},
     })
+    // Auto-initialize speaker lanes if diarization data is already present
+    // (handles page-refresh loading a job that already has speaker assignments)
+    if (uniqueSpeakers.size > 0) {
+      get().initSpeakerLanes(Array.from(uniqueSpeakers))
+    }
   },
 
   updateWord: (wordIndex, patch) => {
@@ -569,7 +599,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     })
   },
 
-  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, maxWordsPerPhrase: 8, speakerNames: {}, speakerStyles: {}, activeAnimationPresetId: null, phraseAnimationPresetIds: {} }),
+  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, maxWordsPerPhrase: 8, speakerNames: {}, speakerStyles: {}, activeAnimationPresetId: null, phraseAnimationPresetIds: {}, speakerLanes: {}, overlapGap: 8, maxVisibleRows: 4 }),
 
   renameSpeaker: (speakerId, displayName) => {
     set((state) => {
@@ -909,6 +939,70 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         phraseAnimationPresetIds[phraseIndex] = presetId
       }
       return { phraseAnimationPresetIds }
+    })
+  },
+
+  setSpeakerLane: (speakerId, position) => {
+    set((state) => {
+      pushUndo(state)
+      return {
+        speakerLanes: {
+          ...state.speakerLanes,
+          [speakerId]: { verticalPosition: position },
+        },
+      }
+    })
+  },
+
+  setOverlapGap: (gap) => {
+    set((state) => {
+      pushUndo(state)
+      return { overlapGap: Math.min(30, Math.max(1, gap)) }
+    })
+  },
+
+  setMaxVisibleRows: (n) => {
+    set((state) => {
+      pushUndo(state)
+      return { maxVisibleRows: Math.min(10, Math.max(1, n)) }
+    })
+  },
+
+  initSpeakerLanes: (speakerIds) => {
+    // Only auto-distribute if no positions have been customized yet
+    set((state) => {
+      if (Object.keys(state.speakerLanes).length > 0) return state
+      if (speakerIds.length === 0) return state
+      const base = 85
+      const gap = state.overlapGap
+      const speakerLanes: Record<string, SpeakerLane> = Object.fromEntries(
+        speakerIds.map((id, i) => [id, { verticalPosition: base - i * gap }])
+      )
+      return { speakerLanes }
+    })
+  },
+
+  loadLaneLayout: (layout) => {
+    set((state) => {
+      pushUndo(state)
+      // Map preset positions to current speakers by position order (descending), not ID match
+      const currentSpeakers = Object.keys(state.speakerNames)
+      const presetPositions = Object.values(layout.speakerLanes)
+        .map((l) => l.verticalPosition)
+        .sort((a, b) => b - a)  // descending (highest % first = bottom of screen first)
+
+      const newSpeakerLanes: Record<string, SpeakerLane> = { ...state.speakerLanes }
+      currentSpeakers.forEach((speakerId, i) => {
+        if (i < presetPositions.length) {
+          newSpeakerLanes[speakerId] = { verticalPosition: presetPositions[i] }
+        }
+      })
+
+      return {
+        speakerLanes: newSpeakerLanes,
+        overlapGap: layout.overlapGap,
+        maxVisibleRows: layout.maxVisibleRows,
+      }
     })
   },
 }))

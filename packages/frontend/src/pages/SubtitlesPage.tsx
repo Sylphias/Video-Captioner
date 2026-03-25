@@ -61,7 +61,7 @@ export function SubtitlesPage() {
         if (storeState.session) {
           timeShiftBaselineRef.current = structuredClone(storeState.session.words)
           // Push undo snapshot manually (same shape as handleUndo)
-          const { session, style, speakerNames, speakerStyles, maxWordsPerPhrase } = storeState
+          const { session, style, speakerNames, speakerStyles, maxWordsPerPhrase, speakerLanes, overlapGap, maxVisibleRows } = storeState
           useUndoStore.getState().pushSnapshot({
             session: session ? {
               words: structuredClone(session.words),
@@ -72,6 +72,9 @@ export function SubtitlesPage() {
             maxWordsPerPhrase,
             speakerNames: { ...speakerNames },
             speakerStyles: structuredClone(speakerStyles) as unknown as Record<string, Record<string, unknown>>,
+            speakerLanes: structuredClone(speakerLanes),
+            overlapGap,
+            maxVisibleRows,
           })
         }
       }
@@ -168,7 +171,7 @@ export function SubtitlesPage() {
 
   const handleUndo = useCallback(() => {
     const storeState = useSubtitleStore.getState()
-    const { session, style, speakerNames, speakerStyles } = storeState
+    const { session, style, speakerNames, speakerStyles, speakerLanes, overlapGap, maxVisibleRows } = storeState
 
     // Build current snapshot to push to future stack
     const currentSnapshot = {
@@ -182,6 +185,9 @@ export function SubtitlesPage() {
       style: structuredClone(style) as unknown as Record<string, unknown>,
       speakerNames: { ...speakerNames },
       speakerStyles: structuredClone(speakerStyles) as unknown as Record<string, Record<string, unknown>>,
+      speakerLanes: structuredClone(speakerLanes),
+      overlapGap,
+      maxVisibleRows,
     }
 
     const target = useUndoStore.getState().undo(currentSnapshot)
@@ -192,7 +198,7 @@ export function SubtitlesPage() {
 
   const handleRedo = useCallback(() => {
     const storeState = useSubtitleStore.getState()
-    const { session, style, speakerNames, speakerStyles } = storeState
+    const { session, style, speakerNames, speakerStyles, speakerLanes, overlapGap, maxVisibleRows } = storeState
 
     const currentSnapshot = {
       session: session
@@ -205,6 +211,9 @@ export function SubtitlesPage() {
       style: structuredClone(style) as unknown as Record<string, unknown>,
       speakerNames: { ...speakerNames },
       speakerStyles: structuredClone(speakerStyles) as unknown as Record<string, Record<string, unknown>>,
+      speakerLanes: structuredClone(speakerLanes),
+      overlapGap,
+      maxVisibleRows,
     }
 
     const target = useUndoStore.getState().redo(currentSnapshot)
@@ -285,11 +294,22 @@ export function SubtitlesPage() {
     diarize(uploadState.jobId, numSpeakers)
   }, [transcribeState.status, uploadState.jobId, diarize, numSpeakers])
 
-  // When diarization completes, switch to Timing stage with toast
+  // When diarization completes, switch to Timing stage with toast, and init speaker lanes
   useEffect(() => {
     if (diarizeState.status !== 'done') return
     setActiveStage('timing')
     setStageToast({ message: 'Speaker detection complete.', key: Date.now() })
+
+    // Extract unique speaker IDs from the newly-diarized phrases and auto-distribute lanes
+    const session = useSubtitleStore.getState().session
+    if (session) {
+      const speakerIds = Array.from(
+        new Set(session.phrases.map((p) => p.dominantSpeaker).filter((s): s is string => !!s))
+      )
+      if (speakerIds.length > 0) {
+        useSubtitleStore.getState().initSpeakerLanes(speakerIds)
+      }
+    }
   }, [diarizeState.status])
 
   // Global Cmd+Z / Cmd+Shift+Z keyboard shortcuts for undo/redo

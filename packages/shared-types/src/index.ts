@@ -148,3 +148,26 @@ export interface KeyframeTrack {
   keyframes: MotionKeyframe[]
   easings: KeyframeEasing[]   // length = keyframes.length - 1 (one per segment between keyframe pairs)
 }
+
+// ─── Speaker Lane Layout types ─────────────────────────────────────────────
+
+/** Per-speaker vertical position in the video frame (0-100% from top) */
+export interface SpeakerLane {
+  verticalPosition: number  // 0-100%
+}
+
+/** Full lane layout configuration — speakerLanes + overlap settings */
+export interface LaneLayout {
+  speakerLanes: Record<string, SpeakerLane>
+  overlapGap: number       // percentage points between same-speaker stacked rows (default 8)
+  maxVisibleRows: number   // max simultaneous speaker rows visible (default 4)
+}
+
+/** Saved lane layout preset — stored in SQLite lane_presets table */
+export interface LanePreset {
+  id: string
+  name: string
+  layout: LaneLayout
+  createdAt: number
+  updatedAt: number
+}
