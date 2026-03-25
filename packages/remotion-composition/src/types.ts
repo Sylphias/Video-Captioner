@@ -34,4 +34,7 @@ export interface SubtitleCompositionProps {
   style: StyleProps
   speakerStyles: Record<string, SpeakerStyleOverride>  // per-speaker style overrides keyed by speaker ID
   animationPreset?: AnimationPreset                     // global default animation preset for all phrases
+  speakerLanes?: Record<string, { verticalPosition: number }>  // per-speaker fixed vertical position (optional for backward compat)
+  overlapGap?: number      // % points between same-speaker stacked rows (default 8)
+  maxVisibleRows?: number  // max simultaneous speaker rows visible (default 4)
 }

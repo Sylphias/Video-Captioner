@@ -21,6 +21,9 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
   const speakerStyles = useSubtitleStore((s) => s.speakerStyles)
   const activeAnimationPresetId = useSubtitleStore((s) => s.activeAnimationPresetId)
   const phraseAnimationPresetIds = useSubtitleStore((s) => s.phraseAnimationPresetIds)
+  const speakerLanes = useSubtitleStore((s) => s.speakerLanes)
+  const overlapGap = useSubtitleStore((s) => s.overlapGap)
+  const maxVisibleRows = useSubtitleStore((s) => s.maxVisibleRows)
   const { presets } = useAnimationPresets()
 
   const playerRef = useRef<PlayerRef>(null)
@@ -154,8 +157,11 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
       style,
       speakerStyles,
       animationPreset,
+      speakerLanes,
+      overlapGap,
+      maxVisibleRows,
     }
-  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets])
+  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets, speakerLanes, overlapGap, maxVisibleRows])
 
   if (!jobId || !session || !videoMetadata || !inputProps) {
     return null
