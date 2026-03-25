@@ -79,6 +79,9 @@ export function KeyframeTimeline() {
   const enterTracks = useBuilderStore((s) => s.enterTracks)
   const activeTracks = useBuilderStore((s) => s.activeTracks)
   const exitTracks = useBuilderStore((s) => s.exitTracks)
+  const highlightEnterTracks = useBuilderStore((s) => s.highlightEnterTracks)
+  const highlightEnterPct = useBuilderStore((s) => s.highlightEnterPct)
+  const setHighlightEnterPct = useBuilderStore((s) => s.setHighlightEnterPct)
   const playheadFrame = useBuilderStore((s) => s.playheadFrame)
   const selectedProperty = useBuilderStore((s) => s.selectedProperty)
   const selectedKeyframeIndex = useBuilderStore((s) => s.selectedKeyframeIndex)
@@ -91,20 +94,26 @@ export function KeyframeTimeline() {
   const setTrackEasing = useBuilderStore((s) => s.setTrackEasing)
   const seekToPhaseFrame = useBuilderStore((s) => s.seekToPhaseFrame)
 
-  // Current phase's tracks and duration
-  const currentTracks = selectedPhase === 'enter' ? enterTracks
+  // Current phase's tracks and duration (highlight mode uses its own tracks)
+  const currentTracks = editMode === 'highlight' ? highlightEnterTracks
+    : selectedPhase === 'enter' ? enterTracks
     : selectedPhase === 'active' ? activeTracks
     : exitTracks
-  const phaseDurationFrames = selectedPhase === 'enter' ? enterDurationFrames
+  const phaseDurationFrames = editMode === 'highlight' ? 100  // percentage scale
+    : selectedPhase === 'enter' ? enterDurationFrames
     : selectedPhase === 'active' ? activeCycleDurationFrames
     : exitDurationFrames
 
   // Visible phases based on edit mode
-  const visiblePhases: PhaseName[] = editMode === 'hold' ? ['active'] : ['enter', 'exit']
+  const visiblePhases: PhaseName[] = editMode === 'hold' ? ['active']
+    : editMode === 'highlight' ? ['enter']
+    : ['enter', 'exit']
 
   // Total frames across visible phases (for phase selector proportions)
   const totalFrames = editMode === 'hold'
     ? activeCycleDurationFrames
+    : editMode === 'highlight'
+    ? 100
     : enterDurationFrames + exitDurationFrames
 
   // Selected keyframe object
@@ -154,26 +163,26 @@ export function KeyframeTimeline() {
     return () => container.removeEventListener('wheel', handleWheel)
   }, [])
 
-  // Zoom to fit: set pxPerFrame so the entire phase fills the visible width
-  const handleZoomFit = useCallback(() => {
+  // Auto-fit: measure the scrollable container (not scroll-area) and fit content
+  const zoomToFit = useCallback(() => {
     const container = scrollContainerRef.current
     if (!container || phaseDurationFrames <= 0) return
-    // Subtract a few px for padding
-    const availableWidth = container.clientWidth - 4
+    // Measure the scrollable child's available width (subtract label column)
+    const scrollable = container.querySelector('.keyframe-timeline__scrollable') as HTMLElement | null
+    const availableWidth = (scrollable?.clientWidth ?? container.clientWidth) - 4
+    if (availableWidth <= 0) return
     const fit = Math.min(MAX_PX_PER_FRAME, Math.max(MIN_PX_PER_FRAME, availableWidth / phaseDurationFrames))
     setPxPerFrame(fit)
     container.scrollLeft = 0
   }, [phaseDurationFrames])
 
-  // Auto-fit on mount and when phase duration changes
+  const handleZoomFit = zoomToFit
+
+  // Auto-fit on mount, mode change, phase change, or duration change
   useEffect(() => {
-    const container = scrollContainerRef.current
-    if (!container || phaseDurationFrames <= 0) return
-    const availableWidth = container.clientWidth - 4
-    const fit = Math.min(MAX_PX_PER_FRAME, Math.max(MIN_PX_PER_FRAME, availableWidth / phaseDurationFrames))
-    setPxPerFrame(fit)
-    container.scrollLeft = 0
-  }, [phaseDurationFrames])
+    const id = requestAnimationFrame(zoomToFit)
+    return () => cancelAnimationFrame(id)
+  }, [zoomToFit, editMode, selectedPhase])
 
   // ─── Phase drag handles ────────────────────────────────────────────────
   const phaseBarRef = useRef<HTMLDivElement>(null)
@@ -256,12 +265,14 @@ export function KeyframeTimeline() {
         onPointerCancel={handlePhasePointerUp}
       >
         {visiblePhases.map((phase, i) => {
-          const frames = phase === 'enter' ? enterDurationFrames
+          const frames = editMode === 'highlight' ? 100
+            : phase === 'enter' ? enterDurationFrames
             : phase === 'active' ? activeCycleDurationFrames
             : exitDurationFrames
           const widthPct = totalFrames > 0 ? (frames / totalFrames) * 100 : (100 / visiblePhases.length)
-          const isActive = selectedPhase === phase
-          const setFrames = phase === 'enter' ? setEnterDurationFrames
+          const isActive = editMode === 'highlight' || selectedPhase === phase
+          const setFrames = editMode === 'highlight' ? (() => {}) // duration is fixed at 100% scale
+            : phase === 'enter' ? setEnterDurationFrames
             : phase === 'active' ? setActiveCycleDurationFrames
             : setExitDurationFrames
           return (
@@ -271,14 +282,27 @@ export function KeyframeTimeline() {
                 className={`keyframe-timeline__phase-block keyframe-timeline__phase-block--${phase}${isActive ? ' keyframe-timeline__phase-block--selected' : ''}`}
                 onClick={() => setSelectedPhase(phase)}
               >
-                <span className="keyframe-timeline__phase-label">{PHASE_LABELS[phase]}</span>
-                <FrameInput
-                  value={frames}
-                  onChange={setFrames}
-                  label={`${PHASE_LABELS[phase]} duration in frames`}
-                />
-                <span className="keyframe-timeline__phase-unit">f</span>
-                <span className="keyframe-timeline__phase-sec">({(frames / fps).toFixed(2)}s)</span>
+                <span className="keyframe-timeline__phase-label">{editMode === 'highlight' ? 'Highlight Enter' : PHASE_LABELS[phase]}</span>
+                {editMode === 'highlight' ? (
+                  <>
+                    <FrameInput
+                      value={highlightEnterPct}
+                      onChange={(v) => setHighlightEnterPct(Math.max(1, Math.min(100, v)))}
+                      label="Enter percentage of word duration"
+                    />
+                    <span className="keyframe-timeline__phase-unit">%</span>
+                  </>
+                ) : (
+                  <>
+                    <FrameInput
+                      value={frames}
+                      onChange={setFrames}
+                      label={`${PHASE_LABELS[phase]} duration in frames`}
+                    />
+                    <span className="keyframe-timeline__phase-unit">f</span>
+                    <span className="keyframe-timeline__phase-sec">({(frames / fps).toFixed(2)}s)</span>
+                  </>
+                )}
               </button>
               {/* Drag handle between enter/exit in enter-exit mode */}
               {editMode === 'enter-exit' && i < visiblePhases.length - 1 && (
@@ -324,7 +348,7 @@ export function KeyframeTimeline() {
                     className="keyframe-timeline__ruler-label"
                     style={{ left: frame * pxPerFrame }}
                   >
-                    {frame}
+                    {editMode === 'highlight' ? `${frame}%` : frame}
                   </span>
                 ))}
                 {/* Playhead in ruler */}

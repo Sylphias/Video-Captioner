@@ -4,7 +4,7 @@ import { isLegacyKeyframeTracks } from '@eigen/shared-types'
 
 type AspectRatio = '16:9' | '9:16' | '1:1'
 type PhaseName = 'enter' | 'active' | 'exit'
-type EditMode = 'enter-exit' | 'hold'
+type EditMode = 'enter-exit' | 'hold' | 'highlight'
 
 interface BuilderState {
   // Edit mode: enter/exit animations vs hold (active cycle) animations
@@ -16,6 +16,11 @@ interface BuilderState {
   setScope: (scope: AnimationScope) => void
   staggerFrames: number
   setStaggerFrames: (frames: number) => void
+
+  // Highlight animation (percentage-based keyframes, 0-100)
+  highlightEnterTracks: KeyframeTrack[]
+  highlightEnterPct: number   // 0-100: what % of word duration is the enter transition
+  setHighlightEnterPct: (pct: number) => void
 
   // Preset being edited (loaded from API or new)
   preset: AnimationPreset | null
@@ -87,6 +92,8 @@ interface BuilderState {
 interface BuilderSnapshot {
   scope: AnimationScope
   staggerFrames: number
+  highlightEnterTracks: KeyframeTrack[]
+  highlightEnterPct: number
   fps: KeyframeFps
   enterDurationFrames: number
   activeCycleDurationFrames: number
@@ -104,6 +111,8 @@ function captureSnapshot(state: BuilderState): BuilderSnapshot {
   return {
     scope: state.scope,
     staggerFrames: state.staggerFrames,
+    highlightEnterTracks: state.highlightEnterTracks,
+    highlightEnterPct: state.highlightEnterPct,
     fps: state.fps,
     enterDurationFrames: state.enterDurationFrames,
     activeCycleDurationFrames: state.activeCycleDurationFrames,
@@ -129,6 +138,14 @@ const PHASE_TRACK_KEYS: Record<PhaseName, 'enterTracks' | 'activeTracks' | 'exit
   exit: 'exitTracks',
 }
 
+type TrackKey = 'enterTracks' | 'activeTracks' | 'exitTracks' | 'highlightEnterTracks'
+
+/** Get the correct track key based on edit mode */
+function getTrackKey(state: { editMode: EditMode; selectedPhase: PhaseName }): TrackKey {
+  if (state.editMode === 'highlight') return 'highlightEnterTracks'
+  return PHASE_TRACK_KEYS[state.selectedPhase]
+}
+
 function modifyTracks(
   tracks: KeyframeTrack[],
   property: KeyframeableProperty,
@@ -151,10 +168,10 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   editMode: 'enter-exit',
   setEditMode: (mode) => set((state) => {
     const update: Partial<BuilderState> = { editMode: mode }
-    if (mode === 'hold' && state.selectedPhase !== 'active') {
+    if (mode === 'hold') {
       update.selectedPhase = 'active'
-    } else if (mode === 'enter-exit' && state.selectedPhase === 'active') {
-      update.selectedPhase = 'enter'
+    } else if (mode === 'enter-exit' || mode === 'highlight') {
+      if (state.selectedPhase === 'active') update.selectedPhase = 'enter'
     }
     return update
   }),
@@ -165,12 +182,17 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   staggerFrames: 3,
   setStaggerFrames: (frames) => { pushUndo(get()); set({ staggerFrames: frames }) },
 
+  // Highlight animation (percentage-based, 0-100)
+  highlightEnterTracks: [],
+  highlightEnterPct: 30,  // 30% of word duration for enter transition
+  setHighlightEnterPct: (pct) => { pushUndo(get()); set({ highlightEnterPct: pct }) },
+
   // Preset
   preset: null,
   setPreset: (p) => set({ preset: p }),
 
   // Phase-based keyframe state
-  fps: 60,
+  fps: 30,
   setFps: (fps) => { pushUndo(get()); set({ fps }) },
 
   selectedPhase: 'enter',
@@ -179,6 +201,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
     // Guard: reject phases invalid for current mode
     if (state.editMode === 'hold' && phase !== 'active') return
     if (state.editMode === 'enter-exit' && phase === 'active') return
+    if (state.editMode === 'highlight' && phase !== 'enter') return
     set({ selectedPhase: phase })
   },
 
@@ -195,11 +218,13 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
 
   currentPhaseTracks: () => {
     const state = get()
-    return state[PHASE_TRACK_KEYS[state.selectedPhase]]
+    if (state.editMode === 'highlight') return state.highlightEnterTracks
+    return state[getTrackKey(state)]
   },
 
   currentPhaseDurationFrames: () => {
     const state = get()
+    if (state.editMode === 'highlight') return 100  // percentage scale 0-100
     switch (state.selectedPhase) {
       case 'enter': return state.enterDurationFrames
       case 'active': return state.activeCycleDurationFrames
@@ -210,7 +235,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   addKeyframe: (property, time, value) => {
     pushUndo(get())
     set((state) => {
-      const trackKey = PHASE_TRACK_KEYS[state.selectedPhase]
+      const trackKey = getTrackKey(state)
       const tracks = [...state[trackKey]]
       const idx = tracks.findIndex((t) => t.property === property)
 
@@ -245,7 +270,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   removeKeyframe: (property, index) => {
     pushUndo(get())
     set((state) => {
-      const trackKey = PHASE_TRACK_KEYS[state.selectedPhase]
+      const trackKey = getTrackKey(state)
       const tracks = modifyTracks(state[trackKey], property, (track) => {
         const keyframes = [...track.keyframes]
         const easings = [...track.easings]
@@ -262,7 +287,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   updateKeyframeValue: (property, index, value) => {
     pushUndo(get())
     set((state) => {
-      const trackKey = PHASE_TRACK_KEYS[state.selectedPhase]
+      const trackKey = getTrackKey(state)
       const tracks = state[trackKey].map((track) => {
         if (track.property !== property) return track
         const keyframes = [...track.keyframes]
@@ -277,7 +302,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   updateKeyframeTime: (property, index, time) => {
     pushUndo(get())
     set((state) => {
-      const trackKey = PHASE_TRACK_KEYS[state.selectedPhase]
+      const trackKey = getTrackKey(state)
       const tracks = state[trackKey].map((track) => {
         if (track.property !== property) return track
         const keyframes = [...track.keyframes]
@@ -300,7 +325,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
   setTrackEasing: (property, segmentIndex, easing) => {
     pushUndo(get())
     set((state) => {
-      const trackKey = PHASE_TRACK_KEYS[state.selectedPhase]
+      const trackKey = getTrackKey(state)
       const tracks = state[trackKey].map((track) => {
         if (track.property !== property) return track
         const easings = [...track.easings]

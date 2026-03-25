@@ -125,10 +125,15 @@ export function KeyframeDrawer() {
   const setSelectedKeyframeIndex = useBuilderStore((s) => s.setSelectedKeyframeIndex)
   const setSelectedProperty = useBuilderStore((s) => s.setSelectedProperty)
 
-  const currentTracks = selectedPhase === 'enter' ? enterTracks
+  const editMode = useBuilderStore((s) => s.editMode)
+  const highlightEnterTracks = useBuilderStore((s) => s.highlightEnterTracks)
+
+  const currentTracks = editMode === 'highlight' ? highlightEnterTracks
+    : selectedPhase === 'enter' ? enterTracks
     : selectedPhase === 'active' ? activeTracks
     : exitTracks
-  const phaseDuration = selectedPhase === 'enter' ? enterDurationFrames
+  const phaseDuration = editMode === 'highlight' ? 100
+    : selectedPhase === 'enter' ? enterDurationFrames
     : selectedPhase === 'active' ? activeCycleDurationFrames
     : exitDurationFrames
 

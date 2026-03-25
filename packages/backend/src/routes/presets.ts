@@ -11,6 +11,7 @@ interface CreatePresetBody {
   active: Record<string, unknown>
   exit: Record<string, unknown>
   keyframeTracks?: unknown  // KeyframePhases (object) or legacy KeyframeTrack[] (array)
+  highlightAnimation?: unknown  // HighlightKeyframeConfig
 }
 
 interface UpdatePresetBody {
@@ -20,6 +21,7 @@ interface UpdatePresetBody {
   active?: Record<string, unknown>
   exit?: Record<string, unknown>
   keyframeTracks?: unknown  // KeyframePhases (object) or legacy KeyframeTrack[] (array)
+  highlightAnimation?: unknown  // HighlightKeyframeConfig
 }
 
 // ── Row → response shape mapper ───────────────────────────────────────────────
@@ -87,6 +89,9 @@ async function presetsRoutes(fastify: FastifyInstance): Promise<void> {
     if (body.keyframeTracks !== undefined) {
       paramsObj.keyframeTracks = body.keyframeTracks
     }
+    if (body.highlightAnimation !== undefined) {
+      paramsObj.highlightAnimation = body.highlightAnimation
+    }
     const params = JSON.stringify(paramsObj)
 
     insertStmt.run(id, body.name, body.scope, params, now, now)
@@ -120,6 +125,11 @@ async function presetsRoutes(fastify: FastifyInstance): Promise<void> {
     const updatedKeyframeTracks = body.keyframeTracks ?? existingParams.keyframeTracks
     if (updatedKeyframeTracks !== undefined) {
       mergedParams.keyframeTracks = updatedKeyframeTracks
+    }
+    // Preserve or update highlightAnimation
+    const updatedHighlight = body.highlightAnimation ?? existingParams.highlightAnimation
+    if (updatedHighlight !== undefined) {
+      mergedParams.highlightAnimation = updatedHighlight
     }
 
     const updatedName = body.name ?? existing.name

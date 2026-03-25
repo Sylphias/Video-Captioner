@@ -219,6 +219,12 @@ function isHoldPreset(preset: AnimationPreset): boolean {
   return false
 }
 
+/** Does this preset have highlight animation keyframes? */
+function isHighlightPreset(preset: AnimationPreset): boolean {
+  const hl = preset.highlightAnimation
+  return !!hl && hl.enterTracks.length > 0
+}
+
 // ─── Rescale phases to target FPS ────────────────────────────────────────────
 
 /** Scale a KeyframePhases from its source fps to a target fps, preserving durations in seconds. */
@@ -259,6 +265,33 @@ function loadPresetIntoStore(preset: AnimationPreset) {
   store.setPreset(preset)
   store.setScope(preset.scope)
   store.setStaggerFrames(Math.round((preset.enter.params.staggerFrames ?? 3) * (store.fps / DEFAULT_FPS)))
+  // Load highlight keyframe data
+  const hl = preset.highlightAnimation as any
+  if (hl && hl.enterTracks?.length > 0) {
+    if (hl.enterPct !== undefined) {
+      // New percentage-based format
+      useBuilderStore.setState({
+        highlightEnterPct: hl.enterPct,
+        highlightEnterTracks: hl.enterTracks,
+      })
+    } else if (hl.enterDurationFrames !== undefined && hl.fps) {
+      // Legacy frame-based format — convert keyframe times to 0-100 percentage
+      const maxTime = hl.enterDurationFrames
+      const convertedTracks = hl.enterTracks.map((t: any) => ({
+        ...t,
+        keyframes: t.keyframes.map((kf: any) => ({
+          ...kf,
+          time: maxTime > 0 ? Math.round((kf.time / maxTime) * 100) : 0,
+        })),
+      }))
+      useBuilderStore.setState({
+        highlightEnterPct: 30,
+        highlightEnterTracks: convertedTracks,
+      })
+    }
+  } else {
+    useBuilderStore.setState({ highlightEnterPct: 30, highlightEnterTracks: [] })
+  }
 
   const kf = preset.keyframeTracks
   let phases: KeyframePhases
@@ -286,15 +319,22 @@ export function AnimationBuilderPage() {
   const staggerFrames = useBuilderStore((s) => s.staggerFrames)
   const setStaggerFrames = useBuilderStore((s) => s.setStaggerFrames)
   const fps = useBuilderStore((s) => s.fps)
+  const highlightEnterTracks = useBuilderStore((s) => s.highlightEnterTracks)
+  const highlightEnterPct = useBuilderStore((s) => s.highlightEnterPct)
+
+  const buildHighlightAnimation = useCallback(() => {
+    if (highlightEnterTracks.length === 0) return undefined
+    return { enterPct: highlightEnterPct, enterTracks: highlightEnterTracks }
+  }, [highlightEnterPct, highlightEnterTracks])
 
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   // Filter presets by current edit mode
   const filteredPresets = useMemo(() => {
-    return presets.filter((p) =>
-      editMode === 'hold' ? isHoldPreset(p) : isEnterExitPreset(p)
-    )
+    if (editMode === 'highlight') return presets.filter(isHighlightPreset)
+    if (editMode === 'hold') return presets.filter(isHoldPreset)
+    return presets.filter(isEnterExitPreset)
   }, [presets, editMode])
 
   // Load the first preset on initial render
@@ -335,7 +375,11 @@ export function AnimationBuilderPage() {
       const res = await fetch(`/api/presets/${preset.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyframeTracks, scope }),
+        body: JSON.stringify({
+          keyframeTracks,
+          scope,
+          highlightAnimation: buildHighlightAnimation(),
+        }),
       })
       if (!res.ok) {
         const text = await res.text()
@@ -349,7 +393,7 @@ export function AnimationBuilderPage() {
     } finally {
       setSaving(false)
     }
-  }, [preset, scope, buildKeyframePhases, setPreset, refreshPresets])
+  }, [preset, scope, buildKeyframePhases, buildHighlightAnimation, setPreset, refreshPresets])
 
   // Save As — POST to create a new preset
   const handleSaveAs = useCallback(async () => {
@@ -367,6 +411,7 @@ export function AnimationBuilderPage() {
         enter: preset.enter,
         active: preset.active,
         exit: preset.exit,
+        highlightAnimation: buildHighlightAnimation(),
         keyframeTracks,
       }
       const res = await fetch('/api/presets', {
@@ -386,7 +431,7 @@ export function AnimationBuilderPage() {
     } finally {
       setSaving(false)
     }
-  }, [preset, scope, buildKeyframePhases, refreshPresets])
+  }, [preset, scope, buildKeyframePhases, buildHighlightAnimation, refreshPresets])
 
   // New — clear builder state
   const handleNew = useCallback(() => {
@@ -501,6 +546,13 @@ export function AnimationBuilderPage() {
             onClick={() => setEditMode('hold')}
           >
             Hold
+          </button>
+          <button
+            type="button"
+            className={`animation-builder-page__mode-btn${editMode === 'highlight' ? ' animation-builder-page__mode-btn--active' : ''}`}
+            onClick={() => setEditMode('highlight')}
+          >
+            Highlight
           </button>
         </div>
 

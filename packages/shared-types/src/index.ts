@@ -72,6 +72,14 @@ export interface ActivePhaseConfig {
   intensity: number           // 0-1 amplitude/strength multiplier
 }
 
+// Highlight (karaoke) word animation — keyframe-based, applied per-word as it becomes active.
+// Keyframe times use 0-100 (percentage of enter transition). Exit auto-reverses enter.
+// enterPct controls what fraction (0-100) of the word's active time is the enter transition.
+export interface HighlightKeyframeConfig {
+  enterPct: number          // 0-100: percentage of word duration for enter (exit uses same %)
+  enterTracks: KeyframeTrack[]  // keyframe.time = 0-100 (percentage)
+}
+
 // The full animation preset — stored in SQLite, applied in composition
 export interface AnimationPreset {
   id: string
@@ -81,6 +89,7 @@ export interface AnimationPreset {
   enter: AnimationPhaseConfig
   active: ActivePhaseConfig
   exit: AnimationPhaseConfig & { mirrorEnter: boolean }  // exit can mirror enter by default
+  highlightAnimation?: HighlightKeyframeConfig  // per-word highlight keyframes
   createdAt: number
   updatedAt: number
   keyframeTracks?: KeyframePhases | KeyframeTrack[]  // KeyframePhases (new) or legacy flat array; undefined = no keyframe animation

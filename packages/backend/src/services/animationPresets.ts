@@ -32,6 +32,10 @@ interface PresetParams {
     easing: string
     params: Record<string, unknown>
   }
+  highlightAnimation?: {
+    enterPct: number
+    enterTracks: unknown[]
+  }
 }
 
 interface BuiltinPreset {
@@ -102,6 +106,71 @@ const BUILTIN_PRESETS: BuiltinPreset[] = [
       exit: { mirrorEnter: false, type: 'fade', durationSec: 0.15, easing: 'ease-in', params: {} },
     },
   },
+  // ── Highlight presets (per-word karaoke animations) ──────────────────────────
+  {
+    id: 'builtin-highlight-scale',
+    name: 'Highlight: Scale',
+    scope: 'phrase',
+    params: {
+      enter: { type: 'none', durationSec: 0, easing: 'linear', params: {} },
+      active: { type: 'none', cycleDurationSec: 1, intensity: 0 },
+      exit: { mirrorEnter: false, type: 'none', durationSec: 0, easing: 'linear', params: {} },
+      highlightAnimation: {
+        enterPct: 30,
+        enterTracks: [
+          { property: 'scale', keyframes: [{ time: 0, value: 1 }, { time: 100, value: 1.15 }], easings: [{ type: 'ease-out' }] },
+        ],
+      },
+    },
+  },
+  {
+    id: 'builtin-highlight-pop',
+    name: 'Highlight: Pop',
+    scope: 'phrase',
+    params: {
+      enter: { type: 'none', durationSec: 0, easing: 'linear', params: {} },
+      active: { type: 'none', cycleDurationSec: 1, intensity: 0 },
+      exit: { mirrorEnter: false, type: 'none', durationSec: 0, easing: 'linear', params: {} },
+      highlightAnimation: {
+        enterPct: 25,
+        enterTracks: [
+          { property: 'scale', keyframes: [{ time: 0, value: 1 }, { time: 60, value: 1.25 }, { time: 100, value: 1.12 }], easings: [{ type: 'ease-out' }, { type: 'ease-in-out' }] },
+        ],
+      },
+    },
+  },
+  {
+    id: 'builtin-highlight-lift',
+    name: 'Highlight: Lift',
+    scope: 'phrase',
+    params: {
+      enter: { type: 'none', durationSec: 0, easing: 'linear', params: {} },
+      active: { type: 'none', cycleDurationSec: 1, intensity: 0 },
+      exit: { mirrorEnter: false, type: 'none', durationSec: 0, easing: 'linear', params: {} },
+      highlightAnimation: {
+        enterPct: 30,
+        enterTracks: [
+          { property: 'y', keyframes: [{ time: 0, value: 0 }, { time: 100, value: -3 }], easings: [{ type: 'ease-out' }] },
+        ],
+      },
+    },
+  },
+  {
+    id: 'builtin-highlight-bounce',
+    name: 'Highlight: Bounce',
+    scope: 'phrase',
+    params: {
+      enter: { type: 'none', durationSec: 0, easing: 'linear', params: {} },
+      active: { type: 'none', cycleDurationSec: 1, intensity: 0 },
+      exit: { mirrorEnter: false, type: 'none', durationSec: 0, easing: 'linear', params: {} },
+      highlightAnimation: {
+        enterPct: 35,
+        enterTracks: [
+          { property: 'y', keyframes: [{ time: 0, value: 0 }, { time: 40, value: -5 }, { time: 70, value: -2 }, { time: 100, value: -3 }], easings: [{ type: 'ease-out' }, { type: 'ease-in' }, { type: 'ease-out' }] },
+        ],
+      },
+    },
+  },
 ]
 
 // ── Seeding helper ────────────────────────────────────────────────────────────
@@ -112,21 +181,28 @@ function seedBuiltinPresets(db: Database.Database): void {
     INSERT INTO animation_presets (id, name, is_builtin, scope, params, created_at, updated_at)
     VALUES (?, ?, 1, ?, ?, ?, ?)
   `)
+  const updateStmt = db.prepare(`
+    UPDATE animation_presets SET name = ?, scope = ?, params = ?, updated_at = ? WHERE id = ?
+  `)
 
   const now = Date.now()
   // Use incrementing timestamps so built-ins sort before user presets (created_at ASC)
   for (let i = 0; i < BUILTIN_PRESETS.length; i++) {
     const preset = BUILTIN_PRESETS[i]
+    const params = JSON.stringify(preset.params)
     const existing = checkStmt.get(preset.id)
     if (!existing) {
       insertStmt.run(
         preset.id,
         preset.name,
         preset.scope,
-        JSON.stringify(preset.params),
+        params,
         now - (BUILTIN_PRESETS.length - i) * 1000, // stagger timestamps so ORDER BY created_at is stable
         now - (BUILTIN_PRESETS.length - i) * 1000,
       )
+    } else {
+      // Update existing built-in presets to pick up definition changes
+      updateStmt.run(preset.name, preset.scope, params, now, preset.id)
     }
   }
 }

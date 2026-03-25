@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 Phase: 8 of 8 (Keyframe Position Animation — COMPLETE)
 Plan: 5 of 5 — all complete
-Status: Phase 8 COMPLETE. 08-01: keyframe types, interpolation engine, bezier-easing, backend API. 08-02: BezierEditor and EasingPicker components. 08-03: Animation Builder preview canvas, drag-to-position, motion path overlay, useBuilderStore. 08-04: KeyframeTimeline editor, track rows, EasingPicker, playhead sync. 08-05: Enter/Exit + Hold mode split, rendering pipeline (no double transforms, phase boundary continuity, force-seek), undo/redo, phrase/word scope toggle with stagger delay, preset CRUD (save/save-as/delete/refresh), FPS rescaling on preset load, inline drawer, arrow-key frame stepping.
-Last activity: 2026-03-23 — 08-05 complete: mode split, rendering fixes, undo/redo, word scope + stagger, preset management, FPS rescaling, keyboard controls
+Status: Phase 8 COMPLETE. 08-01: keyframe types, interpolation engine, bezier-easing, backend API. 08-02: BezierEditor and EasingPicker components. 08-03: Animation Builder preview canvas, drag-to-position, motion path overlay, useBuilderStore. 08-04: KeyframeTimeline editor, track rows, EasingPicker, playhead sync. 08-05: Enter/Exit + Hold + Highlight mode split, rendering pipeline (no double transforms, phase boundary continuity, force-seek), undo/redo, phrase/word scope toggle with stagger delay, preset CRUD (save/save-as/delete/refresh), FPS rescaling on preset load, inline drawer, arrow-key frame stepping, highlight keyframe system (percentage-based 0-100%, per-word animation with auto-reverse exit), 4 built-in highlight presets (scale/pop/lift/bounce), built-in preset upsert on server restart.
+Last activity: 2026-03-25 — Phase 8 complete: highlight keyframe animation system, percentage-based timeline, built-in highlight presets, Mac delete key fix, timeline auto-fit
 
 Progress: [████████████████████] 100% (all 8 phases complete)
 

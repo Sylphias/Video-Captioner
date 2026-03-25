@@ -98,6 +98,8 @@ export function KeyframePreview() {
   const preset = useBuilderStore((s) => s.preset)
   const scope = useBuilderStore((s) => s.scope)
   const staggerFrames = useBuilderStore((s) => s.staggerFrames)
+  const highlightEnterTracks = useBuilderStore((s) => s.highlightEnterTracks)
+  const highlightEnterPct = useBuilderStore((s) => s.highlightEnterPct)
   const fps = useBuilderStore((s) => s.fps)
   const sampleText = useBuilderStore((s) => s.sampleText)
   const setSampleText = useBuilderStore((s) => s.setSampleText)
@@ -183,6 +185,15 @@ export function KeyframePreview() {
       } else if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
         e.preventDefault()
         const state = useBuilderStore.getState()
+
+        if (state.editMode === 'highlight') {
+          // Highlight mode: step through 0-100% directly
+          const delta = e.code === 'ArrowRight' ? 1 : -1
+          const newPct = Math.max(0, Math.min(100, Math.round(state.playheadFrame) + delta))
+          state.setPlayheadFrame(newPct)
+          return
+        }
+
         const seek = state.seekToPhaseFrame
         if (!seek) return
         const delta = e.code === 'ArrowRight' ? 1 : -1
@@ -234,6 +245,9 @@ export function KeyframePreview() {
     if (!preset) {
       if (!hasTracks) return null
       const noPhase = { type: 'none' as const, durationSec: 0, easing: 'linear' as const, params: { staggerFrames } }
+      const hlAnim = highlightEnterTracks.length > 0
+        ? { enterPct: highlightEnterPct, enterTracks: highlightEnterTracks }
+        : undefined
       return {
         id: '__builder__',
         name: 'Builder Preview',
@@ -242,19 +256,24 @@ export function KeyframePreview() {
         enter: noPhase,
         active: { type: 'none' as const, cycleDurationSec: 0, intensity: 0 },
         exit: { ...noPhase, mirrorEnter: false },
+        highlightAnimation: hlAnim,
         createdAt: 0,
         updatedAt: 0,
         keyframeTracks: phases,
       } satisfies AnimationPreset
     }
+    const hlAnim = highlightEnterTracks.length > 0
+      ? { enterPct: highlightEnterPct, enterTracks: highlightEnterTracks }
+      : undefined
     return {
       ...preset,
       scope,
       enter: { ...preset.enter, params: { ...preset.enter.params, staggerFrames } },
+      highlightAnimation: hlAnim,
       keyframeTracks: phases,
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- enterTracks/activeTracks/exitTracks trigger recompute when keyframes change
-  }, [preset, scope, staggerFrames, buildKeyframePhases, enterTracks, activeTracks, exitTracks, enterDurationFrames, activeCycleDurationFrames, exitDurationFrames])
+  }, [preset, scope, staggerFrames, highlightEnterTracks, highlightEnterPct, fps, buildKeyframePhases, enterTracks, activeTracks, exitTracks, enterDurationFrames, activeCycleDurationFrames, exitDurationFrames])
 
   // Force the Player to re-render the current frame when tracks/durations change while paused.
   // Remotion Player doesn't automatically re-render a paused frame when inputProps change.
@@ -265,7 +284,7 @@ export function KeyframePreview() {
     // Seek to the same frame to force a re-render
     const frame = player.getCurrentFrame()
     player.seekTo(frame)
-  }, [enterTracks, activeTracks, exitTracks, enterDurationFrames, activeCycleDurationFrames, exitDurationFrames, scope, staggerFrames, isPlaying])
+  }, [enterTracks, activeTracks, exitTracks, enterDurationFrames, activeCycleDurationFrames, exitDurationFrames, highlightEnterTracks, highlightEnterPct, scope, staggerFrames, isPlaying])
 
   // Observe canvas container height
   useEffect(() => {
@@ -298,7 +317,9 @@ export function KeyframePreview() {
   )
 
   // Poll the Remotion Player for current playhead time and compute frame within current phase
+  // In highlight mode, playhead is controlled directly (percentage 0-100), not derived from Player.
   useEffect(() => {
+    if (editMode === 'highlight') return
     function poll() {
       const player = playerRef.current
       if (player) {

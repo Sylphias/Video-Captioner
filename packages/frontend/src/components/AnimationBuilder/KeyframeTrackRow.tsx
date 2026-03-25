@@ -101,13 +101,14 @@ export function KeyframeTrackRow({
     return () => document.removeEventListener('mousedown', handleDocumentClick)
   }, [easingPopover, contextMenu])
 
-  // Handle keyboard delete on selected keyframe (Delete key only, not Backspace)
+  // Handle keyboard delete on selected keyframe (Delete or Backspace, but not when in input fields)
   useEffect(() => {
     if (!isSelected) return
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Delete' && selectedKeyframeIndex !== null) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedKeyframeIndex !== null) {
         const tag = (e.target as HTMLElement)?.tagName
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+        e.preventDefault()
         onRemoveKeyframe(selectedKeyframeIndex)
       }
     }

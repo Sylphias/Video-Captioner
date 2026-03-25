@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import React, { useMemo } from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
-import type { TranscriptWord } from '@eigen/shared-types'
+import type { TranscriptWord, HighlightKeyframeConfig, KeyframeTrack } from '@eigen/shared-types'
 import type { AnimationPreset } from '@eigen/shared-types'
 import { isLegacyKeyframeTracks } from '@eigen/shared-types'
 import type { StyleProps, SpeakerStyleOverride, CompositionPhrase } from './types'
@@ -82,6 +82,108 @@ function assignSlots(phrases: CompositionPhrase[], defaultLinger: number): Map<C
   return slotMap
 }
 
+// ─── Highlight animation per word (keyframe-based) ───────────────────────────
+
+/**
+ * Compute the percentage (0-100) within the highlight enter animation for a word.
+ * Exit auto-reverses: percentage goes 100→0.
+ * Returns -1 if the word has no highlight animation active.
+ */
+function computeHighlightPct(
+  wordIndex: number,
+  activeWordIndex: number,
+  words: TranscriptWord[],
+  currentTimeSec: number,
+  config: HighlightKeyframeConfig,
+): number {
+  // Compute this word's active duration (time until next word starts or word ends)
+  const wordStart = words[wordIndex].start
+  const wordEnd = words[wordIndex + 1]?.start ?? words[wordIndex].end
+  const wordDuration = wordEnd - wordStart
+  const enterDurationSec = (config.enterPct / 100) * wordDuration
+  if (enterDurationSec <= 0) return wordIndex === activeWordIndex ? 100 : -1
+
+  if (wordIndex === activeWordIndex) {
+    // Currently active — enter: percentage goes 0 → 100
+    const timeSinceActive = currentTimeSec - wordStart
+    const progress = Math.min(1, Math.max(0, timeSinceActive / enterDurationSec))
+    return progress * 100
+  }
+
+  if (wordIndex < activeWordIndex) {
+    // Previously active — exit: reversed (100 → 0)
+    const deactivatedAt = words[wordIndex + 1]?.start ?? words[wordIndex].end
+    const exitDurationSec = enterDurationSec  // same duration as enter
+    const timeSinceDeactivated = currentTimeSec - deactivatedAt
+    const exitProgress = Math.min(1, Math.max(0, timeSinceDeactivated / exitDurationSec))
+    return (1 - exitProgress) * 100
+  }
+
+  return -1
+}
+
+/**
+ * Interpolate highlight keyframe tracks at a given frame and return CSS styles.
+ */
+function computeHighlightKeyframeStyles(
+  tracks: KeyframeTrack[],
+  frame: number,
+): React.CSSProperties {
+  if (tracks.length === 0 || frame < 0) return {}
+
+  const result: React.CSSProperties = {}
+  const transforms: string[] = []
+
+  for (const track of tracks) {
+    const kfs = track.keyframes
+    if (kfs.length === 0) continue
+
+    // Interpolate value at frame
+    let value: number
+    if (kfs.length === 1) {
+      value = kfs[0].value
+    } else if (frame <= kfs[0].time) {
+      value = kfs[0].value
+    } else if (frame >= kfs[kfs.length - 1].time) {
+      value = kfs[kfs.length - 1].value
+    } else {
+      // Find segment
+      let seg = 0
+      for (let i = 0; i < kfs.length - 1; i++) {
+        if (frame <= kfs[i + 1].time) { seg = i; break }
+      }
+      const t0 = kfs[seg].time, t1 = kfs[seg + 1].time
+      const p = t1 === t0 ? 1 : (frame - t0) / (t1 - t0)
+      value = kfs[seg].value + (kfs[seg + 1].value - kfs[seg].value) * p
+    }
+
+    switch (track.property) {
+      case 'scale':
+        transforms.push(`scale(${value})`)
+        break
+      case 'y':
+        transforms.push(`translateY(${value}px)`)
+        break
+      case 'x':
+        transforms.push(`translateX(${value}px)`)
+        break
+      case 'rotation':
+        transforms.push(`rotate(${value}deg)`)
+        break
+      case 'opacity':
+        result.opacity = value
+        break
+    }
+  }
+
+  if (transforms.length > 0) {
+    result.transform = transforms.join(' ')
+    result.display = 'inline-block'
+  }
+
+  return result
+}
+
 interface SubtitleOverlayProps {
   phrases: CompositionPhrase[]
   style: StyleProps
@@ -143,6 +245,9 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
         const activeWordIndex = findActiveWordIndex(activePhrase.words, currentTimeSec)
 
         const effectiveStyle = phraseStyles[phraseIdx]
+
+        // Highlight animation config (if any)
+        const hlConfig = (activePhrase.animationPreset ?? animationPreset)?.highlightAnimation
 
         // Determine the phrase's effective animation preset:
         // per-phrase resolved preset takes priority over global default
@@ -270,6 +375,14 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
                         ? word.word.slice(0, Math.floor(textSliceProgress * word.word.length))
                         : word.word)
 
+                  // Highlight animation for stroke layer
+                  const hlPctStroke = hlConfig
+                    ? computeHighlightPct(i, activeWordIndex, activePhrase.words, currentTimeSec, hlConfig)
+                    : -1
+                  const hlStylesStroke = hlPctStroke >= 0 && hlConfig
+                    ? computeHighlightKeyframeStyles(hlConfig.enterTracks, hlPctStroke)
+                    : {}
+
                   return (
                     <span
                       key={`${word.start}-${i}`}
@@ -278,6 +391,7 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
                         marginRight: '0.25em',
                         WebkitTextStroke: `${effectiveStyle.strokeWidth * 2}px ${effectiveStyle.strokeColor}`,
                         ...cleanWordAnimStyles,
+                        ...hlStylesStroke,
                       }}
                     >
                       {displayText}
@@ -308,15 +422,26 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
                     ? word.word.slice(0, Math.floor(textSliceProgress * word.word.length))
                     : word.word)
 
+              // Highlight keyframe animation styles for this word
+              const hlPct = hlConfig
+                ? computeHighlightPct(i, activeWordIndex, activePhrase.words, currentTimeSec, hlConfig)
+                : -1
+              const hlStyles = hlPct >= 0 && hlConfig
+                ? computeHighlightKeyframeStyles(hlConfig.enterTracks, hlPct)
+                : {}
+
+              const wordColor = i === activeWordIndex ? effectiveStyle.highlightColor : effectiveStyle.baseColor
+
               return (
                 <span
                   key={`${word.start}-${i}`}
                   style={{
                     position: 'relative',
-                    color: i === activeWordIndex ? effectiveStyle.highlightColor : effectiveStyle.baseColor,
+                    color: wordColor,
                     marginRight: '0.25em',
                     textShadow: `${effectiveStyle.shadowOffsetX ?? 0}px ${effectiveStyle.shadowOffsetY ?? 2}px ${effectiveStyle.shadowBlur ?? 4}px ${effectiveStyle.shadowColor ?? '#000000'}`,
                     ...cleanWordAnimStyles,
+                    ...hlStyles,
                   }}
                 >
                   {displayText}
