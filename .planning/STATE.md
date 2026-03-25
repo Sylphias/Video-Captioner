@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 8 — Keyframe Position Animation
+**Current focus:** Phase 9 — Speaker Lane Layout
 
 ## Current Position
 
-Phase: 8 of 8 (Keyframe Position Animation — COMPLETE)
-Plan: 5 of 5 — all complete
-Status: Phase 8 COMPLETE. 08-01: keyframe types, interpolation engine, bezier-easing, backend API. 08-02: BezierEditor and EasingPicker components. 08-03: Animation Builder preview canvas, drag-to-position, motion path overlay, useBuilderStore. 08-04: KeyframeTimeline editor, track rows, EasingPicker, playhead sync. 08-05: Enter/Exit + Hold + Highlight mode split, rendering pipeline (no double transforms, phase boundary continuity, force-seek), undo/redo, phrase/word scope toggle with stagger delay, preset CRUD (save/save-as/delete/refresh), FPS rescaling on preset load, inline drawer, arrow-key frame stepping, highlight keyframe system (percentage-based 0-100%, per-word animation with auto-reverse exit), 4 built-in highlight presets (scale/pop/lift/bounce), built-in preset upsert on server restart.
-Last activity: 2026-03-25 — Phase 8 complete: highlight keyframe animation system, percentage-based timeline, built-in highlight presets, Mac delete key fix, timeline auto-fit
+Phase: 9 of 10 (Speaker Lane Layout — IN PROGRESS)
+Plan: 2 of ? — 09-02 complete
+Status: Phase 9 IN PROGRESS. 09-01: (research). 09-02: Lane preset CRUD backend — SQLite lane_presets.db with WAL mode, four REST endpoints at /api/lane-presets (GET/POST/PUT/DELETE), fastify.lanePresetsDb decorator, layout JSON stores speakerLanes/overlapGap/maxVisibleRows.
+Last activity: 2026-03-25 — 09-02 complete: lane preset CRUD backend with dedicated SQLite storage
 
-Progress: [████████████████████] 100% (all 8 phases complete)
+Progress: [████████████████░░░░] 80% (8 of 10 phases complete; Phase 9 next)
 
 ## Performance Metrics
 
@@ -202,6 +202,17 @@ Recent decisions affecting current work:
 - [08-05]: Preset delete button — only user-created presets deletable; confirm dialog; refreshes dropdown after delete
 - [08-05]: Removed Typewriter built-in preset
 - [08-05]: KeyframeDrawer inline overlay — positioned absolute top-right of preview canvas, not fixed; doesn't push toolbar or timeline
+- [08-05]: Highlight keyframe system — percentage-based (0-100%) keyframe times that scale to any word duration; enter only, exit auto-reverses
+- [08-05]: HighlightKeyframeConfig stores enterPct (% of word duration for enter) + enterTracks (KeyframeTrack[] with 0-100 time values)
+- [08-05]: Built-in highlight presets: Scale, Pop, Lift, Bounce — stored with percentage keyframe times, no FPS dependency
+- [08-05]: Built-in preset seeding upserts — existing built-in presets updated on server restart to pick up definition changes
+- [08-05]: Backend routes support highlightAnimation field in create/update preset flows
+- [08-05]: Highlight mode playhead controlled directly (0-100%) — not derived from Remotion Player composition frame; poll loop skipped in highlight mode
+- [08-05]: Mac Backspace key restored for keyframe deletion — both Delete and Backspace work with input/textarea guard and preventDefault
+- [08-05]: Timeline auto-fit measures .keyframe-timeline__scrollable element width via rAF; triggers on mode/phase/duration changes
+- [09-02]: lane_presets.db separate SQLite file from presets.db — fastify.lanePresetsDb decorator avoids collision with existing fastify.db
+- [09-02]: No built-in lane presets — all user-created; unlike animation presets which seed built-ins on startup
+- [09-02]: DELETE /api/lane-presets/:id returns 204 (no body) matching REST conventions
 
 ### Roadmap Evolution
 
@@ -228,8 +239,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-23
-Stopped at: Phase 8 complete — all plans done, committed
+Last session: 2026-03-25
+Stopped at: Completed 09-02-PLAN.md — lane preset CRUD backend
 
 Next planned work:
-  - All 8 phases complete. Future work: UX polish, additional animation presets, export improvements.
+  - 09-03: Frontend lane preset UI (picker, save/load controls in the speaker lane layout panel)
