@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 9 of 10 (Speaker Lane Layout — IN PROGRESS)
-Plan: 2 of ? — 09-01 and 09-02 complete
-Status: Phase 9 IN PROGRESS. 09-01: SpeakerLane/LaneLayout/LanePreset types, speakerLanes/overlapGap/maxVisibleRows store fields with undo support, getLanePosition() fixed-lane positioning replacing assignSlots() in SubtitleOverlay, lane fields plumbed through PreviewPanel inputProps. 09-02: Lane preset CRUD backend — SQLite lane_presets.db with WAL mode, four REST endpoints at /api/lane-presets (GET/POST/PUT/DELETE), fastify.lanePresetsDb decorator, layout JSON stores speakerLanes/overlapGap/maxVisibleRows.
-Last activity: 2026-03-25 — 09-01 complete: speaker lane data model, store extension, fixed-lane positioning
+Plan: 3 of ? — 09-01, 09-02, 09-03 complete (09-03 pending human verify checkpoint)
+Status: Phase 9 IN PROGRESS. 09-01: SpeakerLane/LaneLayout/LanePreset types, speakerLanes/overlapGap/maxVisibleRows store fields with undo support, getLanePosition() fixed-lane positioning replacing assignSlots() in SubtitleOverlay, lane fields plumbed through PreviewPanel inputProps. 09-02: Lane preset CRUD backend — SQLite lane_presets.db with WAL mode, four REST endpoints at /api/lane-presets (GET/POST/PUT/DELETE), fastify.lanePresetsDb decorator, layout JSON stores speakerLanes/overlapGap/maxVisibleRows. 09-03: LaneDragOverlay (per-speaker dashed + per-phrase dotted drag handles on video preview), LaneControlsPanel (numeric position inputs, proximity warnings, preset CRUD), useLanePresets hook, stage-aware integration in PreviewPanel/SubtitlesPage.
+Last activity: 2026-03-25 — 09-03 code complete, awaiting human visual verification checkpoint
 
 Progress: [████████████████░░░░] 80% (8 of 10 phases complete; Phase 9 next)
 
@@ -213,6 +213,10 @@ Recent decisions affecting current work:
 - [09-02]: lane_presets.db separate SQLite file from presets.db — fastify.lanePresetsDb decorator avoids collision with existing fastify.db
 - [09-02]: No built-in lane presets — all user-created; unlike animation presets which seed built-ins on startup
 - [09-02]: DELETE /api/lane-presets/:id returns 204 (no body) matching REST conventions
+- [09-03]: playerWrapperRef as containerRef for LaneDragOverlay height measurement — same element that contains the Remotion Player
+- [09-03]: Per-phrase drag handle appears only while phrase overlaps currentFrame — avoids cluttering with all phrase handles simultaneously
+- [09-03]: speakerColors.ts extracted as shared util — previously duplicated in SpeakerStylePanel
+- [09-03]: LaneDragOverlay container pointer-events:none, individual handles pointer-events:auto — preserves video click-to-play behavior
 
 ### Roadmap Evolution
 
@@ -244,7 +248,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-25
-Stopped at: Completed 09-01-PLAN.md — speaker lane core data model, store, and rendering
+Stopped at: 09-03 checkpoint:human-verify — lane controls UI built, awaiting visual verification
 
 Next planned work:
-  - 09-03: Frontend lane preset UI (picker, save/load controls in the speaker lane layout panel)
+  - User to verify lane UI in Timeline stage (drag handles, numeric sync, proximity warning, presets, per-phrase override)
+  - After approval: Phase 9 complete
