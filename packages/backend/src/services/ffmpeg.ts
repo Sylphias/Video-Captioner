@@ -1,14 +1,14 @@
 import { spawn, execFileSync } from 'node:child_process'
 import type { VideoMetadata } from '@eigen/shared-types'
 
-const FFMPEG = '/opt/homebrew/bin/ffmpeg'
-const FFPROBE = '/opt/homebrew/bin/ffprobe'
+const FFMPEG = 'ffmpeg'
+const FFPROBE = 'ffprobe'
 
 // Verify FFmpeg binaries exist at module load time
 try {
-  execFileSync('which', ['ffmpeg'], { stdio: 'ignore' })
+  execFileSync(FFMPEG, ['-version'], { stdio: 'ignore' })
 } catch {
-  const msg = 'FFmpeg not found. Install with: brew install ffmpeg'
+  const msg = 'FFmpeg not found. Install with: choco install ffmpeg (Windows) or brew install ffmpeg (Mac)'
   console.error(msg)
   throw new Error(msg)
 }

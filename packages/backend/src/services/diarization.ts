@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename)
 
 // Resolve paths: scripts/ is at repo root, .venv/ is at repo root
 const REPO_ROOT = path.resolve(__dirname, '../../../../')
-const PYTHON = path.join(REPO_ROOT, '.venv/bin/python')
+const PYTHON = path.join(REPO_ROOT, '.venv', 'Scripts', 'python.exe')
 const SCRIPT = path.join(REPO_ROOT, 'scripts/diarize.py')
 
 /**

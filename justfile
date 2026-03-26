@@ -14,10 +14,18 @@ backend:
 frontend:
     cd packages/frontend && npx vite --host
 
-# Set up Python venv with transcription and diarization dependencies
+# Set up Python venv with CUDA WhisperX + pyannote fallback dependencies (per D-02)
 setup-python:
-    python3 -m venv .venv
-    .venv/bin/pip install faster-whisper "pyannote-audio==4.0.4"
+    python -m venv .venv
+    .venv\Scripts\pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+    .venv\Scripts\pip install whisperx "pyannote-audio==4.0.4"
+
+# Set up Python venv for NeMo/Parakeet path (run INSTEAD of setup-python if spike passes)
+setup-python-nemo:
+    python -m venv .venv
+    .venv\Scripts\pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+    .venv\Scripts\pip install triton-windows
+    .venv\Scripts\pip install "nemo_toolkit[asr]"
 
 # Start both services (backend in background, frontend in foreground)
 dev:

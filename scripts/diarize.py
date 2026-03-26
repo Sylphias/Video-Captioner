@@ -36,8 +36,7 @@ def main():
             "pyannote/speaker-diarization-3.1",
             token=hf_token,
         )
-        # NEVER use MPS — known accuracy regression with pyannote on Apple Silicon
-        pipeline.to(torch.device("cpu"))
+        pipeline.to(torch.device("cuda"))
     except Exception as e:
         print(json.dumps({"type": "error", "message": f"Failed to load pipeline: {e}"}), flush=True)
         sys.exit(1)
@@ -59,7 +58,7 @@ def main():
     wav_path = os.path.join(os.path.dirname(audio_path), ".diarize_temp.wav")
     try:
         subprocess.run(
-            ["/opt/homebrew/bin/ffmpeg", "-y", "-i", audio_path, "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1", wav_path],
+            ["ffmpeg", "-y", "-i", audio_path, "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1", wav_path],
             capture_output=True, check=True
         )
     except subprocess.CalledProcessError as e:

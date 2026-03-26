@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 
-const FFMPEG = '/opt/homebrew/bin/ffmpeg'
+const FFMPEG = 'ffmpeg'
 
 /**
  * Extract a thumbnail JPEG from a video at the 1-second mark.
