@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 9.1 Wave 1 complete — Plan 01 done, WSL path chosen. User needs to run just setup-python-wsl and just spike-parakeet in WSL before Plan 02
-last_updated: "2026-03-26T13:33:56.894Z"
-last_activity: 2026-03-26
+stopped_at: Phase 9.1 Plan 02 Task 1 done. Dependencies installed (CUDA PyTorch + NeMo + pyannote via uv). Parakeet TDT spike validated on CUDA (RTX 4080). Diarize.py fixed (soundfile replaces broken torchaudio/torchcodec). Need end-to-end app verification (Task 2 human checkpoint).
+last_updated: "2026-03-27T01:15:00.000Z"
+last_activity: 2026-03-27
 progress:
   total_phases: 12
   completed_phases: 9
@@ -273,10 +273,12 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-26T13:33:56.886Z
-Stopped at: Phase 9.1 Wave 1 complete — Plan 01 done, WSL path chosen. User needs to run just setup-python-wsl and just spike-parakeet in WSL before Plan 02
+Last session: 2026-03-27T01:15:00.000Z
+Stopped at: Phase 9.1 Plan 02 Task 1 done. Dependencies installed, spike validated, diarize.py fixed. Need end-to-end app verification (Task 2).
 
 Next planned work:
 
-  - User to verify lane UI in Timeline stage (drag handles, numeric sync, proximity warning, presets, per-phrase override)
-  - After approval: Phase 9 complete
+  - End-to-end verification (Plan 02 Task 2): upload video → transcribe → diarize → editor → preview
+  - WSL networking: .wslconfig mirrored mode created but not yet active (needs wsl --shutdown)
+  - Access app via http://172.20.14.177:5173 until mirrored networking enabled
+  - After Task 2 approval: Phase 9.1 complete
