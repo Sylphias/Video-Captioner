@@ -6,27 +6,9 @@ import { fileURLToPath } from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Resolve paths: scripts/ is at repo root, .venv/ is at repo root
 const REPO_ROOT = path.resolve(__dirname, '../../../../')
-
-// NeMo/Parakeet runs in WSL (NeMo has no native Windows support — triton dependency).
-// The Node.js backend stays on Windows; Python ML scripts run in WSL.
-// WSL venv is at .venv-wsl/ in the repo root (Linux path: ~/path/to/repo/.venv-wsl).
-// We spawn `wsl` with the WSL python executable and pass Linux-converted paths.
-const WSL_PYTHON = '/root/.venv-wsl/bin/python3'
-
-/**
- * Convert a Windows absolute path to a WSL path.
- * e.g. C:\Users\foo\bar -> /mnt/c/Users/foo/bar
- */
-function toWslPath(winPath: string): string {
-  // Replace backslashes, handle drive letter: C:\... -> /mnt/c/...
-  const normalized = winPath.replace(/\\/g, '/')
-  return normalized.replace(/^([A-Za-z]):\//, (_, drive) => `/mnt/${drive.toLowerCase()}/`)
-}
-
-const SCRIPT_WIN = path.join(REPO_ROOT, 'scripts/transcribe.py')
-const SCRIPT = toWslPath(SCRIPT_WIN)
+const VENV_PYTHON = path.join(REPO_ROOT, '.venv/bin/python3')
+const SCRIPT = path.join(REPO_ROOT, 'scripts/transcribe.py')
 
 /**
  * Run faster-whisper transcription on a video/audio file.
@@ -43,9 +25,7 @@ export function runTranscription(
   onProgress?: (percent: number) => void,
   language: string = 'en',
 ): { promise: Promise<void>; process: ChildProcess } {
-  const wslAudioPath = toWslPath(audioPath)
-  const wslOutputPath = toWslPath(outputPath)
-  const proc = spawn('wsl', [WSL_PYTHON, '-u', SCRIPT, wslAudioPath, wslOutputPath, language], {
+  const proc = spawn(VENV_PYTHON, ['-u', SCRIPT, audioPath, outputPath, language], {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
@@ -79,7 +59,7 @@ export function runTranscription(
     })
 
     proc.on('error', (err) => {
-      reject(new Error(`Failed to spawn transcribe.py via WSL: ${err.message}. Ensure WSL venv exists (run: just setup-python-wsl)`))
+      reject(new Error(`Failed to spawn transcribe.py: ${err.message}. Ensure venv exists (run: just setup-python)`))
     })
   })
 

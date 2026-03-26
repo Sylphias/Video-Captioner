@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Transcribe audio/video using faster-whisper, emitting JSON-line progress to stdout."""
+"""Transcribe audio/video using NVIDIA Parakeet TDT on CUDA, emitting JSON-line progress to stdout."""
 import sys
 import json
-from faster_whisper import WhisperModel
+import os
+import subprocess
+import tempfile
 
 
 def main():
@@ -14,48 +16,49 @@ def main():
     output_path = sys.argv[2]
     language = sys.argv[3] if len(sys.argv) > 3 else "en"
 
-    # Emit loading status (model may take seconds to load from cache)
     print(json.dumps({"type": "progress", "percent": 0, "status": "loading_model"}), flush=True)
 
-    model = WhisperModel("large-v3", device="cpu", compute_type="int8_float32")
+    import nemo.collections.asr as nemo_asr
 
-    print(json.dumps({"type": "progress", "percent": 0, "status": "transcribing"}), flush=True)
+    asr_model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v2")
+    asr_model = asr_model.to("cuda")
+    asr_model.eval()
 
-    segments_gen, info = model.transcribe(
-        audio_path,
-        language=language,
-        word_timestamps=True,
-        vad_filter=True,
-        vad_parameters={"min_silence_duration_ms": 500},
-    )
+    # Parakeet requires 16kHz mono WAV — extract from mp4 if needed
+    wav_path = audio_path
+    cleanup_wav = False
+    if audio_path.lower().endswith(".mp4"):
+        wav_path = os.path.join(tempfile.gettempdir(), ".parakeet_temp.wav")
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", audio_path, "-vn", "-acodec", "pcm_s16le",
+             "-ar", "16000", "-ac", "1", wav_path],
+            capture_output=True, check=True
+        )
+        cleanup_wav = True
+
+    print(json.dumps({"type": "progress", "percent": 10, "status": "transcribing"}), flush=True)
+
+    output = asr_model.transcribe([wav_path], timestamps=True)
+
+    if cleanup_wav and os.path.exists(wav_path):
+        os.remove(wav_path)
+
+    word_timestamps = output[0].timestamp['word']
 
     words = []
-    last_percent = -1
-    for segment in segments_gen:
-        # Progress: segment.end / info.duration -> 0.0-1.0
-        percent = min(99, int(segment.end / info.duration * 100))
-        if percent > last_percent:
-            print(json.dumps({"type": "progress", "percent": percent}), flush=True)
-            last_percent = percent
+    for stamp in word_timestamps:
+        words.append({
+            "word": stamp['word'].strip(),
+            "start": round(stamp['start'], 3),
+            "end": round(stamp['end'], 3),
+            "confidence": 1.0,  # Parakeet does not expose per-word probability
+        })
 
-        if segment.words:
-            for w in segment.words:
-                words.append({
-                    "word": w.word.strip(),
-                    "start": round(w.start, 3),
-                    "end": round(w.end, 3),
-                    "confidence": round(w.probability, 3),
-                })
-
-    # Write transcript JSON to output file
-    transcript = {
-        "language": info.language,
-        "words": words,
-    }
+    transcript = {"language": language, "words": words}
     with open(output_path, "w") as f:
         json.dump(transcript, f, indent=2)
 
-    print(json.dumps({"type": "done", "percent": 100, "language": info.language, "word_count": len(words)}), flush=True)
+    print(json.dumps({"type": "done", "percent": 100, "language": language, "word_count": len(words)}), flush=True)
 
 
 if __name__ == "__main__":

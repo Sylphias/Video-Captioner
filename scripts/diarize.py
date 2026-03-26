@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Run pyannote speaker diarization on a transcribed video, enriching transcript with per-word speaker labels."""
+"""Run pyannote speaker diarization on CUDA, enriching transcript with per-word speaker labels."""
 import sys
 import json
+
 
 def main():
     if len(sys.argv) < 3:
@@ -20,7 +21,6 @@ def main():
         }), flush=True)
         sys.exit(1)
 
-    # Emit loading status — model download can take seconds on first run
     print(json.dumps({"type": "progress", "percent": 0, "status": "loading_model"}), flush=True)
 
     try:
@@ -53,9 +53,12 @@ def main():
 
     words = transcript.get("words", [])
 
-    # Extract audio to WAV for torchaudio (can't decode mp4 without torchcodec)
-    import subprocess, tempfile, os
-    wav_path = os.path.join(os.path.dirname(audio_path), ".diarize_temp.wav")
+    # Extract audio to WAV for torchaudio
+    import subprocess
+    import tempfile
+    import os
+
+    wav_path = os.path.join(tempfile.gettempdir(), ".diarize_temp.wav")
     try:
         subprocess.run(
             ["ffmpeg", "-y", "-i", audio_path, "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1", wav_path],
@@ -65,8 +68,7 @@ def main():
         print(json.dumps({"type": "error", "message": f"FFmpeg audio extraction failed: {e.stderr.decode()}"}), flush=True)
         sys.exit(1)
 
-    # Pre-load audio with torchaudio to bypass torchcodec compatibility issues
-    # pyannote 4.x accepts {"waveform": tensor, "sample_rate": int} dict
+    # Pre-load audio with torchaudio — pyannote 4.x accepts {"waveform": tensor, "sample_rate": int}
     try:
         waveform, sample_rate = torchaudio.load(wav_path)
         os.remove(wav_path)
@@ -76,7 +78,7 @@ def main():
         print(json.dumps({"type": "error", "message": f"Failed to load audio: {e}"}), flush=True)
         sys.exit(1)
 
-    # Run pyannote diarization with pre-loaded waveform
+    # Run pyannote diarization on CUDA
     try:
         pipeline_kwargs = {"waveform": waveform, "sample_rate": sample_rate}
         if num_speakers is not None:
@@ -87,8 +89,6 @@ def main():
         sys.exit(1)
 
     # Collect speaker segments
-    # pyannote 4.x returns DiarizeOutput with .speaker_diarization attribute;
-    # pyannote 3.x returned Annotation directly with .itertracks()
     annotation = getattr(diarization, 'speaker_diarization', diarization)
     segments = [
         (turn.start, turn.end, speaker)
@@ -96,7 +96,6 @@ def main():
     ]
 
     # Assign speakers to words using max-overlap algorithm
-    # (cumulative overlap per speaker — not first-match — handles overlapping segments correctly)
     for word in words:
         overlap_by_speaker = {}
         for seg_start, seg_end, speaker in segments:
@@ -108,11 +107,10 @@ def main():
         else:
             word["speaker"] = None
 
-    # Write enriched transcript back in place — only words array is updated
+    # Write enriched transcript back
     with open(transcript_path, "w") as f:
         json.dump(transcript, f, indent=2)
 
-    # Count unique speakers assigned (exclude None)
     speaker_count = len({w["speaker"] for w in words if w.get("speaker")})
 
     print(json.dumps({"type": "done", "percent": 100, "speaker_count": speaker_count}), flush=True)
