@@ -26,7 +26,6 @@ def main():
     try:
         from pyannote.audio import Pipeline
         import torch
-        import torchaudio
     except ImportError as e:
         print(json.dumps({"type": "error", "message": f"Import failed: {e}. Run: just setup-python"}), flush=True)
         sys.exit(1)
@@ -68,9 +67,13 @@ def main():
         print(json.dumps({"type": "error", "message": f"FFmpeg audio extraction failed: {e.stderr.decode()}"}), flush=True)
         sys.exit(1)
 
-    # Pre-load audio with torchaudio — pyannote 4.x accepts {"waveform": tensor, "sample_rate": int}
+    # Pre-load audio with soundfile — torchaudio's default torchcodec backend is broken on WSL (missing libnvrtc.so)
+    # pyannote 4.x accepts {"waveform": tensor, "sample_rate": int}
     try:
-        waveform, sample_rate = torchaudio.load(wav_path)
+        import soundfile as sf
+        import torch
+        audio_np, sample_rate = sf.read(wav_path, dtype="float32")
+        waveform = torch.from_numpy(audio_np).unsqueeze(0)  # (1, samples) mono
         os.remove(wav_path)
     except Exception as e:
         if os.path.exists(wav_path):
