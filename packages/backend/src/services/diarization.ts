@@ -8,8 +8,23 @@ const __dirname = path.dirname(__filename)
 
 // Resolve paths: scripts/ is at repo root, .venv/ is at repo root
 const REPO_ROOT = path.resolve(__dirname, '../../../../')
-const PYTHON = path.join(REPO_ROOT, '.venv', 'Scripts', 'python.exe')
-const SCRIPT = path.join(REPO_ROOT, 'scripts/diarize.py')
+
+// NeMo MSDD diarization runs in WSL (same constraint as transcription — triton/NeMo no Windows support).
+// The Node.js backend stays on Windows; Python ML scripts run in WSL.
+// WSL venv is at .venv-wsl/ in the repo root.
+const WSL_PYTHON = '/root/.venv-wsl/bin/python3'
+
+/**
+ * Convert a Windows absolute path to a WSL path.
+ * e.g. C:\Users\foo\bar -> /mnt/c/Users/foo/bar
+ */
+function toWslPath(winPath: string): string {
+  const normalized = winPath.replace(/\\/g, '/')
+  return normalized.replace(/^([A-Za-z]):\//, (_, drive) => `/mnt/${drive.toLowerCase()}/`)
+}
+
+const SCRIPT_WIN = path.join(REPO_ROOT, 'scripts/diarize.py')
+const SCRIPT = toWslPath(SCRIPT_WIN)
 
 /**
  * Run pyannote speaker diarization on a transcribed video file.
@@ -29,9 +44,11 @@ export function runDiarization(
   onProgress?: (percent: number) => void,
   numSpeakers?: number,
 ): { promise: Promise<void>; process: ChildProcess } {
-  const args = ['-u', SCRIPT, audioPath, transcriptPath, hfToken]
+  const wslAudioPath = toWslPath(audioPath)
+  const wslTranscriptPath = toWslPath(transcriptPath)
+  const args = [WSL_PYTHON, '-u', SCRIPT, wslAudioPath, wslTranscriptPath, hfToken]
   if (numSpeakers !== undefined) args.push(String(numSpeakers))
-  const proc = spawn(PYTHON, args, {
+  const proc = spawn('wsl', args, {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
@@ -65,7 +82,7 @@ export function runDiarization(
     })
 
     proc.on('error', (err) => {
-      reject(new Error(`Failed to spawn diarize.py: ${err.message}. Ensure .venv exists (run: just setup-python)`))
+      reject(new Error(`Failed to spawn diarize.py via WSL: ${err.message}. Ensure WSL venv exists (run: just setup-python-wsl)`))
     })
   })
 

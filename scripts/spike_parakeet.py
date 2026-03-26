@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Spike: Validate Parakeet TDT installs on Windows and produces word-level timestamps."""
+"""Spike: Validate Parakeet TDT installs in WSL and produces word-level timestamps.
+
+Platform: WSL (Ubuntu) — NeMo has no native Windows support (triton dependency).
+Run via:  just spike-parakeet
+Or:       wsl /root/.venv-wsl/bin/python3 scripts/spike_parakeet.py [audio_path]
+
+The script is stored in the Windows repo root and accessed from WSL at its /mnt/... path.
+"""
 import sys
 import json
 import os
