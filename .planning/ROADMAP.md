@@ -124,11 +124,11 @@ Plans:
 
 ### Phase 6: Editing Workflow Redesign
 
-**Goal**: Restructure the subtitle editing experience into a guided 4-stage workflow — text editing → timing adjustment → speaker assignment → styling — so users can focus on one concern at a time and move through edits efficiently
+**Goal**: Restructure the subtitle editing experience into a guided 4-stage workflow — text editing -> timing adjustment -> speaker assignment -> styling — so users can focus on one concern at a time and move through edits efficiently
 **Depends on**: Phase 5 (+ Phase 06-01 data layer already committed: types, fonts, store, render pipeline)
 **Requirements**: STYLE-01, STYLE-02, STYLE-03, STYLE-04, STYLE-05, EDIT-01, EDIT-02, GROUP-02
 **Success Criteria** (what must be TRUE):
-  1. User progresses through 4 distinct editing stages in order: Text → Timing → Speakers → Styling
+  1. User progresses through 4 distinct editing stages in order: Text -> Timing -> Speakers -> Styling
   2. Stage 1 (Text): User can edit transcript text in a paragraph/phrase-based editor for fast bulk edits (add/remove/rewrite lines)
   3. Stage 2 (Timing): User can adjust word timings within phrases and set phrase linger duration; overlapping phrases render at separate vertical positions
   4. Stage 3 (Speakers): User can auto-detect speakers, manually assign/reassign speakers, and add/remove speaker labels
@@ -212,7 +212,11 @@ Plans:
   3. Diarization runs on CUDA with improved speaker detection accuracy
   4. Existing subtitle editing workflow continues to work with the new transcription output
   5. Platform supports Windows (development shifting from Mac to Windows PC)
-**Plans:** TBD (to be defined during planning)
+**Plans:** 2 plans
+
+Plans:
+- [ ] 09.1-01-PLAN.md — Platform migration (Windows paths, justfile) + Parakeet TDT spike validation
+- [ ] 09.1-02-PLAN.md — CUDA transcription/diarization script rewrite + end-to-end verification
 
 ### Phase 10: SRT Import and Text Correction
 
@@ -228,7 +232,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 9.1 → 10
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 9.1 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -242,5 +246,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Text Animation Creator | 5/5 | ✓ Complete | 2026-03-13 |
 | 8. Keyframe Position Animation | 5/5 | ✓ Complete | 2026-03-25 |
 | 9. Speaker Lane Layout | 3/3 | ◆ Verifying | - |
-| 9.1 Transcription Upgrade | 0/? | Next | - |
+| 9.1 Transcription Upgrade | 0/2 | Next | - |
 | 10. SRT Import & Text Correction | 0/? | Planned | - |
