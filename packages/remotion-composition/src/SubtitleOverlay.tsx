@@ -6,6 +6,12 @@ import { isLegacyKeyframeTracks } from '@eigen/shared-types'
 import type { StyleProps, SpeakerStyleOverride, CompositionPhrase } from './types'
 import { computeAnimationStyles, computeWordAnimationStyles, computeKeyframeStyles, mergeStyles } from './animations'
 
+const SPEAKER_COLORS = ['#4A90D9', '#E67E22', '#27AE60', '#9B59B6', '#E74C3C', '#1ABC9C', '#F39C12', '#95A5A6']
+function getSpeakerColor(speakerId: string): string {
+  const idx = parseInt(speakerId.replace('SPEAKER_', ''), 10) % 8
+  return SPEAKER_COLORS[isNaN(idx) ? 0 : idx]
+}
+
 /**
  * Binary search: find the index of the last word whose start <= currentTimeSec.
  * Karaoke UX: the most recently started word stays highlighted even during
@@ -169,9 +175,10 @@ interface SubtitleOverlayProps {
   speakerLanes?: Record<string, { verticalPosition: number }>  // per-speaker fixed vertical positions
   overlapGap?: number      // % points between same-speaker stacked rows (default 8)
   maxVisibleRows?: number  // max simultaneous speaker rows visible (default 4)
+  showSpeakerBorders?: boolean  // show colored borders per-speaker (editor preview only)
 }
 
-export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset, speakerLanes: speakerLanesProp, overlapGap: overlapGapProp, maxVisibleRows: maxVisibleRowsProp }: SubtitleOverlayProps) {
+export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset, speakerLanes: speakerLanesProp, overlapGap: overlapGapProp, maxVisibleRows: maxVisibleRowsProp, showSpeakerBorders }: SubtitleOverlayProps) {
   const frame = useCurrentFrame()
   const { fps, width, height } = useVideoConfig()
 
@@ -336,6 +343,14 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
           cleanPhraseAnimStyles,
           containerKeyframeStyles,
         )
+
+        // Speaker-colored border for editor preview
+        if (showSpeakerBorders && activePhrase.dominantSpeaker) {
+          const speakerColor = getSpeakerColor(activePhrase.dominantSpeaker)
+          containerStyle.outline = `3px solid ${speakerColor}cc`
+          containerStyle.outlineOffset = '5px'
+          containerStyle.borderRadius = '4px'
+        }
 
         const wordCount = activePhrase.words.length
 

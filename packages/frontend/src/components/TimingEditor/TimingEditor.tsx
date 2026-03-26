@@ -106,6 +106,8 @@ export function TimingEditor({
   const [dragOverLane, setDragOverLane] = useState<string | null>(null)
   const [deletingLane, setDeletingLane] = useState<string | null>(null)
   const [deleteReassignTo, setDeleteReassignTo] = useState<string>('')
+  const [mergingLane, setMergingLane] = useState<string | null>(null)
+  const [mergeTarget, setMergeTarget] = useState<string>('')
 
   // Phrase timing drag state
   const [shiftDrag, setShiftDrag] = useState<{ phraseIndex: number; offsetPx: number } | null>(null)
@@ -313,6 +315,28 @@ export function TimingEditor({
     setDeleteReassignTo('')
   }, [])
 
+  // Handle merge speaker into another
+  const handleMergeLane = useCallback((speakerId: string) => {
+    const other = allSpeakerIds.find((s) => s !== speakerId)
+    if (!other) return
+    setMergingLane(speakerId)
+    setMergeTarget(other)
+  }, [allSpeakerIds])
+
+  const confirmMergeLane = useCallback(() => {
+    if (mergingLane && mergeTarget) {
+      deleteSpeaker(mergingLane, mergeTarget)
+      setMergingLane(null)
+      setMergeTarget('')
+      setSelectedPhraseIndex(null)
+    }
+  }, [mergingLane, mergeTarget, deleteSpeaker])
+
+  const cancelMergeLane = useCallback(() => {
+    setMergingLane(null)
+    setMergeTarget('')
+  }, [])
+
   // Click on ruler or waveform → seek to that time position
   // The ruler/waveform elements span the full timeline width inside the scroll container,
   // so getBoundingClientRect().left already reflects the scroll offset — no need to add scrollLeft.
@@ -436,9 +460,9 @@ export function TimingEditor({
                 onDrop={(e) => handleDrop(e, lane.speakerId)}
               >
                 {/* Lane header (sticky left) */}
-                <div className="timing-editor__lane-header">
+                <div className="timing-editor__lane-header" style={{ position: 'relative' }}>
                   <span
-                    className="timing-editor__lane-dot"
+                    className="timing-editor__lane-color-bar"
                     style={{ background: `var(--speaker-color-${colorIdx})` }}
                   />
                   <SpeakerNameInput
@@ -459,6 +483,16 @@ export function TimingEditor({
                     )}
                     {allSpeakerIds.length > 1 && (
                       <button
+                        className="timing-editor__lane-edit-btn"
+                        type="button"
+                        onClick={() => handleMergeLane(lane.speakerId)}
+                        title="Merge into another speaker"
+                      >
+                        ⤵
+                      </button>
+                    )}
+                    {allSpeakerIds.length > 1 && (
+                      <button
                         className="timing-editor__lane-delete-btn"
                         type="button"
                         onClick={() => handleDeleteLane(lane.speakerId)}
@@ -468,6 +502,40 @@ export function TimingEditor({
                       </button>
                     )}
                   </div>
+
+                  {/* Inline merge confirmation */}
+                  {mergingLane === lane.speakerId && (
+                    <div className="timing-editor__lane-delete-confirm">
+                      <span className="timing-editor__lane-delete-label">Merge into:</span>
+                      <select
+                        className="timing-editor__lane-delete-select"
+                        value={mergeTarget}
+                        onChange={(e) => setMergeTarget(e.target.value)}
+                      >
+                        {allSpeakerIds
+                          .filter((s) => s !== lane.speakerId)
+                          .map((s) => (
+                            <option key={s} value={s}>
+                              {speakerNames[s] ?? s}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        className="timing-editor__lane-delete-action timing-editor__lane-delete-action--confirm"
+                        type="button"
+                        onClick={confirmMergeLane}
+                      >
+                        Merge
+                      </button>
+                      <button
+                        className="timing-editor__lane-delete-action timing-editor__lane-delete-action--cancel"
+                        type="button"
+                        onClick={cancelMergeLane}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
 
                   {/* Inline delete confirmation */}
                   {isDeleting && (

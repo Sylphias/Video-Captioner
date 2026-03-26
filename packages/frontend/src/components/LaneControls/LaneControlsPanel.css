@@ -31,17 +31,21 @@
 }
 
 .lane-controls-panel__speaker-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 5px;
   min-width: 0;
+  padding-top: 5px;
 }
 
-.lane-controls-panel__color-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.lane-controls-panel__color-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px;
 }
 
 .lane-controls-panel__speaker-name {

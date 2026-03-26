@@ -158,23 +158,25 @@ export function LaneDragOverlay({
 
   return (
     <div className="lane-drag-overlay" aria-hidden="true">
-      {/* Per-speaker drag handles */}
+      {/* Per-speaker drag handles: ------[Label]------ */}
       {Object.entries(speakerLanes).map(([speakerId, lane]) => {
         const color = getSpeakerColor(speakerId)
         const displayName = speakerNames[speakerId] ?? speakerId
         return (
           <div
             key={`speaker-${speakerId}`}
-            className="lane-drag-overlay__handle lane-drag-overlay__handle--speaker"
-            style={{ top: `${lane.verticalPosition}%`, borderTopColor: color }}
+            className="lane-drag-overlay__handle"
+            style={{ top: `${lane.verticalPosition}%` }}
             onMouseDown={(e) => handleSpeakerMouseDown(e, speakerId, lane.verticalPosition)}
           >
+            <span className="lane-drag-overlay__guide" style={{ borderTopColor: `${color}88` }} />
             <span
               className="lane-drag-overlay__label"
-              style={{ background: `${color}33`, color, borderColor: `${color}66` }}
+              style={{ background: `${color}33`, color, borderColor: `${color}88` }}
             >
               {displayName}
             </span>
+            <span className="lane-drag-overlay__guide" style={{ borderTopColor: `${color}88` }} />
           </div>
         )
       })}
@@ -193,16 +195,18 @@ export function LaneDragOverlay({
           <div
             key={`phrase-${phraseIndex}`}
             className="lane-drag-overlay__handle lane-drag-overlay__handle--phrase"
-            style={{ top: `${handlePosition}%`, borderTopColor: color }}
+            style={{ top: `${handlePosition}%` }}
             onMouseDown={(e) => handlePhraseMouseDown(e, phraseIndex, handlePosition)}
           >
+            <span className="lane-drag-overlay__guide" style={{ borderTopColor: `${color}66` }} />
             <span
               className="lane-drag-overlay__label lane-drag-overlay__label--phrase"
-              style={{ background: `rgba(0,0,0,0.6)`, color, borderColor: `${color}66` }}
+              style={{ background: 'rgba(0,0,0,0.6)', color, borderColor: `${color}66` }}
             >
               {textSnippet}
               {overridePosition !== undefined && ' *'}
             </span>
+            <span className="lane-drag-overlay__guide" style={{ borderTopColor: `${color}66` }} />
           </div>
         )
       })}

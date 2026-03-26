@@ -247,19 +247,26 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 8px;
+  padding: 4px 8px 0;
   background: var(--color-bg-secondary, #1a1a1a);
   border-right: 1px solid var(--color-border, #333);
   min-height: 44px;
   flex-wrap: wrap;
+  overflow: hidden;
 }
 
-.timing-editor__lane-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.timing-editor__lane-color-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 0 0 2px 2px;
+}
+
+.timing-editor__lane-header-inner {
+  position: relative;
+  width: 100%;
 }
 
 .timing-editor__lane-name-input {
@@ -269,7 +276,8 @@
   color: var(--color-text-secondary, #888);
   font-size: 0.75rem;
   padding: 0 2px;
-  width: 70px;
+  width: 100%;
+  min-width: 0;
   outline: none;
   transition: border-bottom-color 0.15s, color 0.15s;
 }

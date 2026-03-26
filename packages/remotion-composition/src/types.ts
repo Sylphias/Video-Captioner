@@ -37,4 +37,5 @@ export interface SubtitleCompositionProps {
   speakerLanes?: Record<string, { verticalPosition: number }>  // per-speaker fixed vertical position (optional for backward compat)
   overlapGap?: number      // % points between same-speaker stacked rows (default 8)
   maxVisibleRows?: number  // max simultaneous speaker rows visible (default 4)
+  showSpeakerBorders?: boolean  // show colored borders per-speaker in preview (not in final render)
 }

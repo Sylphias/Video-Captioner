@@ -100,7 +100,7 @@ export function LaneControlsPanel({
           return (
             <div key={speakerId} className="lane-controls-panel__speaker-row">
               <span
-                className="lane-controls-panel__color-dot"
+                className="lane-controls-panel__color-bar"
                 style={{ background: color }}
               />
               <span className="lane-controls-panel__speaker-name" title={displayName}>

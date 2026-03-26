@@ -6,38 +6,48 @@
   z-index: 10;
 }
 
-/* Individual drag handle — horizontal line */
+/* Individual drag handle — horizontal line with centered label */
 .lane-drag-overlay__handle {
   position: absolute;
   left: 0;
   right: 0;
-  border-top: 2px dashed transparent; /* color set inline */
+  display: flex;
+  align-items: center;
   transform: translateY(-50%);
   pointer-events: auto;
   cursor: ns-resize;
+  gap: 0;
 }
 
-/* Per-phrase handles are right-aligned and shorter */
-.lane-drag-overlay__handle--phrase {
-  left: 55%;
-  border-top-style: dotted;
-  opacity: 0.85;
+/* Guide lines on either side of the label */
+.lane-drag-overlay__guide {
+  flex: 1;
+  height: 0;
+  border-top: 1px dashed transparent; /* color set inline */
+  min-width: 8px;
 }
 
-/* Label on the left of each handle */
+/* Centered label rectangle */
 .lane-drag-overlay__label {
-  position: absolute;
-  left: 4px;
-  top: -9px;
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
-  padding: 2px 5px;
-  border-radius: 3px;
-  border: 1px solid transparent;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1.5px solid transparent;
   white-space: nowrap;
   user-select: none;
   pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* Per-phrase handles: right-aligned, shorter */
+.lane-drag-overlay__handle--phrase {
+  left: 55%;
+}
+
+.lane-drag-overlay__handle--phrase .lane-drag-overlay__guide {
+  border-top-style: dotted;
 }
 
 /* Phrase labels are slightly different */
@@ -47,4 +57,5 @@
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding: 3px 8px;
 }

@@ -164,8 +164,9 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
       speakerLanes,
       overlapGap,
       maxVisibleRows,
+      showSpeakerBorders: showLaneControls,
     }
-  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets, speakerLanes, overlapGap, maxVisibleRows])
+  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets, speakerLanes, overlapGap, maxVisibleRows, showLaneControls])
 
   if (!jobId || !session || !videoMetadata || !inputProps) {
     return null
