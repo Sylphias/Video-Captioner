@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Checkpoint: 09.1-01 Task 2 — awaiting Parakeet TDT spike result and path decision (Option A/B/C)"
-last_updated: "2026-03-26T13:07:22.646Z"
+status: verifying
+stopped_at: Completed 09.1-01-PLAN.md — WSL bridge in place, ready for Plan 02 Parakeet rewrite
+last_updated: "2026-03-26T13:23:27.119Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 12
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 Phase: 09.1 (transcription-diarization-upgrade-inserted) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-26
 
 Progress: [████████████████░░░░] 82% (8 of 11 phases complete; Phase 9 pending verification, 9.1 next)
@@ -62,6 +62,7 @@ Progress: [████████████████░░░░] 82% (8 
 
 *Updated after each plan completion*
 | Phase 09.1-transcription-diarization-upgrade-inserted P01 | 15 | 1 tasks | 8 files |
+| Phase 09.1-transcription-diarization-upgrade-inserted P01 | 20 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -239,6 +240,9 @@ Recent decisions affecting current work:
 - [Phase 09.1-01]: ffmpeg/ffprobe on PATH (not absolute) — platform-neutral, works on Windows with Chocolatey install
 - [Phase 09.1-01]: justfile has both setup-python (WhisperX+pyannote fallback D-02) and setup-python-nemo — spike result determines which is used in Plan 02
 - [Phase 09.1-01]: diarize.py CUDA replaces CPU — pyannote runs on CUDA on Windows; MPS Apple Silicon comment removed
+- [Phase 09.1]: Option B (WSL): NeMo officially unsupported on native Windows — triton has no Windows wheel; transcription and diarization Python scripts run via WSL spawn
+- [Phase 09.1]: WSL venv at /root/.venv-wsl (not /mnt/... Windows mount) — NTFS cannot host venv symlinks; pure Linux FS required
+- [Phase 09.1]: toWslPath() converts Windows paths at spawn boundary — rest of codebase (jobs, routes, store) stays Windows-path-aware
 
 ### Roadmap Evolution
 
@@ -269,8 +273,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-26T13:07:22.638Z
-Stopped at: Checkpoint: 09.1-01 Task 2 — awaiting Parakeet TDT spike result and path decision (Option A/B/C)
+Last session: 2026-03-26T13:23:27.110Z
+Stopped at: Completed 09.1-01-PLAN.md — WSL bridge in place, ready for Plan 02 Parakeet rewrite
 
 Next planned work:
 
