@@ -22,6 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Text Animation Creator** - Create and store reusable text animations for vertical/horizontal video resolutions; local DB or file storage for animation presets
 - [x] **Phase 8: Keyframe Position Animation** - Keyframe-based subtitle position animation: define text x/y position over time with easing controls, visual keyframe editor, support for horizontal and vertical video
 - [ ] **Phase 9: Speaker Lane Layout** - Configurable speaker lane positioning in the video: define where each speaker's subtitles appear, control lane gap/stacking, visual lane position editor with preview
+- [ ] **Phase 9.1: Transcription & Diarization Upgrade** (INSERTED) - Migrate from Apple Silicon CPU to NVIDIA RTX 4080 GPU; upgrade transcription (Parakeet TDT or WhisperX) and diarization (pyannote community-1 on CUDA) for faster, more accurate results
 - [ ] **Phase 10: SRT Import and Text Correction** - Import SRT from DaVinci Resolve, align with Whisper word timestamps for accurate text with word-level timing
 
 ## Phase Details
@@ -201,10 +202,22 @@ Plans:
 - [ ] 09-02-PLAN.md — Backend lane presets SQLite plugin and CRUD routes
 - [ ] 09-03-PLAN.md — Lane controls panel, drag overlay, stage-aware visibility, preset UI, verification
 
+### Phase 9.1: Transcription & Diarization Upgrade (INSERTED)
+
+**Goal**: Upgrade transcription and diarization pipelines to run on NVIDIA RTX 4080 GPU for significantly faster and more accurate results
+**Depends on**: Phase 9
+**Success Criteria** (what must be TRUE):
+  1. Transcription runs on CUDA (RTX 4080) instead of CPU
+  2. Transcription produces accurate word-level timestamps (at least as good as current faster-whisper large-v3)
+  3. Diarization runs on CUDA with improved speaker detection accuracy
+  4. Existing subtitle editing workflow continues to work with the new transcription output
+  5. Platform supports Windows (development shifting from Mac to Windows PC)
+**Plans:** TBD (to be defined during planning)
+
 ### Phase 10: SRT Import and Text Correction
 
 **Goal**: Users can import an SRT file (e.g. from DaVinci Resolve) and align it with Whisper word timestamps to get accurate text with word-level timing
-**Depends on**: Phase 9
+**Depends on**: Phase 9.1
 **Success Criteria** (what must be TRUE):
   1. User can upload/import an SRT file alongside or after transcription
   2. SRT text is aligned with Whisper word timestamps using rough timestamp matching
@@ -215,7 +228,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 9.1 → 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -228,5 +241,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Editing Workflow Redesign | 7/7 | ✓ Complete | 2026-03-10 |
 | 7. Text Animation Creator | 5/5 | ✓ Complete | 2026-03-13 |
 | 8. Keyframe Position Animation | 5/5 | ✓ Complete | 2026-03-25 |
-| 9. Speaker Lane Layout | 0/? | Next | - |
+| 9. Speaker Lane Layout | 3/3 | ◆ Verifying | - |
+| 9.1 Transcription Upgrade | 0/? | Next | - |
 | 10. SRT Import & Text Correction | 0/? | Planned | - |

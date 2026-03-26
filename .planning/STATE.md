@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 9 — Speaker Lane Layout
+**Current focus:** Phase 9.1 — Transcription & Diarization Upgrade
 
 ## Current Position
 
-Phase: 9 of 10 (Speaker Lane Layout — IN PROGRESS)
-Plan: 3 of ? — 09-01, 09-02, 09-03 complete (09-03 pending human verify checkpoint)
-Status: Phase 9 IN PROGRESS. 09-01: SpeakerLane/LaneLayout/LanePreset types, speakerLanes/overlapGap/maxVisibleRows store fields with undo support, getLanePosition() fixed-lane positioning replacing assignSlots() in SubtitleOverlay, lane fields plumbed through PreviewPanel inputProps. 09-02: Lane preset CRUD backend — SQLite lane_presets.db with WAL mode, four REST endpoints at /api/lane-presets (GET/POST/PUT/DELETE), fastify.lanePresetsDb decorator, layout JSON stores speakerLanes/overlapGap/maxVisibleRows. 09-03: LaneDragOverlay (per-speaker dashed + per-phrase dotted drag handles on video preview), LaneControlsPanel (numeric position inputs, proximity warnings, preset CRUD), useLanePresets hook, stage-aware integration in PreviewPanel/SubtitlesPage.
-Last activity: 2026-03-25 — 09-03 code complete, awaiting human visual verification checkpoint
+Phase: 9.1 of 11 (Transcription & Diarization Upgrade — NOT STARTED)
+Plan: 0 of ? — planning needed
+Status: Phase 9 code complete + UAT polish applied (full-width layout, merge speakers, speaker-colored borders, centered label drag handles). Phase 9 verification paused — will resume after Phase 9.1 (transcription upgrade needed for better test data). Development shifting from Mac to Windows PC (RTX 4080 24GB VRAM).
+Last activity: 2026-03-26 — Phase 9 UAT polish committed, Phase 9.1 inserted for transcription upgrade
 
-Progress: [████████████████░░░░] 80% (8 of 10 phases complete; Phase 9 next)
+Progress: [████████████████░░░░] 82% (8 of 11 phases complete; Phase 9 pending verification, 9.1 next)
 
 ## Performance Metrics
 
