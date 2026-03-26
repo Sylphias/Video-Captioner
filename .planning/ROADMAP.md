@@ -212,10 +212,10 @@ Plans:
   3. Diarization runs on CUDA with improved speaker detection accuracy
   4. Existing subtitle editing workflow continues to work with the new transcription output
   5. Platform supports Windows (development shifting from Mac to Windows PC)
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 09.1-01-PLAN.md — Platform migration (Windows paths, justfile) + Parakeet TDT spike validation
+- [x] 09.1-01-PLAN.md — Platform migration (Windows paths, justfile) + Parakeet TDT spike validation
 - [ ] 09.1-02-PLAN.md — CUDA transcription/diarization script rewrite + end-to-end verification
 
 ### Phase 10: SRT Import and Text Correction
@@ -246,5 +246,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 9.
 | 7. Text Animation Creator | 5/5 | ✓ Complete | 2026-03-13 |
 | 8. Keyframe Position Animation | 5/5 | ✓ Complete | 2026-03-25 |
 | 9. Speaker Lane Layout | 3/3 | ◆ Verifying | - |
-| 9.1 Transcription Upgrade | 0/2 | Next | - |
+| 9.1 Transcription Upgrade | 1/2 | In Progress|  |
 | 10. SRT Import & Text Correction | 0/? | Planned | - |

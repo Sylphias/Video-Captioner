@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: paused
-stopped_at: Phase 9.1 context gathered
-last_updated: "2026-03-26T12:21:08.584Z"
-last_activity: 2026-03-26 — Phase 9 UAT polish committed, Phase 9.1 inserted for transcription upgrade
+status: executing
+stopped_at: "Checkpoint: 09.1-01 Task 2 — awaiting Parakeet TDT spike result and path decision (Option A/B/C)"
+last_updated: "2026-03-26T13:07:22.646Z"
+last_activity: 2026-03-26
 progress:
   total_phases: 12
   completed_phases: 9
-  total_plans: 33
-  completed_plans: 34
+  total_plans: 35
+  completed_plans: 35
   percent: 82
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 9.1 — Transcription & Diarization Upgrade
+**Current focus:** Phase 09.1 — transcription-diarization-upgrade-inserted
 
 ## Current Position
 
-Phase: 9.1 of 11 (Transcription & Diarization Upgrade — NOT STARTED)
-Plan: 0 of ? — planning needed
-Status: Phase 9 code complete + UAT polish applied (full-width layout, merge speakers, speaker-colored borders, centered label drag handles). Phase 9 verification paused — will resume after Phase 9.1 (transcription upgrade needed for better test data). Development shifting from Mac to Windows PC (RTX 4080 24GB VRAM).
-Last activity: 2026-03-26 — Phase 9 UAT polish committed, Phase 9.1 inserted for transcription upgrade
+Phase: 09.1 (transcription-diarization-upgrade-inserted) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-03-26
 
 Progress: [████████████████░░░░] 82% (8 of 11 phases complete; Phase 9 pending verification, 9.1 next)
 
@@ -61,6 +61,7 @@ Progress: [████████████████░░░░] 82% (8 
 - Phase 08-05 in progress — Three-phase keyframe system (Enter/Active/Exit), Enter/Exit + Hold mode split, rendering pipeline fixes (double transform elimination, boundary frames, empty phase continuity)
 
 *Updated after each plan completion*
+| Phase 09.1-transcription-diarization-upgrade-inserted P01 | 15 | 1 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -235,6 +236,9 @@ Recent decisions affecting current work:
 - [09-03]: Per-phrase drag handle appears only while phrase overlaps currentFrame — avoids cluttering with all phrase handles simultaneously
 - [09-03]: speakerColors.ts extracted as shared util — previously duplicated in SpeakerStylePanel
 - [09-03]: LaneDragOverlay container pointer-events:none, individual handles pointer-events:auto — preserves video click-to-play behavior
+- [Phase 09.1-01]: ffmpeg/ffprobe on PATH (not absolute) — platform-neutral, works on Windows with Chocolatey install
+- [Phase 09.1-01]: justfile has both setup-python (WhisperX+pyannote fallback D-02) and setup-python-nemo — spike result determines which is used in Plan 02
+- [Phase 09.1-01]: diarize.py CUDA replaces CPU — pyannote runs on CUDA on Windows; MPS Apple Silicon comment removed
 
 ### Roadmap Evolution
 
@@ -265,8 +269,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-26T12:21:08.576Z
-Stopped at: Phase 9.1 context gathered
+Last session: 2026-03-26T13:07:22.638Z
+Stopped at: Checkpoint: 09.1-01 Task 2 — awaiting Parakeet TDT spike result and path decision (Option A/B/C)
 
 Next planned work:
 
