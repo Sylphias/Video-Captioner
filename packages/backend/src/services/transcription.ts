@@ -11,12 +11,15 @@ const VENV_PYTHON = path.join(REPO_ROOT, '.venv/bin/python3')
 const SCRIPT = path.join(REPO_ROOT, 'scripts/transcribe.py')
 
 /**
- * Run faster-whisper transcription on a video/audio file.
+ * Run WhisperX transcription + diarization on a video/audio file.
  * Spawns a Python subprocess that emits JSON-line progress to stdout.
  *
  * @param audioPath - Path to the normalized .mp4 or audio file
  * @param outputPath - Path where transcript.json will be written
  * @param onProgress - Callback receiving progress percentage 0-100
+ * @param language - Language code (default: 'en')
+ * @param hfToken - Optional HuggingFace token for speaker diarization
+ * @param numSpeakers - Optional speaker count constraint
  * @returns Promise resolving when transcription completes, with the subprocess handle for cleanup
  */
 export function runTranscription(
@@ -24,8 +27,14 @@ export function runTranscription(
   outputPath: string,
   onProgress?: (percent: number) => void,
   language: string = 'en',
+  hfToken?: string,
+  numSpeakers?: number,
 ): { promise: Promise<void>; process: ChildProcess } {
-  const proc = spawn(VENV_PYTHON, ['-u', SCRIPT, audioPath, outputPath, language], {
+  const args = ['-u', SCRIPT, audioPath, outputPath, language]
+  args.push(hfToken ?? '')
+  if (numSpeakers !== undefined) args.push(String(numSpeakers))
+
+  const proc = spawn(VENV_PYTHON, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 

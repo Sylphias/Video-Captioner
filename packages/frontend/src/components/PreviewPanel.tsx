@@ -4,7 +4,6 @@ import { SubtitleComposition } from '@eigen/remotion-composition'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
 import { useWaveform } from '../hooks/useWaveform.ts'
 import { useAnimationPresets } from '../hooks/useAnimationPresets.ts'
-import { LaneDragOverlay } from './LaneDragOverlay.tsx'
 import './PreviewPanel.css'
 
 interface PreviewPanelProps {
@@ -12,10 +11,10 @@ interface PreviewPanelProps {
   onGetTimeReady?: (getTimeFn: () => number) => void
   collapsed?: boolean
   onToggleCollapse?: () => void
-  showLaneControls?: boolean
+  showSpeakerBorders?: boolean
 }
 
-export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, onToggleCollapse, showLaneControls = false }: PreviewPanelProps) {
+export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, onToggleCollapse, showSpeakerBorders = false }: PreviewPanelProps) {
   const jobId = useSubtitleStore((s) => s.jobId)
   const session = useSubtitleStore((s) => s.session)
   const videoMetadata = useSubtitleStore((s) => s.videoMetadata)
@@ -23,10 +22,6 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
   const speakerStyles = useSubtitleStore((s) => s.speakerStyles)
   const activeAnimationPresetId = useSubtitleStore((s) => s.activeAnimationPresetId)
   const phraseAnimationPresetIds = useSubtitleStore((s) => s.phraseAnimationPresetIds)
-  const speakerLanes = useSubtitleStore((s) => s.speakerLanes)
-  const speakerNames = useSubtitleStore((s) => s.speakerNames)
-  const overlapGap = useSubtitleStore((s) => s.overlapGap)
-  const maxVisibleRows = useSubtitleStore((s) => s.maxVisibleRows)
   const { presets } = useAnimationPresets()
 
   const playerRef = useRef<PlayerRef>(null)
@@ -161,12 +156,9 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
       style,
       speakerStyles,
       animationPreset,
-      speakerLanes,
-      overlapGap,
-      maxVisibleRows,
-      showSpeakerBorders: showLaneControls,
+      showSpeakerBorders,
     }
-  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets, speakerLanes, overlapGap, maxVisibleRows, showLaneControls])
+  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets, showSpeakerBorders])
 
   if (!jobId || !session || !videoMetadata || !inputProps) {
     return null
@@ -217,16 +209,6 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
           inputProps={inputProps}
           acknowledgeRemotionLicense
         />
-        {showLaneControls && session && (
-          <LaneDragOverlay
-            speakerLanes={speakerLanes}
-            speakerNames={speakerNames}
-            containerRef={playerWrapperRef}
-            currentFrame={currentFrame}
-            phrases={session.phrases}
-            fps={videoMetadata.fps}
-          />
-        )}
       </div>
 
       {/* Mini waveform scrubber */}

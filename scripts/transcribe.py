@@ -1,64 +1,89 @@
 #!/usr/bin/env python3
-"""Transcribe audio/video using NVIDIA Parakeet TDT on CUDA, emitting JSON-line progress to stdout."""
+"""Transcribe + diarize audio/video using WhisperX on CUDA.
+
+Pipeline: Whisper transcription → wav2vec2 forced alignment → pyannote diarization → speaker-assigned words.
+Emits JSON-line progress to stdout.
+
+Usage: transcribe.py <audio_path> <output_path> [language] [hf_token] [num_speakers]
+"""
 import sys
 import json
 import os
-import subprocess
-import tempfile
 
 
 def main():
     if len(sys.argv) < 3:
-        print(json.dumps({"type": "error", "message": "Usage: transcribe.py <audio_path> <output_path> [language]"}), flush=True)
+        print(json.dumps({"type": "error", "message": "Usage: transcribe.py <audio_path> <output_path> [language] [hf_token] [num_speakers]"}), flush=True)
         sys.exit(1)
 
     audio_path = sys.argv[1]
     output_path = sys.argv[2]
     language = sys.argv[3] if len(sys.argv) > 3 else "en"
+    hf_token = sys.argv[4] if len(sys.argv) > 4 else os.environ.get("HUGGINGFACE_TOKEN")
+    num_speakers = int(sys.argv[5]) if len(sys.argv) > 5 else None
+    device = "cuda"
 
     print(json.dumps({"type": "progress", "percent": 0, "status": "loading_model"}), flush=True)
 
-    import nemo.collections.asr as nemo_asr
+    import whisperx
 
-    asr_model = nemo_asr.models.ASRModel.from_pretrained("nvidia/parakeet-tdt-0.6b-v2")
-    asr_model = asr_model.to("cuda")
-    asr_model.eval()
+    model = whisperx.load_model("large-v3", device, compute_type="float16", language=language)
 
-    # Parakeet requires 16kHz mono WAV — extract from mp4 if needed
-    wav_path = audio_path
-    cleanup_wav = False
-    if audio_path.lower().endswith(".mp4"):
-        wav_path = os.path.join(tempfile.gettempdir(), ".parakeet_temp.wav")
-        subprocess.run(
-            ["ffmpeg", "-y", "-i", audio_path, "-vn", "-acodec", "pcm_s16le",
-             "-ar", "16000", "-ac", "1", wav_path],
-            capture_output=True, check=True
-        )
-        cleanup_wav = True
-
+    # Step 1: Transcribe
     print(json.dumps({"type": "progress", "percent": 10, "status": "transcribing"}), flush=True)
 
-    output = asr_model.transcribe([wav_path], timestamps=True)
+    audio = whisperx.load_audio(audio_path)
+    result = model.transcribe(audio, batch_size=16)
 
-    if cleanup_wav and os.path.exists(wav_path):
-        os.remove(wav_path)
+    # Step 2: Forced alignment with wav2vec2
+    print(json.dumps({"type": "progress", "percent": 40, "status": "aligning"}), flush=True)
 
-    word_timestamps = output[0].timestamp['word']
+    align_model, align_metadata = whisperx.load_align_model(language_code=language, device=device)
+    result = whisperx.align(result["segments"], align_model, align_metadata, audio, device, return_char_alignments=False)
+
+    # Step 3: Speaker diarization (if HuggingFace token available)
+    if hf_token:
+        print(json.dumps({"type": "progress", "percent": 60, "status": "diarizing"}), flush=True)
+
+        try:
+            from whisperx.diarize import DiarizationPipeline
+            diarize_model = DiarizationPipeline(token=hf_token, device=device)
+            diarize_kwargs = {}
+            if num_speakers is not None:
+                diarize_kwargs["min_speakers"] = num_speakers
+                diarize_kwargs["max_speakers"] = num_speakers
+            diarize_segments = diarize_model(audio_path, **diarize_kwargs)
+            result = whisperx.assign_word_speakers(diarize_segments, result)
+        except Exception as e:
+            # Diarization failure is non-fatal — continue without speaker labels
+            print(json.dumps({"type": "progress", "percent": 80, "status": "diarization_failed", "message": str(e)}), flush=True)
+
+    # Step 4: Extract words with optional speaker labels
+    print(json.dumps({"type": "progress", "percent": 90, "status": "finalizing"}), flush=True)
 
     words = []
-    for stamp in word_timestamps:
-        words.append({
-            "word": stamp['word'].strip(),
-            "start": round(stamp['start'], 3),
-            "end": round(stamp['end'], 3),
-            "confidence": 1.0,  # Parakeet does not expose per-word probability
-        })
+    for segment in result["segments"]:
+        segment_speaker = segment.get("speaker")
+        for w in segment.get("words", []):
+            if "start" not in w or "end" not in w:
+                continue
+            word_entry = {
+                "word": w["word"].strip(),
+                "start": round(w["start"], 3),
+                "end": round(w["end"], 3),
+                "confidence": round(w.get("score", 1.0), 3),
+            }
+            speaker = w.get("speaker") or segment_speaker
+            if speaker:
+                word_entry["speaker"] = speaker
+            words.append(word_entry)
 
     transcript = {"language": language, "words": words}
     with open(output_path, "w") as f:
         json.dump(transcript, f, indent=2)
 
-    print(json.dumps({"type": "done", "percent": 100, "language": language, "word_count": len(words)}), flush=True)
+    speaker_count = len({w["speaker"] for w in words if "speaker" in w})
+    print(json.dumps({"type": "done", "percent": 100, "language": language, "word_count": len(words), "speaker_count": speaker_count}), flush=True)
 
 
 if __name__ == "__main__":

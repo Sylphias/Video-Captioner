@@ -30,7 +30,7 @@ export function useTranscribe() {
     }
   }, [])
 
-  const transcribe = useCallback(async (jobId: string) => {
+  const transcribe = useCallback(async (jobId: string, numSpeakers?: number) => {
     // Close any existing SSE connection
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
@@ -41,7 +41,13 @@ export function useTranscribe() {
 
     // Trigger transcription via POST
     try {
-      const res = await fetch(`/api/jobs/${jobId}/transcribe`, { method: 'POST' })
+      const body: Record<string, number> = {}
+      if (numSpeakers !== undefined) body.numSpeakers = numSpeakers
+      const res = await fetch(`/api/jobs/${jobId}/transcribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: 'Request failed' }))
         setState(prev => ({ ...prev, status: 'failed', error: body.error || `HTTP ${res.status}` }))

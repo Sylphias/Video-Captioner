@@ -10,7 +10,6 @@ import { StyleDrawer, type DrawerMode } from '../components/StyleDrawer/StyleDra
 import { TextEditor } from '../components/TextEditor/TextEditor.tsx'
 import { TimingEditor } from '../components/TimingEditor/TimingEditor.tsx'
 import { AnimationEditor } from '../components/AnimationEditor/AnimationEditor.tsx'
-import { LaneControlsPanel } from '../components/LaneControls/LaneControlsPanel.tsx'
 import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
 import { useUndoStore } from '../store/undoMiddleware.ts'
 import './SubtitlesPage.css'
@@ -62,7 +61,7 @@ export function SubtitlesPage() {
         if (storeState.session) {
           timeShiftBaselineRef.current = structuredClone(storeState.session.words)
           // Push undo snapshot manually (same shape as handleUndo)
-          const { session, style, speakerNames, speakerStyles, maxWordsPerPhrase, speakerLanes, overlapGap, maxVisibleRows } = storeState
+          const { session, style, speakerNames, speakerStyles, maxWordsPerPhrase } = storeState
           useUndoStore.getState().pushSnapshot({
             session: session ? {
               words: structuredClone(session.words),
@@ -73,9 +72,6 @@ export function SubtitlesPage() {
             maxWordsPerPhrase,
             speakerNames: { ...speakerNames },
             speakerStyles: structuredClone(speakerStyles) as unknown as Record<string, Record<string, unknown>>,
-            speakerLanes: structuredClone(speakerLanes),
-            overlapGap,
-            maxVisibleRows,
           })
         }
       }
@@ -105,7 +101,6 @@ export function SubtitlesPage() {
     document.addEventListener('mouseup', onUp)
   }, [])
   const containerRef = useRef<HTMLDivElement>(null)
-  const hasAutoDiarizedRef = useRef(false)
 
   // Tracks original phrase texts at transcription time for the Text->Timing transition
   // confirmation toast. Captured once when session first loads; updated on re-transcribe.
@@ -116,11 +111,7 @@ export function SubtitlesPage() {
   const canUndo = useUndoStore((s) => s.canUndo)
   const canRedo = useUndoStore((s) => s.canRedo)
 
-  // Lane controls state (needed by LaneControlsPanel when activeStage === 'timing')
-  const speakerLanes = useSubtitleStore((s) => s.speakerLanes)
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
-  const overlapGap = useSubtitleStore((s) => s.overlapGap)
-  const maxVisibleRows = useSubtitleStore((s) => s.maxVisibleRows)
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -178,7 +169,7 @@ export function SubtitlesPage() {
 
   const handleUndo = useCallback(() => {
     const storeState = useSubtitleStore.getState()
-    const { session, style, speakerNames, speakerStyles, speakerLanes, overlapGap, maxVisibleRows } = storeState
+    const { session, style, speakerNames, speakerStyles } = storeState
 
     // Build current snapshot to push to future stack
     const currentSnapshot = {
@@ -192,9 +183,6 @@ export function SubtitlesPage() {
       style: structuredClone(style) as unknown as Record<string, unknown>,
       speakerNames: { ...speakerNames },
       speakerStyles: structuredClone(speakerStyles) as unknown as Record<string, Record<string, unknown>>,
-      speakerLanes: structuredClone(speakerLanes),
-      overlapGap,
-      maxVisibleRows,
     }
 
     const target = useUndoStore.getState().undo(currentSnapshot)
@@ -205,7 +193,7 @@ export function SubtitlesPage() {
 
   const handleRedo = useCallback(() => {
     const storeState = useSubtitleStore.getState()
-    const { session, style, speakerNames, speakerStyles, speakerLanes, overlapGap, maxVisibleRows } = storeState
+    const { session, style, speakerNames, speakerStyles } = storeState
 
     const currentSnapshot = {
       session: session
@@ -218,9 +206,6 @@ export function SubtitlesPage() {
       style: structuredClone(style) as unknown as Record<string, unknown>,
       speakerNames: { ...speakerNames },
       speakerStyles: structuredClone(speakerStyles) as unknown as Record<string, Record<string, unknown>>,
-      speakerLanes: structuredClone(speakerLanes),
-      overlapGap,
-      maxVisibleRows,
     }
 
     const target = useUndoStore.getState().redo(currentSnapshot)
@@ -272,6 +257,14 @@ export function SubtitlesPage() {
     useSubtitleStore.getState().reset()
   }
 
+  // Auto-transcribe as soon as upload completes
+  useEffect(() => {
+    if (uploadState.status !== 'ready') return
+    if (!uploadState.jobId) return
+    if (transcribeState.status !== 'idle') return
+    transcribe(uploadState.jobId, numSpeakers)
+  }, [uploadState.status, uploadState.jobId, transcribeState.status, transcribe, numSpeakers])
+
   // Push job data into Zustand store when transcription completes so PreviewPanel can consume it
   useEffect(() => {
     if (transcribeState.status !== 'transcribed') return
@@ -292,31 +285,11 @@ export function SubtitlesPage() {
     }
   }, [transcribeState.status, uploadState.jobId, transcribeState.transcript, uploadState.job])
 
-  // Auto-diarize: trigger speaker detection once after transcription completes
-  useEffect(() => {
-    if (transcribeState.status !== 'transcribed') return
-    if (hasAutoDiarizedRef.current) return
-    if (!uploadState.jobId) return
-    hasAutoDiarizedRef.current = true
-    diarize(uploadState.jobId, numSpeakers)
-  }, [transcribeState.status, uploadState.jobId, diarize, numSpeakers])
-
-  // When diarization completes, switch to Timing stage with toast, and init speaker lanes
+  // When diarization completes, switch to Timing stage with toast
   useEffect(() => {
     if (diarizeState.status !== 'done') return
     setActiveStage('timing')
     setStageToast({ message: 'Speaker detection complete.', key: Date.now() })
-
-    // Extract unique speaker IDs from the newly-diarized phrases and auto-distribute lanes
-    const session = useSubtitleStore.getState().session
-    if (session) {
-      const speakerIds = Array.from(
-        new Set(session.phrases.map((p) => p.dominantSpeaker).filter((s): s is string => !!s))
-      )
-      if (speakerIds.length > 0) {
-        useSubtitleStore.getState().initSpeakerLanes(speakerIds)
-      }
-    }
   }, [diarizeState.status])
 
   // Global Cmd+Z / Cmd+Shift+Z keyboard shortcuts for undo/redo
@@ -440,23 +413,13 @@ export function SubtitlesPage() {
           className={`subtitles-page__top${previewCollapsed ? ' subtitles-page__top--collapsed' : ''}`}
           style={previewCollapsed ? undefined : { height: `${topPercent}%` }}
         >
-          <div className={`subtitles-page__preview-with-lanes${activeStage === 'timing' ? ' subtitles-page__preview-with-lanes--active' : ''}`}>
-            {activeStage === 'timing' && !previewCollapsed && (
-              <LaneControlsPanel
-                speakerLanes={speakerLanes}
-                speakerNames={speakerNames}
-                overlapGap={overlapGap}
-                maxVisibleRows={maxVisibleRows}
-              />
-            )}
-            <PreviewPanel
-              onSeekReady={(fn) => setSeekToTime(() => fn)}
-              onGetTimeReady={(fn) => setGetCurrentTime(() => fn)}
-              collapsed={previewCollapsed}
-              onToggleCollapse={() => setPreviewCollapsed((c) => !c)}
-              showLaneControls={activeStage === 'timing'}
-            />
-          </div>
+          <PreviewPanel
+            onSeekReady={(fn) => setSeekToTime(() => fn)}
+            onGetTimeReady={(fn) => setGetCurrentTime(() => fn)}
+            collapsed={previewCollapsed}
+            onToggleCollapse={() => setPreviewCollapsed((c) => !c)}
+            showSpeakerBorders={activeStage === 'timing'}
+          />
 
           {!previewCollapsed && (
             <div className="subtitles-page__top-controls">
@@ -552,6 +515,30 @@ export function SubtitlesPage() {
                 Global Styling
               </button>
 
+              <div className="subtitles-page__speaker-controls">
+                <label className="subtitles-page__speakers-label">
+                  Speakers
+                  <input
+                    type="number"
+                    className="subtitles-page__speakers-input"
+                    min={1}
+                    max={20}
+                    placeholder="Auto"
+                    value={numSpeakers ?? ''}
+                    onChange={(e) => setNumSpeakers(e.target.value ? Number(e.target.value) : undefined)}
+                  />
+                </label>
+                <button
+                  className="subtitles-page__diarize-btn"
+                  onClick={() => diarize(uploadState.jobId!, numSpeakers)}
+                  disabled={diarizeState.status === 'diarizing'}
+                >
+                  {diarizeState.status === 'diarizing'
+                    ? `Detecting... ${diarizeState.progress}%`
+                    : 'Re-detect speakers'}
+                </button>
+              </div>
+
               {renderState.status === 'rendering' && (
                 <div className="subtitles-page__render-progress">
                   <div className="subtitles-page__progress-track">
@@ -623,7 +610,7 @@ export function SubtitlesPage() {
 
           <button
             className="subtitles-page__transcribe-btn subtitles-page__transcribe-btn--narrow"
-            onClick={() => transcribe(uploadState.jobId!)}
+            onClick={() => transcribe(uploadState.jobId!, numSpeakers)}
           >
             Re-transcribe
           </button>
@@ -638,53 +625,11 @@ export function SubtitlesPage() {
     )
   }
 
-  // State: ready — show video info, video preview, and enabled Transcribe button
-  const { job, jobId } = uploadState
-  const meta = job?.metadata
-
+  // State: ready — auto-transcribe fires immediately, show transcribing progress
   return (
     <div className="subtitles-page subtitles-page--centered">
-      <div className="subtitles-page__ready-card">
-        {jobId && (
-          <img
-            className="subtitles-page__thumbnail"
-            src={`/api/jobs/${jobId}/thumbnail`}
-            alt="Video thumbnail"
-          />
-        )}
-
-        <div className="subtitles-page__meta">
-          {job?.originalFilename && (
-            <p className="subtitles-page__meta-filename">{job.originalFilename}</p>
-          )}
-          {meta && (
-            <dl className="subtitles-page__meta-list">
-              <div className="subtitles-page__meta-row">
-                <dt>Duration</dt>
-                <dd>{formatDuration(meta.duration)}</dd>
-              </div>
-              <div className="subtitles-page__meta-row">
-                <dt>Resolution</dt>
-                <dd>{meta.width}&times;{meta.height}</dd>
-              </div>
-              <div className="subtitles-page__meta-row">
-                <dt>Frame rate</dt>
-                <dd>{meta.fps} fps</dd>
-              </div>
-            </dl>
-          )}
-        </div>
-
-        <button
-          className="subtitles-page__transcribe-btn"
-          onClick={() => transcribe(jobId!)}
-        >
-          Transcribe
-        </button>
-
-        <button className="subtitles-page__reset-btn" onClick={resetAll}>
-          Upload another video
-        </button>
+      <div className="subtitles-page__progress-card">
+        <p className="subtitles-page__status-label">Preparing to transcribe...</p>
       </div>
     </div>
   )

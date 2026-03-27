@@ -32,9 +32,6 @@ export interface StateSnapshot {
   speakerStyles: Record<string, Record<string, unknown>>
   activeAnimationPresetId?: string | null
   phraseAnimationPresetIds?: Record<number, string>
-  speakerLanes?: Record<string, { verticalPosition: number }>
-  overlapGap?: number
-  maxVisibleRows?: number
 }
 
 const MAX_HISTORY = 50

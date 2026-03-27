@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { TranscriptWord, HighlightKeyframeConfig, KeyframeTrack } from '@eigen/shared-types'
 import type { AnimationPreset } from '@eigen/shared-types'
@@ -37,32 +37,56 @@ export function findActiveWordIndex(words: TranscriptWord[], currentTimeSec: num
   return result
 }
 
+/** Vertical offset (in percentage points) between simultaneous phrases */
+const OVERLAP_OFFSET_PCT = 8
+
 /**
- * Compute the vertical position (0-100%) for a phrase based on:
- *   1. Per-phrase styleOverride.verticalPosition (highest priority)
- *   2. Speaker lane position from speakerLanes
- *   3. Global style.verticalPosition (fallback)
- *
- * sameSlotOffset: 0 for the latest phrase of this speaker, 1+ for lingering
- * older phrases from the same speaker that are still visible.
+ * Pre-compute a stable slot for every phrase so overlapping subtitles
+ * don't jump when the set of visible phrases changes.
+ * Slot 0 = base position, slot 1 = one step up, etc.
+ * Same-speaker phrases inherit the previous slot while lingering,
+ * different speakers get the next available slot.
  */
-function getLanePosition(
-  phrase: CompositionPhrase,
-  speakerLanes: Record<string, { verticalPosition: number }>,
-  defaultPosition: number,
-  overlapGap: number,
-  sameSlotOffset: number,
-): number {
-  // Per-phrase override takes highest precedence
-  if ((phrase.styleOverride as Record<string, unknown> | undefined)?.verticalPosition != null) {
-    const phrasePos = ((phrase.styleOverride as Record<string, unknown>).verticalPosition as number)
-    return phrasePos - sameSlotOffset * overlapGap
+function assignSlots(phrases: CompositionPhrase[], defaultLinger: number): Map<CompositionPhrase, number> {
+  const sorted = [...phrases].sort((a, b) => a.words[0].start - b.words[0].start)
+  const slotMap = new Map<CompositionPhrase, number>()
+  const assigned: { phrase: CompositionPhrase; end: number; slot: number }[] = []
+  const lastSpeakerSlot = new Map<string, { slot: number; end: number }>()
+
+  for (const phrase of sorted) {
+    const phraseStart = phrase.words[0].start
+    const speaker = phrase.dominantSpeaker ?? '__default__'
+    const lingerSec = phrase.lingerDuration ?? defaultLinger
+    const phraseEnd = phrase.words[phrase.words.length - 1].end + lingerSec
+
+    // If the previous phrase from this speaker is still lingering when this
+    // one starts, inherit its slot so the speaker stays in the same row.
+    const prev = lastSpeakerSlot.get(speaker)
+    if (prev && prev.end > phraseStart) {
+      slotMap.set(phrase, prev.slot)
+      lastSpeakerSlot.set(speaker, { slot: prev.slot, end: phraseEnd })
+      assigned.push({ phrase, end: phraseEnd, slot: prev.slot })
+      continue
+    }
+
+    // Collect slots occupied by other speakers at this phrase's start time
+    const occupied = new Set<number>()
+    for (const a of assigned) {
+      const aSpeaker = a.phrase.dominantSpeaker ?? '__default__'
+      if (aSpeaker === speaker) continue
+      if (a.end > phraseStart) {
+        occupied.add(a.slot)
+      }
+    }
+    // Find lowest available slot
+    let slot = 0
+    while (occupied.has(slot)) slot++
+    slotMap.set(phrase, slot)
+    lastSpeakerSlot.set(speaker, { slot, end: phraseEnd })
+    assigned.push({ phrase, end: phraseEnd, slot })
   }
-  // Speaker lane position
-  const speaker = phrase.dominantSpeaker
-  const lane = speaker ? speakerLanes[speaker] : undefined
-  const basePosition = lane?.verticalPosition ?? defaultPosition
-  return basePosition - sameSlotOffset * overlapGap
+
+  return slotMap
 }
 
 // ─── Highlight animation per word (keyframe-based) ───────────────────────────
@@ -172,20 +196,19 @@ interface SubtitleOverlayProps {
   style: StyleProps
   speakerStyles: Record<string, SpeakerStyleOverride>
   animationPreset?: AnimationPreset  // global default animation preset for all phrases
-  speakerLanes?: Record<string, { verticalPosition: number }>  // per-speaker fixed vertical positions
-  overlapGap?: number      // % points between same-speaker stacked rows (default 8)
-  maxVisibleRows?: number  // max simultaneous speaker rows visible (default 4)
   showSpeakerBorders?: boolean  // show colored borders per-speaker (editor preview only)
 }
 
-export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset, speakerLanes: speakerLanesProp, overlapGap: overlapGapProp, maxVisibleRows: maxVisibleRowsProp, showSpeakerBorders }: SubtitleOverlayProps) {
+export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset, showSpeakerBorders }: SubtitleOverlayProps) {
   const frame = useCurrentFrame()
   const { fps, width, height } = useVideoConfig()
 
   const currentTimeSec = frame / fps
-  const effectiveSpeakerLanes = speakerLanesProp ?? {}
-  const effectiveOverlapGap = overlapGapProp ?? 8
-  const effectiveMaxVisibleRows = maxVisibleRowsProp ?? 4
+
+  const slotMap = useMemo(
+    () => assignSlots(phrases, style.lingerDuration ?? 1.0),
+    [phrases, style.lingerDuration],
+  )
 
   // Find ALL active phrases — supports overlapping speakers
   // Per-phrase lingerDuration overrides global style.lingerDuration when set
@@ -212,17 +235,10 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
     }
   }
   // Only keep the latest phrase per speaker
-  let visiblePhrases = activePhrases.filter((phrase) => {
+  const visiblePhrases = activePhrases.filter((phrase) => {
     const speaker = phrase.dominantSpeaker ?? '__default__'
     return latestBySpeaker.get(speaker) === phrase
   })
-
-  // Apply maxVisibleRows cap: sort by start time descending (newest first) and take N
-  if (visiblePhrases.length > effectiveMaxVisibleRows) {
-    visiblePhrases = [...visiblePhrases]
-      .sort((a, b) => b.words[0].start - a.words[0].start)
-      .slice(0, effectiveMaxVisibleRows)
-  }
 
   // Pre-compute effective styles for all visible phrases
   const phraseStyles = visiblePhrases.map((activePhrase) => {
@@ -246,15 +262,9 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
         // per-phrase resolved preset takes priority over global default
         const effectivePreset: AnimationPreset | undefined = activePhrase.animationPreset ?? animationPreset
 
-        // Fixed lane-based positioning: each speaker has a permanent vertical position
-        // sameSlotOffset is always 0 since we only keep the latest phrase per speaker
-        const top = getLanePosition(
-          activePhrase,
-          effectiveSpeakerLanes,
-          effectiveStyle.verticalPosition,
-          effectiveOverlapGap,
-          0,
-        )
+        // Stable slot-based positioning: each phrase keeps its row for its lifetime
+        const slot = slotMap.get(activePhrase) ?? 0
+        const top = effectiveStyle.verticalPosition - slot * OVERLAP_OFFSET_PCT
 
         const phraseStart = activePhrase.words[0].start
         const phraseLingerSec = activePhrase.lingerDuration ?? style.lingerDuration ?? 1.0

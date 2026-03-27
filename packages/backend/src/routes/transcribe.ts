@@ -26,6 +26,7 @@ async function transcribeRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /api/jobs/:jobId/transcribe — trigger background transcription
   fastify.post('/api/jobs/:jobId/transcribe', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
+    const { numSpeakers } = (req.body as { numSpeakers?: number }) ?? {}
 
     const job = fastify.jobs.get(jobId)
 
@@ -52,7 +53,7 @@ async function transcribeRoutes(fastify: FastifyInstance): Promise<void> {
 
     // Fire-and-forget: background transcription pipeline
     const jobDir = path.join(DATA_ROOT, jobId)
-    void runTranscriptionPipeline(fastify, jobId, jobDir)
+    void runTranscriptionPipeline(fastify, jobId, jobDir, numSpeakers)
   })
 }
 
@@ -60,10 +61,12 @@ async function runTranscriptionPipeline(
   fastify: FastifyInstance,
   jobId: string,
   jobDir: string,
+  numSpeakers?: number,
 ): Promise<void> {
   try {
     const normalizedPath = path.join(jobDir, 'normalized.mp4')
     const transcriptPath = path.join(jobDir, 'transcript.json')
+    const hfToken = process.env.HUGGINGFACE_TOKEN
 
     const { promise, process: proc } = runTranscription(
       normalizedPath,
@@ -71,6 +74,9 @@ async function runTranscriptionPipeline(
       (percent) => {
         updateJob(fastify.jobs, jobId, { progress: percent })
       },
+      'en',
+      hfToken,
+      numSpeakers,
     )
 
     // Store process handle on job for zombie prevention

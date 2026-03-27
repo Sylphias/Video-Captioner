@@ -67,7 +67,8 @@ function formatTimePrecise(seconds: number): string {
 
 /** Get speaker color index (0-7) from a speaker ID. */
 function getSpeakerColorIndex(speakerId: string): number {
-  return parseInt(speakerId.replace('SPEAKER_', ''), 10) % 8
+  const idx = parseInt(speakerId.replace('SPEAKER_', ''), 10) % 8
+  return isNaN(idx) ? 0 : idx
 }
 
 export function TimingEditor({

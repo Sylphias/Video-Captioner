@@ -83,10 +83,11 @@ def main():
 
     # Run pyannote diarization on CUDA
     try:
-        pipeline_kwargs = {"waveform": waveform, "sample_rate": sample_rate}
+        audio_input = {"waveform": waveform, "sample_rate": sample_rate}
+        kwargs = {}
         if num_speakers is not None:
-            pipeline_kwargs["num_speakers"] = num_speakers
-        diarization = pipeline(pipeline_kwargs)
+            kwargs["num_speakers"] = num_speakers
+        diarization = pipeline(audio_input, **kwargs)
     except Exception as e:
         print(json.dumps({"type": "error", "message": f"Diarization failed: {e}"}), flush=True)
         sys.exit(1)
