@@ -100,6 +100,9 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     ? Math.max(...session.phrases.filter(p => p.words.length > 0).map(p => p.words[p.words.length - 1].end), 0)
     : 0
 
+  // Drag-to-select state
+  const dragSelectRef = useRef<{ startIndex: number; active: boolean } | null>(null)
+
   const clearSelection = useCallback(() => {
     setSelectedPhraseIndices(new Set())
     setLastClickedIndex(null)
@@ -119,15 +122,17 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     setLastClickedIndex(phraseIndex)
   }, [])
 
-  const handleRowClick = useCallback((e: React.MouseEvent, phraseIndex: number) => {
+  const handleRowMouseDown = useCallback((e: React.MouseEvent, phraseIndex: number) => {
     const target = e.target as HTMLElement
-    // Only trigger selection if click is on checkbox or row background (not contentEditable)
     const isContentEditable = target.contentEditable === 'true' || target.closest('[contenteditable="true"]') !== null
     const isCheckbox = (target as HTMLInputElement).type === 'checkbox'
-    if (!isCheckbox && isContentEditable) return
+    if (isCheckbox || isContentEditable) return
+
+    // Start drag-to-select
+    dragSelectRef.current = { startIndex: phraseIndex, active: false }
 
     if (e.shiftKey && lastClickedIndex !== null) {
-      // Range select
+      // Range select with shift
       const start = Math.min(lastClickedIndex, phraseIndex)
       const end = Math.max(lastClickedIndex, phraseIndex)
       setSelectedPhraseIndices(prev => {
@@ -135,19 +140,54 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
         for (let i = start; i <= end; i++) next.add(i)
         return next
       })
-    } else if (!isCheckbox) {
-      // Toggle on row background click
-      setSelectedPhraseIndices(prev => {
-        const next = new Set(prev)
-        if (next.has(phraseIndex)) {
-          next.delete(phraseIndex)
-        } else {
-          next.add(phraseIndex)
-        }
-        return next
-      })
-      setLastClickedIndex(phraseIndex)
+      return
     }
+
+    setLastClickedIndex(phraseIndex)
+
+    const onMove = (moveE: MouseEvent) => {
+      if (!dragSelectRef.current) return
+      dragSelectRef.current.active = true
+
+      // Find which phrase row the mouse is over
+      const el = document.elementFromPoint(moveE.clientX, moveE.clientY)
+      const lineEl = el?.closest('.text-editor__line') as HTMLElement | null
+      if (!lineEl) return
+      // Find phraseIndex from the line's child contentEditable data attribute
+      const contentEl = lineEl.querySelector('[data-phrase-index]') as HTMLElement | null
+      if (!contentEl) return
+      const hoverIndex = parseInt(contentEl.dataset.phraseIndex ?? '-1', 10)
+      if (hoverIndex < 0) return
+
+      const startIdx = dragSelectRef.current.startIndex
+      const rangeStart = Math.min(startIdx, hoverIndex)
+      const rangeEnd = Math.max(startIdx, hoverIndex)
+      const next = new Set<number>()
+      for (let i = rangeStart; i <= rangeEnd; i++) next.add(i)
+      setSelectedPhraseIndices(next)
+    }
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+
+      // If it was just a click (no drag), toggle selection
+      if (dragSelectRef.current && !dragSelectRef.current.active) {
+        setSelectedPhraseIndices(prev => {
+          const next = new Set(prev)
+          if (next.has(phraseIndex)) {
+            next.delete(phraseIndex)
+          } else {
+            next.add(phraseIndex)
+          }
+          return next
+        })
+      }
+      dragSelectRef.current = null
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
   }, [lastClickedIndex])
 
   const handleSeek = useCallback((phraseIndex: number) => {
@@ -588,7 +628,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
           <React.Fragment key={phraseIndex}>
           <div
             className={`text-editor__line${isSelected ? ' text-editor__line--selected' : ''}${isActive ? ' text-editor__line--active' : ''}`}
-            onClick={(e) => handleRowClick(e, phraseIndex)}
+            onMouseDown={(e) => handleRowMouseDown(e, phraseIndex)}
           >
             {/* Checkbox column (D-02) */}
             <input
