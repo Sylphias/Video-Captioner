@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Keyframe Position Animation** - Keyframe-based subtitle position animation: define text x/y position over time with easing controls, visual keyframe editor, support for horizontal and vertical video
 - [ ] **Phase 9: Speaker Lane Layout** - Configurable speaker lane positioning in the video: define where each speaker's subtitles appear, control lane gap/stacking, visual lane position editor with preview
 - [ ] **Phase 9.1: Transcription & Diarization Upgrade** (INSERTED) - Migrate from Apple Silicon CPU to NVIDIA RTX 4080 GPU; upgrade transcription (Parakeet TDT or WhisperX) and diarization (pyannote community-1 on CUDA) for faster, more accurate results
-- [ ] **Phase 10: SRT Import and Text Correction** - Import SRT from DaVinci Resolve, align with Whisper word timestamps for accurate text with word-level timing
+- [x] **Phase 10: SRT Import and Text Correction** - Import SRT from DaVinci Resolve, align with Whisper word timestamps for accurate text with word-level timing (completed 2026-03-28)
 
 ## Phase Details
 
@@ -227,11 +227,11 @@ Plans:
   2. SRT text is aligned with Whisper word timestamps using rough timestamp matching
   3. Resulting transcript has accurate text (from SRT) with precise per-word timing (from Whisper)
   4. User can review and adjust the alignment before accepting
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 10-01-PLAN.md — SRT parsing library, alignment algorithm, store action, useSrtImport hook
-- [ ] 10-02-PLAN.md — SrtDiffView component, Import SRT button, TextEditor integration, human verification
+- [x] 10-01-PLAN.md — SRT parsing library, alignment algorithm, store action, useSrtImport hook
+- [x] 10-02-PLAN.md — SrtDiffView component, Import SRT button, TextEditor integration, human verification
 
 ## Progress
 
@@ -251,4 +251,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 9.
 | 8. Keyframe Position Animation | 5/5 | ✓ Complete | 2026-03-25 |
 | 9. Speaker Lane Layout | 3/3 | ◆ Verifying | - |
 | 9.1 Transcription Upgrade | 1/2 | In Progress|  |
-| 10. SRT Import & Text Correction | 0/2 | Planned | - |
+| 10. SRT Import & Text Correction | 2/2 | Complete   | 2026-03-28 |
