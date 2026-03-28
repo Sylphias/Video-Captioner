@@ -81,6 +81,7 @@ const DEFAULT_STYLE: StyleProps = {
   shadowBlur: 4,
   verticalPosition: 80,
   lingerDuration: 1.0,
+  laneGap: 8,
 }
 
 /**

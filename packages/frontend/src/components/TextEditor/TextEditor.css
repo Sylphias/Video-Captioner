@@ -135,6 +135,52 @@
   color: var(--color-text-primary);
 }
 
+/* ---- Top action buttons ---- */
+.text-editor__top-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.text-editor__find-btn {
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.text-editor__find-btn:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+/* ---- Insert phrase button ---- */
+.text-editor__insert-btn {
+  align-self: center;
+  width: 24px;
+  height: 16px;
+  padding: 0;
+  margin: -4px 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text-disabled);
+  font-size: 14px;
+  line-height: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.text-editor__line:hover + .text-editor__insert-btn,
+.text-editor__insert-btn:hover {
+  opacity: 1;
+  color: var(--color-accent-green);
+}
+
 /* ---- Selected row highlight ---- */
 .text-editor__line--selected {
   background: color-mix(in srgb, var(--color-accent-green-muted) 50%, transparent);

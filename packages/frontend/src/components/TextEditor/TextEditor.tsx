@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useSrtImport } from '../../hooks/useSrtImport.ts'
 import { SrtDiffView } from './SrtDiffView.tsx'
@@ -404,15 +404,25 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
         onChange={handleSrtFileChange}
       />
 
-      {/* SRT Import Button (D-02: lives in text editing view) */}
+      {/* Top action buttons */}
       {session && (
-        <button
-          type="button"
-          className="srt-import-btn"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          Import SRT
-        </button>
+        <div className="text-editor__top-actions">
+          <button
+            type="button"
+            className="srt-import-btn"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Import SRT
+          </button>
+          <button
+            type="button"
+            className="text-editor__find-btn"
+            onClick={() => setFindReplaceOpen(prev => !prev)}
+            title="Find and Replace (Ctrl+H)"
+          >
+            Find &amp; Replace
+          </button>
+        </div>
       )}
 
       {/* Find/Replace bar (D-04, D-05, D-06, D-07) */}
@@ -498,6 +508,7 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
         </div>
       )}
 
+
       {session.phrases.map((phrase, phraseIndex) => {
         const phraseText = phrase.words.map((w) => w.word).join(' ')
         const speakerIdx = phrase.dominantSpeaker
@@ -507,8 +518,8 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
         const hasAnySelected = selectedPhraseIndices.size > 0
 
         return (
+          <React.Fragment key={phraseIndex}>
           <div
-            key={phraseIndex}
             className={`text-editor__line${isSelected ? ' text-editor__line--selected' : ''}`}
             onClick={(e) => handleRowClick(e, phraseIndex)}
           >
@@ -571,17 +582,19 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
               })}
             </div>
           </div>
+
+          {/* Insert line after this phrase */}
+          <button
+            type="button"
+            className="text-editor__insert-btn"
+            onClick={(e) => { e.stopPropagation(); addPhrase(phraseIndex) }}
+            title={`Insert phrase after line ${phraseIndex + 1}`}
+          >
+            +
+          </button>
+          </React.Fragment>
         )
       })}
-
-      {/* Add line button */}
-      <button
-        type="button"
-        className="text-editor__add-line-btn"
-        onClick={() => addPhrase(session.phrases.length - 1)}
-      >
-        + Add line
-      </button>
     </div>
   )
 }
