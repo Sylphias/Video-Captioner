@@ -67,6 +67,7 @@ interface SubtitleStore {
   setMaxVisibleRows: (n: number) => void
   initSpeakerLanes: (speakerIds: string[]) => void
   loadLaneLayout: (layout: LaneLayout) => void
+  applySrtPhrase: (phraseIndex: number, replacementWords: SessionWord[]) => void
 }
 
 const DEFAULT_STYLE: StyleProps = {
@@ -528,6 +529,43 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
+
+  applySrtPhrase: (phraseIndex, replacementWords) =>
+    set((state) => {
+      if (!state.session) return state
+      pushUndo(state)
+
+      const phrase = state.session.phrases[phraseIndex]
+      if (!phrase) return state
+
+      // Find the global index of the first word in this phrase
+      let firstGlobalIdx = 0
+      for (let p = 0; p < phraseIndex; p++) {
+        firstGlobalIdx += state.session.phrases[p].words.length
+      }
+      const phraseWordCount = phrase.words.length
+
+      const newWords = [
+        ...state.session.words.slice(0, firstGlobalIdx),
+        ...replacementWords,
+        ...state.session.words.slice(firstGlobalIdx + phraseWordCount),
+      ]
+
+      // Adjust manual split indices: shift indices after the replacement zone
+      const delta = replacementWords.length - phraseWordCount
+      const newManualSplits = new Set<number>()
+      for (const idx of state.session.manualSplitWordIndices) {
+        if (idx < firstGlobalIdx) {
+          newManualSplits.add(idx)
+        } else if (idx >= firstGlobalIdx + phraseWordCount) {
+          newManualSplits.add(idx + delta)
+        }
+        // manual splits inside the replaced range are dropped
+      }
+
+      const phrases = buildSessionPhrases(newWords, newManualSplits, state.maxWordsPerPhrase)
+      return { session: { ...state.session, words: newWords, phrases, manualSplitWordIndices: newManualSplits } }
+    }),
 
   setPhraseLinger: (phraseIndex, lingerSec) => {
     set((state) => {
