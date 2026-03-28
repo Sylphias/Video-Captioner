@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useSrtImport } from '../../hooks/useSrtImport.ts'
 import { SrtDiffView } from './SrtDiffView.tsx'
+import { BulkActionsToolbar } from './BulkActionsToolbar.tsx'
 import './TextEditor.css'
 
 interface TextEditorProps {
@@ -437,6 +438,27 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
           onAccept={acceptPhrase}
           onReject={rejectPhrase}
           onDismiss={resetSrt}
+        />
+      )}
+
+      {/* BulkActionsToolbar (D-09) — visible when 2+ phrases selected and not in confirm-delete mode */}
+      {selectedPhraseIndices.size >= 2 && confirmDeleteCount === null && (
+        <BulkActionsToolbar
+          count={selectedPhraseIndices.size}
+          speakerIds={Object.keys(speakerNames)}
+          speakerNames={speakerNames}
+          onMerge={() => { mergePhrases([...selectedPhraseIndices]); clearSelection() }}
+          onDelete={() => {
+            if (selectedPhraseIndices.size > 3) {
+              setConfirmDeleteCount(selectedPhraseIndices.size)
+            } else {
+              deletePhrases([...selectedPhraseIndices]); clearSelection()
+            }
+          }}
+          onReassignSpeaker={(speakerId) => {
+            for (const idx of selectedPhraseIndices) reassignPhraseSpeaker(idx, speakerId)
+            clearSelection()
+          }}
         />
       )}
 

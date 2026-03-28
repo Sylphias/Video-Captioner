@@ -1,0 +1,111 @@
+/* ---- BulkActionsToolbar ---- */
+
+.bulk-actions-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  height: 36px;
+  padding: 4px var(--spacing-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  margin-bottom: var(--spacing-xs);
+  opacity: 0;
+  animation: bulk-toolbar-appear 100ms ease forwards;
+}
+
+@keyframes bulk-toolbar-appear {
+  to { opacity: 1; }
+}
+
+/* ---- Count label ---- */
+.bulk-actions-toolbar__count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* ---- Separator ---- */
+.bulk-actions-toolbar__separator {
+  display: inline-block;
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  flex-shrink: 0;
+}
+
+/* ---- Action buttons ---- */
+.bulk-actions-toolbar__btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  height: 32px;
+  padding: 0 8px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.bulk-actions-toolbar__btn:hover:not(:disabled) {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+.bulk-actions-toolbar__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bulk-actions-toolbar__btn--destructive:hover:not(:disabled) {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+/* ---- Keyboard hint ---- */
+.bulk-actions-toolbar__hint {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-disabled);
+  white-space: nowrap;
+}
+
+/* ---- Speaker dropdown wrapper ---- */
+.bulk-actions-toolbar__dropdown-wrapper {
+  position: relative;
+}
+
+/* ---- Speaker list dropdown ---- */
+.bulk-actions-toolbar__speaker-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin: 2px 0 0 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  z-index: 20;
+  min-width: 140px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.bulk-actions-toolbar__speaker-item {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.bulk-actions-toolbar__speaker-item:hover {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
