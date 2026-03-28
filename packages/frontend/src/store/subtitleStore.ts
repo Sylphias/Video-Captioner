@@ -1006,14 +1006,11 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         offset += newPhrases[i].words.length
       }
 
-      // Rebuild phrases to recalculate dominantSpeaker and auto-boundaries
-      const rebuiltPhrases = buildSessionPhrases(newWords, newManualSplitWordIndices, state.maxWordsPerPhrase)
-
       return {
         session: {
           ...state.session,
           words: newWords,
-          phrases: rebuiltPhrases,
+          phrases: newPhrases,
           manualSplitWordIndices: newManualSplitWordIndices,
         },
       }

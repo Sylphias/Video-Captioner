@@ -37,8 +37,8 @@ export function findActiveWordIndex(words: TranscriptWord[], currentTimeSec: num
   return result
 }
 
-/** Vertical offset (in percentage points) between simultaneous phrases */
-const OVERLAP_OFFSET_PCT = 8
+/** Default vertical offset (in percentage points) between simultaneous phrases */
+const DEFAULT_LANE_GAP = 8
 
 /**
  * Pre-compute a stable slot for every phrase so overlapping subtitles
@@ -264,7 +264,8 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
 
         // Stable slot-based positioning: each phrase keeps its row for its lifetime
         const slot = slotMap.get(activePhrase) ?? 0
-        const top = effectiveStyle.verticalPosition - slot * OVERLAP_OFFSET_PCT
+        const laneGap = effectiveStyle.laneGap ?? DEFAULT_LANE_GAP
+        const top = effectiveStyle.verticalPosition - slot * laneGap
 
         const phraseStart = activePhrase.words[0].start
         const phraseLingerSec = activePhrase.lingerDuration ?? style.lingerDuration ?? 1.0

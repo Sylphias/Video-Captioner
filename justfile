@@ -28,6 +28,11 @@ check-env:
 spike-parakeet:
     .venv/bin/python3 scripts/spike_parakeet.py
 
-# Start both services (backend in background, frontend in foreground)
-dev:
+# Build shared-types and remotion-composition so downstream packages see updated types/exports
+build-libs:
+    cd packages/shared-types && npx tsc --build
+    cd packages/remotion-composition && npx tsc --build
+
+# Start both services (rebuild libs first, then backend + frontend)
+dev: build-libs
     bash -c 'node --experimental-strip-types packages/backend/src/index.ts & BACKEND_PID=$!; trap "kill $BACKEND_PID 2>/dev/null" EXIT; cd packages/frontend && npx vite --host'

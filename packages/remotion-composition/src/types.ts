@@ -14,6 +14,7 @@ export interface StyleProps {
   shadowBlur: number       // px — shadow blur radius (0 = sharp)
   verticalPosition: number // 0-100 percentage from top of frame
   lingerDuration: number   // seconds a phrase stays visible after last word ends
+  laneGap: number          // percentage points between simultaneous speaker lanes
 }
 
 // SpeakerStyleOverride is now just a partial style override — no animation field.

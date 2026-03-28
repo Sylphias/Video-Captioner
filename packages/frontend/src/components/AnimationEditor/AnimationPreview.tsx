@@ -25,6 +25,7 @@ const PREVIEW_STYLE: StyleProps = {
   shadowBlur: 4,
   verticalPosition: 75,
   lingerDuration: 1.0,
+  laneGap: 8,
 }
 
 const EMPTY_SPEAKER_STYLES: Record<string, SpeakerStyleOverride> = {}

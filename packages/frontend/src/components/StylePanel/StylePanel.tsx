@@ -239,6 +239,7 @@ export function StylePanel() {
   const shadowOffsetY = useSubtitleStore((s) => s.style.shadowOffsetY)
   const shadowBlur = useSubtitleStore((s) => s.style.shadowBlur)
   const verticalPosition = useSubtitleStore((s) => s.style.verticalPosition)
+  const laneGap = useSubtitleStore((s) => s.style.laneGap)
   const lingerDuration = useSubtitleStore((s) => s.style.lingerDuration)
   const maxWordsPerPhrase = useSubtitleStore((s) => s.maxWordsPerPhrase)
   const setStyle = useSubtitleStore((s) => s.setStyle)
@@ -443,6 +444,22 @@ export function StylePanel() {
           step={1}
           value={verticalPosition}
           onChange={(e) => setStyle({ verticalPosition: Number(e.target.value) })}
+        />
+      </div>
+
+      {/* Lane gap slider — spacing between overlapping speaker lanes */}
+      <div className="style-panel__section">
+        <label className="style-panel__label">
+          Speaker lane gap <span className="style-panel__value">{laneGap}%</span>
+        </label>
+        <input
+          type="range"
+          className="style-panel__slider"
+          min={0}
+          max={25}
+          step={1}
+          value={laneGap}
+          onChange={(e) => setStyle({ laneGap: Number(e.target.value) })}
         />
       </div>
 

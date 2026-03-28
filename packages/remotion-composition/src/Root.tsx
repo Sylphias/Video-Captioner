@@ -21,6 +21,7 @@ const DEFAULT_PROPS: SubtitleCompositionProps = {
     shadowBlur: 4,
     verticalPosition: 80,
     lingerDuration: 1.0,
+    laneGap: 8,
   },
   speakerStyles: {},
 }
