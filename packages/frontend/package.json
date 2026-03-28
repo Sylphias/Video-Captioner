@@ -13,14 +13,17 @@
     "@eigen/remotion-composition": "*",
     "@eigen/shared-types": "*",
     "@remotion/player": "4.0.379",
+    "diff": "^8.0.4",
     "react": "^18.3.1",
     "react-colorful": "^5.6.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.3.5",
     "remotion": "4.0.379",
+    "srt-parser-2": "^1.2.3",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@types/diff": "^7.0.2",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",

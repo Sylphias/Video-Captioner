@@ -192,7 +192,8 @@ describe('alignSrtToWhisper', () => {
     const result = alignSrtToWhisper(cues, phrases)
     if (result.length > 0) {
       for (const word of result[0].replacementWords) {
-        expect(word.end - word.start).toBeGreaterThanOrEqual(0.01)
+        // minimum duration is 0.01s; use toBeCloseTo to handle IEEE 754 edge cases
+        expect(word.end - word.start).toBeGreaterThanOrEqual(0.01 - 1e-10)
       }
     }
   })
