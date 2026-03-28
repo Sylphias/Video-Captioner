@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 9.1 Plan 02 Task 1 done. Dependencies installed (CUDA PyTorch + NeMo + pyannote via uv). Parakeet TDT spike validated on CUDA (RTX 4080). Diarize.py fixed (soundfile replaces broken torchaudio/torchcodec). Need end-to-end app verification (Task 2 human checkpoint).
-last_updated: "2026-03-27T01:15:00.000Z"
-last_activity: 2026-03-27
+stopped_at: Phase 11 Plan 01 complete — bulk store actions implemented and tested
+last_updated: "2026-03-28T08:56:28.374Z"
+last_activity: 2026-03-28
 progress:
   total_phases: 12
   completed_phases: 9
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Phase: 09.1 (transcription-diarization-upgrade-inserted) — EXECUTING
 Plan: 2 of 2
 Status: Phase complete — ready for verification
-Last activity: 2026-03-26
+Last activity: 2026-03-28
 
 Progress: [████████████████░░░░] 82% (8 of 11 phases complete; Phase 9 pending verification, 9.1 next)
 
@@ -63,6 +63,7 @@ Progress: [████████████████░░░░] 82% (8 
 *Updated after each plan completion*
 | Phase 09.1-transcription-diarization-upgrade-inserted P01 | 15 | 1 tasks | 8 files |
 | Phase 09.1-transcription-diarization-upgrade-inserted P01 | 20 | 2 tasks | 8 files |
+| Phase 11-text-editor-enhancements P01 | 6 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -243,6 +244,7 @@ Recent decisions affecting current work:
 - [Phase 09.1]: Option B (WSL): NeMo officially unsupported on native Windows — triton has no Windows wheel; transcription and diarization Python scripts run via WSL spawn
 - [Phase 09.1]: WSL venv at /root/.venv-wsl (not /mnt/... Windows mount) — NTFS cannot host venv symlinks; pure Linux FS required
 - [Phase 09.1]: toWslPath() converts Windows paths at spawn boundary — rest of codebase (jobs, routes, store) stays Windows-path-aware
+- [Phase 11-01]: Direct phrase array manipulation for bulk ops (mergePhrases/duplicatePhrase/move) instead of buildSessionPhrases — avoids timing-based re-grouping that destroys user-defined phrase structure
 
 ### Roadmap Evolution
 
@@ -273,8 +275,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-27T01:15:00.000Z
-Stopped at: Phase 9.1 Plan 02 Task 1 done. Dependencies installed, spike validated, diarize.py fixed. Need end-to-end app verification (Task 2).
+Last session: 2026-03-28T08:56:28.371Z
+Stopped at: Phase 11 Plan 01 complete — bulk store actions implemented and tested
 
 Next planned work:
 
