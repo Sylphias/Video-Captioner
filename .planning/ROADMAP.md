@@ -251,4 +251,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 9.
 | 8. Keyframe Position Animation | 5/5 | ✓ Complete | 2026-03-25 |
 | 9. Speaker Lane Layout | 3/3 | ◆ Verifying | - |
 | 9.1 Transcription Upgrade | 1/2 | In Progress|  |
-| 10. SRT Import & Text Correction | 2/2 | Complete   | 2026-03-28 |
+| 10. SRT Import & Text Correction | 2/2 | Complete    | 2026-03-28 |
