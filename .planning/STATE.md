@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 11 Plan 02 complete — multi-select UI, BulkActionsToolbar, keyboard shortcuts, confidence underlines
-last_updated: "2026-03-28T09:05:05.728Z"
+stopped_at: Completed 11-03-PLAN.md — FindReplaceBar, findReplace utility, replaceAllPhraseTexts. Phase 11 all plans complete.
+last_updated: "2026-03-28T09:12:55.193Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 14
-  completed_phases: 12
+  completed_phases: 11
   total_plans: 40
-  completed_plans: 41
+  completed_plans: 40
   percent: 82
 ---
 
@@ -65,6 +65,7 @@ Progress: [████████████████░░░░] 82% (8 
 | Phase 09.1-transcription-diarization-upgrade-inserted P01 | 20 | 2 tasks | 8 files |
 | Phase 11-text-editor-enhancements P01 | 6 | 1 tasks | 2 files |
 | Phase 11-text-editor-enhancements P02 | 4 | 2 tasks | 4 files |
+| Phase 11-text-editor-enhancements P03 | 4 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -248,6 +249,8 @@ Recent decisions affecting current work:
 - [Phase 11-01]: Direct phrase array manipulation for bulk ops (mergePhrases/duplicatePhrase/move) instead of buildSessionPhrases — avoids timing-based re-grouping that destroys user-defined phrase structure
 - [Phase 11-02]: BulkActionsToolbar hidden when confirmDeleteCount is active to avoid overlapping toolbars
 - [Phase 11-02]: Checkbox opacity:0 (not display:none) when no selection to prevent layout shift in flex row
+- [Phase 11-03]: findMatches uses case-insensitive RegExp gi flags — handles 'the'/'THE'/'there' correctly
+- [Phase 11-03]: replaceAllPhraseTexts processes replacements in reverse phraseIndex order to keep global word offsets accurate
 
 ### Roadmap Evolution
 
@@ -278,8 +281,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-28T09:05:05.725Z
-Stopped at: Phase 11 Plan 02 complete — multi-select UI, BulkActionsToolbar, keyboard shortcuts, confidence underlines
+Last session: 2026-03-28T09:12:55.190Z
+Stopped at: Completed 11-03-PLAN.md — FindReplaceBar, findReplace utility, replaceAllPhraseTexts. Phase 11 all plans complete.
 
 Next planned work:
 
