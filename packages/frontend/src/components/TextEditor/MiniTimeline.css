@@ -1,0 +1,39 @@
+/* ---- Mini Timeline: compact speech overview ---- */
+
+.mini-timeline {
+  padding: 0 var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.mini-timeline__track {
+  position: relative;
+  height: 24px;
+  background: var(--color-surface-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.mini-timeline__block {
+  position: absolute;
+  top: 3px;
+  height: 18px;
+  border-radius: 2px;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.mini-timeline__block--active {
+  opacity: 1;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+.mini-timeline__playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-accent-green);
+  z-index: 2;
+  pointer-events: none;
+}

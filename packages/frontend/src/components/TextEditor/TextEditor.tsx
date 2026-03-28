@@ -1,19 +1,20 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState, useEffect } from 'react'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useSrtImport } from '../../hooks/useSrtImport.ts'
 import { SrtDiffView } from './SrtDiffView.tsx'
 import { BulkActionsToolbar } from './BulkActionsToolbar.tsx'
 import { FindReplaceBar } from './FindReplaceBar.tsx'
+import { MiniTimeline } from './MiniTimeline.tsx'
 import './TextEditor.css'
 
 interface TextEditorProps {
   seekToTime: (timeSec: number) => void
-  onEditPhrase?: (phraseIndex: number) => void
+  getCurrentTime?: (() => number) | null
 }
 
 const CONFIDENCE_THRESHOLD = 0.7
 
-export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
+export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
   const session = useSubtitleStore((s) => s.session)
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
   const {
@@ -54,8 +55,49 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null)
   const [confirmDeleteCount, setConfirmDeleteCount] = useState<number | null>(null)
 
-  // Find/replace state (placeholder for Plan 03)
+  // Find/replace state
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
+
+  // Active phrase tracking — follows video playback
+  const [activePhraseIndex, setActivePhraseIndex] = useState<number | null>(null)
+  const [currentTime, setCurrentTime] = useState(0)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!getCurrentTime || !session) return
+    const interval = setInterval(() => {
+      const t = getCurrentTime()
+      setCurrentTime(t)
+      // Find the phrase that contains the current time
+      let found: number | null = null
+      for (let i = 0; i < session.phrases.length; i++) {
+        const p = session.phrases[i]
+        if (p.words.length === 0) continue
+        const start = p.words[0].start
+        const end = p.words[p.words.length - 1].end
+        if (t >= start && t <= end + 0.5) {
+          found = i
+          break
+        }
+      }
+      setActivePhraseIndex(found)
+    }, 100)
+    return () => clearInterval(interval)
+  }, [getCurrentTime, session])
+
+  // Auto-scroll to active phrase
+  useEffect(() => {
+    if (activePhraseIndex === null) return
+    const el = lineRefs.current.get(activePhraseIndex)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [activePhraseIndex])
+
+  // Compute total duration for mini timeline
+  const totalDuration = session
+    ? Math.max(...session.phrases.filter(p => p.words.length > 0).map(p => p.words[p.words.length - 1].end), 0)
+    : 0
 
   const clearSelection = useCallback(() => {
     setSelectedPhraseIndices(new Set())
@@ -113,8 +155,7 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
     if (phrase && phrase.words.length > 0) {
       seekToTime(phrase.words[0].start)
     }
-    if (onEditPhrase) onEditPhrase(phraseIndex)
-  }, [session, seekToTime, onEditPhrase])
+  }, [session, seekToTime])
 
   const handleBlur = useCallback((phraseIndex: number) => {
     if (!session) return
@@ -425,6 +466,17 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
         </div>
       )}
 
+      {/* Mini timeline — speech overview with playhead */}
+      {session && totalDuration > 0 && (
+        <MiniTimeline
+          phrases={session.phrases}
+          totalDuration={totalDuration}
+          currentTime={currentTime}
+          activePhraseIndex={activePhraseIndex}
+          onSeek={seekToTime}
+        />
+      )}
+
       {/* Find/Replace bar (D-04, D-05, D-06, D-07) */}
       {findReplaceOpen && session && (
         <FindReplaceBar
@@ -516,11 +568,12 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
           : undefined
         const isSelected = selectedPhraseIndices.has(phraseIndex)
         const hasAnySelected = selectedPhraseIndices.size > 0
+        const isActive = phraseIndex === activePhraseIndex
 
         return (
           <React.Fragment key={phraseIndex}>
           <div
-            className={`text-editor__line${isSelected ? ' text-editor__line--selected' : ''}`}
+            className={`text-editor__line${isSelected ? ' text-editor__line--selected' : ''}${isActive ? ' text-editor__line--active' : ''}`}
             onClick={(e) => handleRowClick(e, phraseIndex)}
           >
             {/* Checkbox column (D-02) */}

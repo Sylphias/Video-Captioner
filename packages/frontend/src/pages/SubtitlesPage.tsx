@@ -584,7 +584,7 @@ export function SubtitlesPage() {
             {activeStage === 'text' && (
               <TextEditor
                 seekToTime={seekToTime ?? (() => {})}
-                onEditPhrase={(phraseIndex) => setDrawerMode({ type: 'phrase', phraseIndex })}
+                getCurrentTime={getCurrentTime}
               />
             )}
 

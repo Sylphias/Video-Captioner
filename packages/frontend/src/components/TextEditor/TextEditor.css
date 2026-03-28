@@ -187,6 +187,16 @@
   border-radius: 4px;
 }
 
+/* ---- Active phrase (playing) highlight ---- */
+.text-editor__line--active {
+  border-left: 3px solid var(--color-accent-green);
+  background: color-mix(in srgb, var(--color-accent-green) 8%, transparent);
+}
+
+.text-editor__line--active .text-editor__line-number {
+  color: var(--color-accent-green);
+}
+
 /* ---- Checkbox column ---- */
 .text-editor__line-checkbox {
   flex-shrink: 0;
