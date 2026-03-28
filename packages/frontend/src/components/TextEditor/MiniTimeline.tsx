@@ -15,18 +15,69 @@ interface MiniTimelineProps {
   currentTime: number
   activePhraseIndex: number | null
   onSeek: (timeSec: number) => void
+  /** Called when user drags the start edge of a phrase's first word */
+  onAdjustStart?: (phraseIndex: number, newStartSec: number) => void
+  /** Called when user drags the end edge of a phrase's last word */
+  onAdjustEnd?: (phraseIndex: number, newEndSec: number) => void
 }
 
-export function MiniTimeline({ phrases, totalDuration, currentTime, activePhraseIndex, onSeek }: MiniTimelineProps) {
+export function MiniTimeline({
+  phrases,
+  totalDuration,
+  currentTime,
+  activePhraseIndex,
+  onSeek,
+  onAdjustStart,
+  onAdjustEnd,
+}: MiniTimelineProps) {
   const trackRef = useRef<HTMLDivElement>(null)
+  const draggingRef = useRef<{ type: 'start' | 'end'; phraseIndex: number } | null>(null)
 
-  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const pxToTime = useCallback((clientX: number): number => {
     const track = trackRef.current
-    if (!track || totalDuration <= 0) return
+    if (!track || totalDuration <= 0) return 0
     const rect = track.getBoundingClientRect()
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    onSeek(ratio * totalDuration)
-  }, [totalDuration, onSeek])
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    return ratio * totalDuration
+  }, [totalDuration])
+
+  const handleTrackClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Don't seek if we just finished a drag
+    if (draggingRef.current) return
+    const t = pxToTime(e.clientX)
+    onSeek(t)
+  }, [pxToTime, onSeek])
+
+  const handleEdgeDrag = useCallback((
+    e: React.MouseEvent,
+    type: 'start' | 'end',
+    phraseIndex: number,
+  ) => {
+    e.stopPropagation()
+    e.preventDefault()
+    draggingRef.current = { type, phraseIndex }
+
+    const onMove = (moveE: MouseEvent) => {
+      const t = pxToTime(moveE.clientX)
+      if (type === 'start' && onAdjustStart) {
+        onAdjustStart(phraseIndex, t)
+      } else if (type === 'end' && onAdjustEnd) {
+        onAdjustEnd(phraseIndex, t)
+      }
+    }
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      // Clear drag state after a tick so click handler doesn't fire
+      setTimeout(() => { draggingRef.current = null }, 10)
+    }
+
+    document.body.style.cursor = 'ew-resize'
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [pxToTime, onAdjustStart, onAdjustEnd])
 
   if (totalDuration <= 0) return null
 
@@ -34,8 +85,8 @@ export function MiniTimeline({ phrases, totalDuration, currentTime, activePhrase
 
   return (
     <div className="mini-timeline">
-      <div className="mini-timeline__track" ref={trackRef} onClick={handleClick}>
-        {/* Phrase blocks */}
+      <div className="mini-timeline__track" ref={trackRef} onClick={handleTrackClick}>
+        {/* Phrase blocks with drag handles */}
         {phrases.map((phrase, i) => {
           if (phrase.words.length === 0) return null
           const start = phrase.words[0].start
@@ -53,11 +104,22 @@ export function MiniTimeline({ phrases, totalDuration, currentTime, activePhrase
               className={`mini-timeline__block${isActive ? ' mini-timeline__block--active' : ''}`}
               style={{
                 left: `${leftPct}%`,
-                width: `${Math.max(widthPct, 0.3)}%`,
+                width: `${Math.max(widthPct, 0.5)}%`,
                 backgroundColor: color,
               }}
-              title={`${phrase.words.map(w => w.word).join(' ').slice(0, 40)}...`}
-            />
+              title={`${phrase.words.map(w => w.word).join(' ').slice(0, 50)}`}
+            >
+              {/* Left drag handle — adjust phrase start */}
+              <div
+                className="mini-timeline__handle mini-timeline__handle--left"
+                onMouseDown={(e) => handleEdgeDrag(e, 'start', i)}
+              />
+              {/* Right drag handle — adjust phrase end */}
+              <div
+                className="mini-timeline__handle mini-timeline__handle--right"
+                onMouseDown={(e) => handleEdgeDrag(e, 'end', i)}
+              />
+            </div>
           )
         })}
 

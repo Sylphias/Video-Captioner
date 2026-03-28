@@ -1,4 +1,4 @@
-/* ---- Mini Timeline: compact speech overview ---- */
+/* ---- Mini Timeline: compact speech overview with adjustable blocks ---- */
 
 .mini-timeline {
   padding: 0 var(--spacing-md);
@@ -7,7 +7,7 @@
 
 .mini-timeline__track {
   position: relative;
-  height: 24px;
+  height: 36px;
   background: var(--color-surface-secondary);
   border-radius: 4px;
   cursor: pointer;
@@ -16,11 +16,15 @@
 
 .mini-timeline__block {
   position: absolute;
-  top: 3px;
-  height: 18px;
-  border-radius: 2px;
+  top: 4px;
+  height: 28px;
+  border-radius: 3px;
   opacity: 0.6;
   transition: opacity var(--transition-fast);
+}
+
+.mini-timeline__block:hover {
+  opacity: 0.85;
 }
 
 .mini-timeline__block--active {
@@ -28,6 +32,38 @@
   box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
 }
 
+/* Drag handles on left/right edges */
+.mini-timeline__handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+  z-index: 1;
+}
+
+.mini-timeline__handle--left {
+  left: 0;
+  border-radius: 3px 0 0 3px;
+}
+
+.mini-timeline__handle--right {
+  right: 0;
+  border-radius: 0 3px 3px 0;
+}
+
+.mini-timeline__block:hover .mini-timeline__handle {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.mini-timeline__handle:hover {
+  background: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Playhead */
 .mini-timeline__playhead {
   position: absolute;
   top: 0;

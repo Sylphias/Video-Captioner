@@ -29,6 +29,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     movePhraseDown,
     reassignPhraseSpeaker,
     replaceAllPhraseTexts,
+    updateWord,
   } = useSubtitleStore()
 
   const { state: srtState, fileInputRef, importFile, reset: resetSrt, acceptPhrase, rejectPhrase } = useSrtImport()
@@ -466,7 +467,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
         </div>
       )}
 
-      {/* Mini timeline — speech overview with playhead */}
+      {/* Mini timeline — speech overview with playhead + draggable edges */}
       {session && totalDuration > 0 && (
         <MiniTimeline
           phrases={session.phrases}
@@ -474,6 +475,19 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
           currentTime={currentTime}
           activePhraseIndex={activePhraseIndex}
           onSeek={seekToTime}
+          onAdjustStart={(phraseIndex, newStart) => {
+            // Compute global word index of the first word in this phrase
+            let globalIdx = 0
+            for (let i = 0; i < phraseIndex; i++) globalIdx += session.phrases[i].words.length
+            updateWord(globalIdx, { start: Math.max(0, newStart) })
+          }}
+          onAdjustEnd={(phraseIndex, newEnd) => {
+            // Compute global word index of the last word in this phrase
+            let globalIdx = 0
+            for (let i = 0; i <= phraseIndex; i++) globalIdx += session.phrases[i].words.length
+            globalIdx-- // last word of this phrase
+            updateWord(globalIdx, { end: Math.max(0, newEnd) })
+          }}
         />
       )}
 
