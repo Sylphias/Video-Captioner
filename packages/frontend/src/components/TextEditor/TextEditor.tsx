@@ -3,6 +3,7 @@ import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useSrtImport } from '../../hooks/useSrtImport.ts'
 import { SrtDiffView } from './SrtDiffView.tsx'
 import { BulkActionsToolbar } from './BulkActionsToolbar.tsx'
+import { FindReplaceBar } from './FindReplaceBar.tsx'
 import './TextEditor.css'
 
 interface TextEditorProps {
@@ -26,6 +27,7 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
     movePhraseUp,
     movePhraseDown,
     reassignPhraseSpeaker,
+    replaceAllPhraseTexts,
   } = useSubtitleStore()
 
   const { state: srtState, fileInputRef, importFile, reset: resetSrt, acceptPhrase, rejectPhrase } = useSrtImport()
@@ -413,8 +415,17 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
         </button>
       )}
 
-      {/* Find/Replace placeholder (wired up in Plan 03) */}
-      {findReplaceOpen && <div className="find-replace-bar">Find/Replace placeholder</div>}
+      {/* Find/Replace bar (D-04, D-05, D-06, D-07) */}
+      {findReplaceOpen && session && (
+        <FindReplaceBar
+          phrases={session.phrases}
+          onReplace={(replacements) => {
+            replaceAllPhraseTexts(replacements)
+            setFindReplaceOpen(false)
+          }}
+          onClose={() => setFindReplaceOpen(false)}
+        />
+      )}
 
       {/* Error state */}
       {srtState.status === 'failed' && srtState.error && (

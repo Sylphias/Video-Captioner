@@ -64,6 +64,7 @@ interface SubtitleStore {
   duplicatePhrase: (phraseIndex: number) => void
   movePhraseUp: (phraseIndex: number) => void
   movePhraseDown: (phraseIndex: number) => void
+  replaceAllPhraseTexts: (replacements: Array<{ phraseIndex: number; newWords: string[] }>) => void
 }
 
 const DEFAULT_STYLE: StyleProps = {
@@ -1198,6 +1199,90 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       }
 
       return { session: { ...state.session, words: newWords, phrases, manualSplitWordIndices: newManualSplitWordIndices } }
+    })
+  },
+
+  replaceAllPhraseTexts: (replacements) => {
+    set((state) => {
+      if (!state.session || replacements.length === 0) return state
+
+      // Single undo snapshot for all replacements — user presses Ctrl+Z once to undo all
+      pushUndo(state)
+
+      // Process replacements: for each replacement, apply updatePhraseText logic inline
+      // without pushing additional undo snapshots (RESEARCH.md Anti-Patterns)
+      let { words, manualSplitWordIndices } = state.session
+
+      // Process replacements in reverse order of phraseIndex to keep global indices stable
+      const sorted = [...replacements].sort((a, b) => b.phraseIndex - a.phraseIndex)
+
+      // We need to recompute phrases after each replacement since global indices shift
+      // Use buildSessionPhrases to track current phrase boundaries
+      let phrases = [...state.session.phrases]
+
+      for (const { phraseIndex, newWords } of sorted) {
+        const phrase = phrases[phraseIndex]
+        if (!phrase || phrase.words.length === 0) continue
+
+        const oldWords = phrase.words
+        const phraseStart = oldWords[0].start
+        const phraseEnd = oldWords[oldWords.length - 1].end
+        const phraseDuration = phraseEnd - phraseStart
+
+        // Compute global offset of this phrase's first word in current words array
+        let globalOffset = 0
+        for (let i = 0; i < phraseIndex; i++) {
+          globalOffset += phrases[i].words.length
+        }
+
+        const newWordCount = newWords.length
+        const oldWordCount = oldWords.length
+
+        let updatedPhraseWords: SessionWord[]
+        if (newWordCount === oldWordCount) {
+          updatedPhraseWords = oldWords.map((w, i) => ({ ...w, word: newWords[i] }))
+        } else {
+          const step = phraseDuration / newWordCount
+          updatedPhraseWords = newWords.map((text, i) => ({
+            word: text,
+            start: phraseStart + i * step,
+            end: phraseStart + (i + 1) * step,
+            confidence: 1,
+            speaker: oldWords[0].speaker,
+          }))
+        }
+
+        // Replace in flat words array
+        const wordsArr = [...words]
+        wordsArr.splice(globalOffset, oldWordCount, ...updatedPhraseWords)
+        words = wordsArr as SessionWord[]
+
+        // Adjust manual split indices
+        const delta = newWordCount - oldWordCount
+        const newManualSplits = new Set<number>()
+        for (const idx of manualSplitWordIndices) {
+          if (idx >= globalOffset && idx < globalOffset + oldWordCount) {
+            continue // split inside edited phrase — drop
+          }
+          if (idx >= globalOffset + oldWordCount) {
+            newManualSplits.add(idx + delta)
+          } else {
+            newManualSplits.add(idx)
+          }
+        }
+        if (phrase.isManualSplit && phraseIndex > 0) {
+          newManualSplits.add(globalOffset)
+        }
+        manualSplitWordIndices = newManualSplits
+
+        // Update phrase in local phrases array to keep globalOffset computation accurate
+        phrases = phrases.map((p, i) =>
+          i === phraseIndex ? { ...p, words: updatedPhraseWords } : p
+        )
+      }
+
+      const rebuiltPhrases = buildSessionPhrases(words as SessionWord[], manualSplitWordIndices, state.maxWordsPerPhrase)
+      return { session: { words: words as SessionWord[], phrases: rebuiltPhrases, manualSplitWordIndices } }
     })
   },
 }))

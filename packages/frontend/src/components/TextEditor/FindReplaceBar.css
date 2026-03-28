@@ -1,0 +1,263 @@
+/* ---- Find/Replace Bar ---- */
+.find-replace-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  animation: find-replace-slide-down 150ms ease;
+}
+
+@keyframes find-replace-slide-down {
+  from { max-height: 0; opacity: 0; }
+  to { max-height: 48px; opacity: 1; }
+}
+
+.find-replace-bar__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.find-replace-bar__label--replace {
+  width: 56px;
+}
+
+.find-replace-bar__input {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  padding: 0 var(--spacing-sm);
+  height: 32px;
+  min-width: 160px;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.find-replace-bar__input:focus {
+  border-color: var(--color-accent-green);
+}
+
+.find-replace-bar__count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  min-width: 72px;
+}
+
+.find-replace-bar__count--no-matches {
+  color: var(--color-error);
+}
+
+.find-replace-bar__replace-btn {
+  background: var(--color-accent-green);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  height: 32px;
+  padding: 0 var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+  white-space: nowrap;
+}
+
+.find-replace-bar__replace-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.find-replace-bar__close-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color var(--transition-fast);
+  margin-left: auto;
+}
+
+.find-replace-bar__close-btn:hover {
+  color: var(--color-text-primary);
+}
+
+/* ---- Replace All Preview Modal ---- */
+.find-replace-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.find-replace-modal {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  width: 520px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.find-replace-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.find-replace-modal__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.find-replace-modal__close-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color var(--transition-fast);
+}
+
+.find-replace-modal__close-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.find-replace-modal__body {
+  padding: var(--spacing-md);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.find-replace-modal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.find-replace-modal__row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.find-replace-modal__line-num {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-disabled);
+  font-variant-numeric: tabular-nums;
+  width: 32px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.find-replace-match-before {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  flex: 1;
+  word-break: break-word;
+}
+
+.find-replace-match-before mark {
+  background: color-mix(in srgb, var(--color-warning) 30%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.find-replace-modal__arrow {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-disabled);
+  flex-shrink: 0;
+}
+
+.find-replace-match-after {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  flex: 1;
+  word-break: break-word;
+}
+
+.find-replace-match-after mark {
+  background: color-mix(in srgb, var(--color-accent-green-muted) 60%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.find-replace-modal__note {
+  margin: var(--spacing-md) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.find-replace-modal__footer {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.find-replace-modal__btn {
+  height: 32px;
+  padding: 0 var(--spacing-sm);
+  border-radius: 4px;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: opacity var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.find-replace-modal__btn--secondary {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.find-replace-modal__btn--secondary:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+.find-replace-modal__btn--primary {
+  background: var(--color-accent-green);
+  border: none;
+  color: white;
+}
+
+.find-replace-modal__btn--primary:hover {
+  opacity: 0.9;
+}
