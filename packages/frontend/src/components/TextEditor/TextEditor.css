@@ -135,6 +135,75 @@
   color: var(--color-text-primary);
 }
 
+/* ---- Selected row highlight ---- */
+.text-editor__line--selected {
+  background: color-mix(in srgb, var(--color-accent-green-muted) 50%, transparent);
+  border-radius: 4px;
+}
+
+/* ---- Checkbox column ---- */
+.text-editor__line-checkbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent-green);
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+/* ---- Low-confidence word underline ---- */
+.text-editor__word--low-confidence {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--color-warning);
+  cursor: help;
+}
+
+/* ---- Delete confirmation inline bar ---- */
+.text-editor__delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.text-editor__delete-confirm-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.text-editor__delete-confirm-btn:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+.text-editor__delete-confirm-btn--destructive:hover {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+/* ---- Find/Replace placeholder ---- */
+.find-replace-bar {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
 /* ---- SRT Import Button ---- */
 .srt-import-btn {
   align-self: flex-start;

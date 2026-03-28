@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useSrtImport } from '../../hooks/useSrtImport.ts'
 import { SrtDiffView } from './SrtDiffView.tsx'
@@ -9,10 +9,23 @@ interface TextEditorProps {
   onEditPhrase?: (phraseIndex: number) => void
 }
 
+const CONFIDENCE_THRESHOLD = 0.7
+
 export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
   const session = useSubtitleStore((s) => s.session)
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
-  const { splitPhrase, mergePhrase, addPhrase, updatePhraseText } = useSubtitleStore()
+  const {
+    splitPhrase,
+    mergePhrase,
+    addPhrase,
+    updatePhraseText,
+    mergePhrases,
+    deletePhrases,
+    duplicatePhrase,
+    movePhraseUp,
+    movePhraseDown,
+    reassignPhraseSpeaker,
+  } = useSubtitleStore()
 
   const { state: srtState, fileInputRef, importFile, reset: resetSrt, acceptPhrase, rejectPhrase } = useSrtImport()
 
@@ -32,6 +45,64 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
       lineRefs.current.delete(idx)
     }
   }, [])
+
+  // Multi-select state (D-01, D-02)
+  const [selectedPhraseIndices, setSelectedPhraseIndices] = useState<Set<number>>(new Set())
+  const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null)
+  const [confirmDeleteCount, setConfirmDeleteCount] = useState<number | null>(null)
+
+  // Find/replace state (placeholder for Plan 03)
+  const [findReplaceOpen, setFindReplaceOpen] = useState(false)
+
+  const clearSelection = useCallback(() => {
+    setSelectedPhraseIndices(new Set())
+    setLastClickedIndex(null)
+  }, [])
+
+  const handleCheckboxClick = useCallback((e: React.MouseEvent, phraseIndex: number) => {
+    e.stopPropagation()
+    setSelectedPhraseIndices(prev => {
+      const next = new Set(prev)
+      if (next.has(phraseIndex)) {
+        next.delete(phraseIndex)
+      } else {
+        next.add(phraseIndex)
+      }
+      return next
+    })
+    setLastClickedIndex(phraseIndex)
+  }, [])
+
+  const handleRowClick = useCallback((e: React.MouseEvent, phraseIndex: number) => {
+    const target = e.target as HTMLElement
+    // Only trigger selection if click is on checkbox or row background (not contentEditable)
+    const isContentEditable = target.contentEditable === 'true' || target.closest('[contenteditable="true"]') !== null
+    const isCheckbox = (target as HTMLInputElement).type === 'checkbox'
+    if (!isCheckbox && isContentEditable) return
+
+    if (e.shiftKey && lastClickedIndex !== null) {
+      // Range select
+      const start = Math.min(lastClickedIndex, phraseIndex)
+      const end = Math.max(lastClickedIndex, phraseIndex)
+      setSelectedPhraseIndices(prev => {
+        const next = new Set(prev)
+        for (let i = start; i <= end; i++) next.add(i)
+        return next
+      })
+    } else if (!isCheckbox) {
+      // Toggle on row background click
+      setSelectedPhraseIndices(prev => {
+        const next = new Set(prev)
+        if (next.has(phraseIndex)) {
+          next.delete(phraseIndex)
+        } else {
+          next.add(phraseIndex)
+        }
+        return next
+      })
+      setLastClickedIndex(phraseIndex)
+    }
+  }, [lastClickedIndex])
 
   const handleSeek = useCallback((phraseIndex: number) => {
     if (!session) return
@@ -55,10 +126,6 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
     if (newWords.length === 0) return
 
     updatePhraseText(phraseIndex, newWords)
-
-    // After store update, the component will re-render with the new phrase text.
-    // Sync the DOM to match (avoids stale innerText after React re-render)
-    // This is handled by React re-render.
   }, [session, updatePhraseText])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>, phraseIndex: number) => {
@@ -154,6 +221,161 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
     }
   }, [session, splitPhrase, mergePhrase, updatePhraseText])
 
+  // Outer editor keydown handler for shortcuts (D-08)
+  const handleEditorKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const inContentEditable = (e.target as HTMLElement).contentEditable === 'true'
+
+    // Ctrl+H — toggle find/replace
+    if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+      e.preventDefault()
+      setFindReplaceOpen(prev => !prev)
+      return
+    }
+
+    // Ctrl+A — select all phrases (not in contentEditable)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a' && !inContentEditable) {
+      e.preventDefault()
+      if (session) setSelectedPhraseIndices(new Set(session.phrases.map((_, i) => i)))
+      return
+    }
+
+    // Ctrl+M — merge selected (not in contentEditable, 2+ selected)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'm' && !inContentEditable && selectedPhraseIndices.size >= 2) {
+      e.preventDefault()
+      mergePhrases([...selectedPhraseIndices])
+      clearSelection()
+      return
+    }
+
+    // Delete/Backspace — delete selected (not in contentEditable, 1+ selected)
+    if ((e.key === 'Delete' || e.key === 'Backspace') && !inContentEditable && selectedPhraseIndices.size >= 1) {
+      e.preventDefault()
+      if (selectedPhraseIndices.size > 3) {
+        setConfirmDeleteCount(selectedPhraseIndices.size)
+      } else {
+        deletePhrases([...selectedPhraseIndices])
+        clearSelection()
+      }
+      return
+    }
+
+    // Ctrl+D — duplicate (not in contentEditable, exactly 1 selected)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'd' && !inContentEditable && selectedPhraseIndices.size === 1) {
+      e.preventDefault()
+      duplicatePhrase([...selectedPhraseIndices][0])
+      clearSelection()
+      return
+    }
+
+    // Ctrl+Shift+Up — move up (not in contentEditable)
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'ArrowUp' && !inContentEditable && selectedPhraseIndices.size >= 1) {
+      e.preventDefault()
+      const sorted = [...selectedPhraseIndices].sort((a, b) => a - b)
+      if (sorted[0] > 0) {
+        for (const idx of sorted) movePhraseUp(idx)
+        setSelectedPhraseIndices(new Set(sorted.map(i => i - 1)))
+      }
+      return
+    }
+
+    // Ctrl+Shift+Down — move down (not in contentEditable)
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'ArrowDown' && !inContentEditable && selectedPhraseIndices.size >= 1) {
+      e.preventDefault()
+      const sorted = [...selectedPhraseIndices].sort((a, b) => b - a) // reverse
+      if (session && sorted[0] < session.phrases.length - 1) {
+        for (const idx of sorted) movePhraseDown(idx)
+        setSelectedPhraseIndices(new Set(sorted.map(i => i + 1)))
+      }
+      return
+    }
+
+    // ArrowUp — move to previous phrase (in contentEditable at start of line)
+    if (e.key === 'ArrowUp' && inContentEditable && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      const sel = window.getSelection()
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0)
+        const atStart = range.startOffset === 0 && (
+          range.startContainer === e.target ||
+          range.startContainer === (e.target as HTMLElement).firstChild ||
+          (range.startContainer.parentElement && range.startContainer === range.startContainer.parentElement.firstChild && range.startOffset === 0)
+        )
+        if (atStart) {
+          e.preventDefault()
+          const currentIndex = parseInt((e.target as HTMLElement).dataset.phraseIndex ?? '-1', 10)
+          const prevIndex = currentIndex - 1
+          if (session && prevIndex >= 0) {
+            const prevEl = lineRefs.current.get(prevIndex)
+            if (prevEl) {
+              prevEl.focus()
+              const prevSel = window.getSelection()
+              if (prevSel) {
+                const r = document.createRange()
+                r.selectNodeContents(prevEl)
+                r.collapse(false) // to end
+                prevSel.removeAllRanges()
+                prevSel.addRange(r)
+              }
+            }
+          }
+        }
+      }
+      return
+    }
+
+    // ArrowDown — move to next phrase (in contentEditable at end of line)
+    if (e.key === 'ArrowDown' && inContentEditable && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+      const sel = window.getSelection()
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0)
+        const target = e.target as HTMLElement
+        const atEnd = range.endOffset === (range.endContainer.textContent?.length ?? 0) && (
+          range.endContainer === target ||
+          range.endContainer === target.lastChild ||
+          (range.endContainer.parentElement && range.endContainer === range.endContainer.parentElement.lastChild)
+        )
+        if (atEnd) {
+          e.preventDefault()
+          const currentIndex = parseInt(target.dataset.phraseIndex ?? '-1', 10)
+          const nextIndex = currentIndex + 1
+          if (session && nextIndex < session.phrases.length) {
+            const nextEl = lineRefs.current.get(nextIndex)
+            if (nextEl) {
+              nextEl.focus()
+              const nextSel = window.getSelection()
+              if (nextSel) {
+                const r = document.createRange()
+                r.selectNodeContents(nextEl)
+                r.collapse(true) // to start
+                nextSel.removeAllRanges()
+                nextSel.addRange(r)
+              }
+            }
+          }
+        }
+      }
+      return
+    }
+
+    // Tab — navigate between phrase contentEditables
+    if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault()
+      const currentIndex = parseInt((e.target as HTMLElement).dataset.phraseIndex ?? '-1', 10)
+      const nextIndex = e.shiftKey ? currentIndex - 1 : currentIndex + 1
+      if (session && nextIndex >= 0 && nextIndex < session.phrases.length) {
+        const nextEl = lineRefs.current.get(nextIndex)
+        if (nextEl) nextEl.focus()
+      }
+      return
+    }
+
+    // Escape — clear selection
+    if (e.key === 'Escape') {
+      clearSelection()
+      setFindReplaceOpen(false)
+      return
+    }
+  }, [session, selectedPhraseIndices, mergePhrases, deletePhrases, duplicatePhrase, movePhraseUp, movePhraseDown, clearSelection])
+
   if (!session || session.phrases.length === 0) {
     return (
       <div className="text-editor text-editor--empty">
@@ -165,7 +387,11 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
   const hasSpeakers = Object.keys(speakerNames).length > 0
 
   return (
-    <div className="text-editor">
+    <div
+      className="text-editor"
+      onKeyDown={handleEditorKeyDown}
+      tabIndex={-1}
+    >
       {/* Hidden file input for SRT import (D-03) */}
       <input
         type="file"
@@ -185,6 +411,9 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
           Import SRT
         </button>
       )}
+
+      {/* Find/Replace placeholder (wired up in Plan 03) */}
+      {findReplaceOpen && <div className="find-replace-bar">Find/Replace placeholder</div>}
 
       {/* Error state */}
       {srtState.status === 'failed' && srtState.error && (
@@ -211,19 +440,61 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
         />
       )}
 
+      {/* Delete confirmation inline bar (> 3 phrases) */}
+      {confirmDeleteCount !== null && (
+        <div className="text-editor__delete-confirm">
+          <span>Delete {confirmDeleteCount} phrases?</span>
+          <button
+            type="button"
+            className="text-editor__delete-confirm-btn text-editor__delete-confirm-btn--destructive"
+            onClick={() => {
+              deletePhrases([...selectedPhraseIndices])
+              clearSelection()
+              setConfirmDeleteCount(null)
+            }}
+          >
+            Delete {confirmDeleteCount} Phrases
+          </button>
+          <button
+            type="button"
+            className="text-editor__delete-confirm-btn"
+            onClick={() => setConfirmDeleteCount(null)}
+          >
+            Keep Phrases
+          </button>
+        </div>
+      )}
+
       {session.phrases.map((phrase, phraseIndex) => {
         const phraseText = phrase.words.map((w) => w.word).join(' ')
         const speakerIdx = phrase.dominantSpeaker
           ? parseInt(phrase.dominantSpeaker.replace('SPEAKER_', ''), 10) % 8
           : undefined
+        const isSelected = selectedPhraseIndices.has(phraseIndex)
+        const hasAnySelected = selectedPhraseIndices.size > 0
 
         return (
-          <div key={phraseIndex} className="text-editor__line">
+          <div
+            key={phraseIndex}
+            className={`text-editor__line${isSelected ? ' text-editor__line--selected' : ''}`}
+            onClick={(e) => handleRowClick(e, phraseIndex)}
+          >
+            {/* Checkbox column (D-02) */}
+            <input
+              type="checkbox"
+              className="text-editor__line-checkbox"
+              style={{ opacity: hasAnySelected ? 1 : 0 }}
+              checked={isSelected}
+              onChange={() => {}} // controlled via onClick
+              onClick={(e) => handleCheckboxClick(e, phraseIndex)}
+              aria-label={`Select phrase ${phraseIndex + 1}`}
+            />
+
             {/* Line number — click to seek */}
             <button
               type="button"
               className="text-editor__line-number"
-              onClick={() => handleSeek(phraseIndex)}
+              onClick={(e) => { e.stopPropagation(); handleSeek(phraseIndex) }}
               title={`Seek to line ${phraseIndex + 1}`}
             >
               {phraseIndex + 1}
@@ -242,8 +513,9 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
               />
             )}
 
-            {/* Editable phrase text */}
+            {/* Editable phrase text with confidence underlines (D-10, D-11) */}
             <div
+              key={phraseText}
               ref={(el) => setLineRef(phraseIndex, el)}
               className="text-editor__line-content"
               contentEditable
@@ -252,7 +524,18 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
               onKeyDown={(e) => handleKeyDown(e, phraseIndex)}
               data-phrase-index={phraseIndex}
             >
-              {phraseText}
+              {phrase.words.map((word, wi) => {
+                const isLow = word.confidence < CONFIDENCE_THRESHOLD
+                return (
+                  <span
+                    key={wi}
+                    className={isLow ? 'text-editor__word--low-confidence' : undefined}
+                    title={isLow ? `Confidence: ${Math.round(word.confidence * 100)}%` : undefined}
+                  >
+                    {word.word}{wi < phrase.words.length - 1 ? ' ' : ''}
+                  </span>
+                )
+              })}
             </div>
           </div>
         )
