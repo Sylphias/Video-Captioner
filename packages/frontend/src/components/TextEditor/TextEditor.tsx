@@ -1,5 +1,7 @@
 import { useCallback, useRef } from 'react'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
+import { useSrtImport } from '../../hooks/useSrtImport.ts'
+import { SrtDiffView } from './SrtDiffView.tsx'
 import './TextEditor.css'
 
 interface TextEditorProps {
@@ -11,6 +13,14 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
   const session = useSubtitleStore((s) => s.session)
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
   const { splitPhrase, mergePhrase, addPhrase, updatePhraseText } = useSubtitleStore()
+
+  const { state: srtState, fileInputRef, importFile, reset: resetSrt, acceptPhrase, rejectPhrase } = useSrtImport()
+
+  const handleSrtFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await importFile(file)
+  }, [importFile])
 
   // Ref map to track contentEditable divs by phraseIndex
   const lineRefs = useRef<Map<number, HTMLDivElement>>(new Map())
@@ -156,6 +166,51 @@ export function TextEditor({ seekToTime, onEditPhrase }: TextEditorProps) {
 
   return (
     <div className="text-editor">
+      {/* Hidden file input for SRT import (D-03) */}
+      <input
+        type="file"
+        accept=".srt"
+        style={{ display: 'none' }}
+        ref={fileInputRef}
+        onChange={handleSrtFileChange}
+      />
+
+      {/* SRT Import Button (D-02: lives in text editing view) */}
+      {session && (
+        <button
+          type="button"
+          className="srt-import-btn"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          Import SRT
+        </button>
+      )}
+
+      {/* Error state */}
+      {srtState.status === 'failed' && srtState.error && (
+        <div className="srt-import-error">
+          <span>{srtState.error}</span>
+          <button
+            type="button"
+            className="srt-import-error__dismiss"
+            onClick={resetSrt}
+            aria-label="Dismiss error"
+          >
+            {'\u00D7'}
+          </button>
+        </div>
+      )}
+
+      {/* SRT Diff View (D-07: side-by-side) */}
+      {srtState.status === 'parsed' && (
+        <SrtDiffView
+          alignedPhrases={srtState.alignedPhrases}
+          onAccept={acceptPhrase}
+          onReject={rejectPhrase}
+          onDismiss={resetSrt}
+        />
+      )}
+
       {session.phrases.map((phrase, phraseIndex) => {
         const phraseText = phrase.words.map((w) => w.word).join(' ')
         const speakerIdx = phrase.dominantSpeaker

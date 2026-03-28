@@ -134,3 +134,24 @@
   border-color: var(--color-accent-green);
   color: var(--color-text-primary);
 }
+
+/* ---- SRT Import Button ---- */
+.srt-import-btn {
+  align-self: flex-start;
+  margin-left: 44px;
+  margin-bottom: var(--spacing-sm);
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  height: 32px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.srt-import-btn:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
