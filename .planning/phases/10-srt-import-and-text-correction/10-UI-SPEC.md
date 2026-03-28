@@ -43,7 +43,7 @@ Declared values — all multiples of 4, sourced from `tokens.css`:
 
 Exceptions:
 - Import button touch target minimum: 32px height (consistent with existing `.text-editor__add-line-btn` sizing)
-- Accept/Reject button minimum width: 64px each so both labels are legible without wrapping
+- Accept Correction/Reject Change button minimum width: 64px each so both labels are legible without wrapping
 
 ---
 
@@ -70,11 +70,11 @@ All values from `tokens.css`. Source: `packages/frontend/src/styles/tokens.css`.
 |------|-------|-------------|-------|
 | Dominant (60%) | `#1a1a1a` | `--color-bg-base` | Page background, outer container |
 | Secondary (30%) | `#242424` / `#2e2e2e` | `--color-bg-surface` / `--color-bg-elevated` | SrtDiffView panel background (`--color-bg-surface`), individual diff row background on hover (`--color-bg-elevated`) |
-| Accent (10%) | `#4caf72` | `--color-accent-green` | Accept button background, "Import SRT" button hover border, active-phrase line-number |
-| Destructive | `#e05454` | `--color-error` | Reject button hover state only |
+| Accent (10%) | `#4caf72` | `--color-accent-green` | Accept Correction button background, "Import SRT" button hover border, active-phrase line-number |
+| Destructive | `#e05454` | `--color-error` | Reject Change button hover state only |
 
 **Accent reserved for:**
-1. "Accept" button background (filled style)
+1. "Accept Correction" button background (filled style)
 2. "Import SRT" button border on hover (matches existing `.text-editor__add-line-btn:hover` pattern)
 3. Diff-added text highlight background (using `--color-accent-green-muted` at reduced opacity, consistent with focus style in TextEditor)
 
@@ -83,7 +83,13 @@ All values from `tokens.css`. Source: `packages/frontend/src/styles/tokens.css`.
 - Removed text (Whisper words not in SRT): text `--color-text-disabled` (`#585858`), `text-decoration: line-through`, no background fill
 - Unchanged text: `--color-text-primary` (`#e8e8e8`), no decoration
 
-Rationale: Added = positive change (green = approve), Removed = obsoleted text (muted/struck through without alarming red). This keeps the destructive red (`--color-error`) reserved exclusively for the Reject button, preventing color-meaning collision.
+Rationale: Added = positive change (green = approve), Removed = obsoleted text (muted/struck through without alarming red). This keeps the destructive red (`--color-error`) reserved exclusively for the Reject Change button, preventing color-meaning collision.
+
+---
+
+## Focal Point
+
+When the SrtDiffView panel opens, the first unreviewed diff row is the primary visual anchor. The panel scrolls to the top on mount so row 1 is fully visible. The "Accept Correction" button in row 1 receives focus on panel open, giving keyboard users an immediate entry point and drawing sighted users' eyes to the actionable area.
 
 ---
 
@@ -118,8 +124,8 @@ Layout: Full-width container within the text-editor column flow.
 
 Panel header:
 - Title: "SRT Diff Review" — 18px, weight 600, `--color-text-primary`
-- Subtitle: "N phrases matched — accept or reject each correction" — 14px, weight 400, `--color-text-secondary`
-- Close/dismiss button (×): top-right, 32×32px hit target, `--color-text-secondary`, hover `--color-text-primary`
+- Subtitle: "{N} phrase{s} matched — accept or reject each correction" — 14px, weight 400, `--color-text-secondary`
+- Close/dismiss button (×): top-right, 32×32px hit target, `--color-text-secondary`, hover `--color-text-primary`, `aria-label: "Discard SRT diff"`
 - Background: `--color-bg-surface`, border-bottom: `1px solid --color-border`, padding `16px`
 
 Phrase diff rows (one per aligned phrase, D-08):
@@ -140,9 +146,9 @@ Inline diff text rendering (per column):
 - Removed `<s>` (Whisper column only): color `--color-text-disabled`, `text-decoration: line-through`, no background
 
 Action buttons (right column of each row):
-- "Accept" button: background `--color-accent-green`, color `#fff`, font-size 14px, weight 600, height 28px, min-width 64px, border-radius 4px, border none; hover: background `--color-accent-green-dim`
-- "Reject" button: background transparent, color `--color-text-secondary`, border `1px solid --color-border`, font-size 14px, weight 400, height 28px, min-width 64px, border-radius 4px; hover: border-color `--color-error`, color `--color-error`
-- Button gap: 8px between Accept and Reject
+- "Accept Correction" button: background `--color-accent-green`, color `#fff`, font-size 14px, weight 600, height 28px, min-width 64px, border-radius 4px, border none; hover: background `--color-accent-green-dim`
+- "Reject Change" button: background transparent, color `--color-text-secondary`, border `1px solid --color-border`, font-size 14px, weight 400, height 28px, min-width 64px, border-radius 4px; hover: border-color `--color-error`, color `--color-error`
+- Button gap: 8px between Accept Correction and Reject Change
 
 Scrollable area:
 - Max-height: `calc(100vh - 300px)` — allows diff list to scroll without pushing layout
@@ -187,18 +193,19 @@ The diff panel inserts between the import button and the phrase list. It does NO
 |---------|------|
 | Primary CTA | "Import SRT" |
 | Diff panel title | "SRT Diff Review" |
-| Diff panel subtitle | "{N} phrase{s} matched — accept or reject each correction" |
-| Accept button | "Accept" |
-| Reject button | "Reject" |
+| Diff panel subtitle | "{N} phrase{s} matched — accept or reject each correction" — pluralization rule: use "phrase" when N = 1, "phrases" when N = 0 or N > 1 (e.g. "1 phrase matched", "3 phrases matched", "0 phrases matched") |
+| Accept button | "Accept Correction" |
+| Reject button | "Reject Change" |
+| Panel dismiss button | aria-label: "Discard SRT diff" (button has no visible text label — × glyph only) |
 | Empty state heading (no session) | (button disabled — no copy needed; button opacity handles affordance) |
 | Empty state heading (no matches) | "No matching phrases found." |
 | Empty state body (no matches) | "Check that the SRT timestamps overlap with the transcript." |
 | Error state — parse failure | "Could not parse SRT file. Check that the file is valid SRT format." |
 | Error state — alignment failure | "Alignment failed. Make sure a transcript exists before importing." |
-| Destructive confirmation — Reject | None — rejection is non-destructive (original text is preserved; no confirm dialog needed) |
+| Destructive confirmation — Reject Change | None — rejection is non-destructive (original text is preserved; no confirm dialog needed) |
 | Re-import warning | None — D-12 says re-import starts fresh; the existing diff panel simply replaces with new results silently |
 
-Note: "Reject" is not a destructive action — it discards the SRT suggestion and preserves the original Whisper text. No confirmation dialog required.
+Note: "Reject Change" is not a destructive action — it discards the SRT suggestion and preserves the original Whisper text. No confirmation dialog required.
 
 ---
 
@@ -213,7 +220,7 @@ Note: "Reject" is not a destructive action — it discards the SRT suggestion an
 
 ### Per-phrase accept (D-08, D-09)
 
-1. User clicks "Accept" on a row
+1. User clicks "Accept Correction" on a row
 2. `applySrtPhrase(phraseIndex, replacementWords)` called — pushes undo snapshot first (D-09)
 3. Row is removed from diff view immediately
 4. Alignment re-runs against updated `session.phrases` to fix phrase index drift (RESEARCH.md Pitfall 2 — Option A)
@@ -221,13 +228,13 @@ Note: "Reject" is not a destructive action — it discards the SRT suggestion an
 
 ### Per-phrase reject
 
-1. User clicks "Reject" on a row
+1. User clicks "Reject Change" on a row
 2. Row removed from diff view; store untouched
 3. No undo step created (nothing was changed)
 
 ### Diff panel dismiss
 
-1. User clicks × on panel header
+1. User clicks × on panel header (aria-label: "Discard SRT diff")
 2. `useSrtImport.reset()` called — status returns to `'idle'`, diff panel unmounts
 3. Any un-accepted SRT phrases are discarded; accepted ones already applied via undo history
 
@@ -251,14 +258,14 @@ No new keyboard shortcuts defined for this phase. Undo (Cmd+Z / Ctrl+Z) applies 
 | SrtImportButton | hover | green border, primary text |
 | SrtImportButton | disabled (no session) | opacity 0.4, cursor not-allowed |
 | SrtDiffView | not shown | (unmounted — status idle) |
-| SrtDiffView | shown (parsed) | panel with header + scrollable rows |
+| SrtDiffView | shown (parsed) | panel with header + scrollable rows; first row focused on mount |
 | SrtDiffView | empty (no matches) | panel with "No matching phrases found." message |
 | Diff row | default | transparent background |
 | Diff row | hover | `--color-bg-elevated` background |
-| Accept button | default | green fill |
-| Accept button | hover | `--color-accent-green-dim` fill |
-| Reject button | default | transparent, bordered |
-| Reject button | hover | red border + red text |
+| Accept Correction button | default | green fill |
+| Accept Correction button | hover | `--color-accent-green-dim` fill |
+| Reject Change button | default | transparent, bordered |
+| Reject Change button | hover | red border + red text |
 | Error inline | shown | red-tinted background, red text |
 
 ---
