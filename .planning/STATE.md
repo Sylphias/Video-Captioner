@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 11 Plan 01 complete — bulk store actions implemented and tested
-last_updated: "2026-03-28T08:56:28.374Z"
+stopped_at: Phase 11 Plan 02 complete — multi-select UI, BulkActionsToolbar, keyboard shortcuts, confidence underlines
+last_updated: "2026-03-28T09:05:05.728Z"
 last_activity: 2026-03-28
 progress:
-  total_phases: 12
-  completed_phases: 9
-  total_plans: 35
-  completed_plans: 35
+  total_phases: 14
+  completed_phases: 12
+  total_plans: 40
+  completed_plans: 41
   percent: 82
 ---
 
@@ -64,6 +64,7 @@ Progress: [████████████████░░░░] 82% (8 
 | Phase 09.1-transcription-diarization-upgrade-inserted P01 | 15 | 1 tasks | 8 files |
 | Phase 09.1-transcription-diarization-upgrade-inserted P01 | 20 | 2 tasks | 8 files |
 | Phase 11-text-editor-enhancements P01 | 6 | 1 tasks | 2 files |
+| Phase 11-text-editor-enhancements P02 | 4 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -245,6 +246,8 @@ Recent decisions affecting current work:
 - [Phase 09.1]: WSL venv at /root/.venv-wsl (not /mnt/... Windows mount) — NTFS cannot host venv symlinks; pure Linux FS required
 - [Phase 09.1]: toWslPath() converts Windows paths at spawn boundary — rest of codebase (jobs, routes, store) stays Windows-path-aware
 - [Phase 11-01]: Direct phrase array manipulation for bulk ops (mergePhrases/duplicatePhrase/move) instead of buildSessionPhrases — avoids timing-based re-grouping that destroys user-defined phrase structure
+- [Phase 11-02]: BulkActionsToolbar hidden when confirmDeleteCount is active to avoid overlapping toolbars
+- [Phase 11-02]: Checkbox opacity:0 (not display:none) when no selection to prevent layout shift in flex row
 
 ### Roadmap Evolution
 
@@ -275,8 +278,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-28T08:56:28.371Z
-Stopped at: Phase 11 Plan 01 complete — bulk store actions implemented and tested
+Last session: 2026-03-28T09:05:05.725Z
+Stopped at: Phase 11 Plan 02 complete — multi-select UI, BulkActionsToolbar, keyboard shortcuts, confidence underlines
 
 Next planned work:
 
