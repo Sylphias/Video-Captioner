@@ -255,13 +255,15 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 9.
 
 ### Phase 11: Text Editor Enhancements
 
-**Goal:** Improve the text editing view with phrase joining, find-and-replace for mass word correction, and better phrase manipulation UX
-**Requirements**: TBD
+**Goal:** Improve the text editing view with multi-select phrase joining, find-and-replace for mass word correction, full keyboard shortcuts, contextual bulk actions toolbar, and low-confidence word hints
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11
 **Depends on:** Phase 10
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 11 to break down)
+- [ ] 11-01-PLAN.md — Bulk store actions (mergePhrases, deletePhrases, duplicatePhrase, movePhraseUp/Down) with unit tests
+- [ ] 11-02-PLAN.md — Multi-select UI, BulkActionsToolbar, keyboard shortcuts, low-confidence word underlines
+- [ ] 11-03-PLAN.md — Find/Replace bar with preview modal, findReplace utility with tests
 
 ### Phase 12: UI/UX Layout Improvements
 
