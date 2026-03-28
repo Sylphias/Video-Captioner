@@ -256,4 +256,14 @@ describe('alignSrtToWhisper', () => {
     const phrases: SessionPhrase[] = [makePhrase(0, 2, ['foo', 'bar'])]
     expect(alignSrtToWhisper([], phrases)).toHaveLength(0)
   })
+
+  it('auto-detects and corrects large SRT time offset (e.g. DaVinci Resolve 01:00:00 start)', () => {
+    // SRT starts at 3600s (01:00:00), Whisper starts at 0s
+    const cues = [{ startSec: 3600, endSec: 3602, text: 'corrected text' }]
+    const phrases: SessionPhrase[] = [makePhrase(0, 2, ['original', 'text'])]
+    const result = alignSrtToWhisper(cues, phrases)
+    expect(result).toHaveLength(1)
+    expect(result[0].srtText).toBe('corrected text')
+    expect(result[0].replacementWords[0].start).toBeCloseTo(0, 1)
+  })
 })

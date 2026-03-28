@@ -115,10 +115,22 @@ function distributeTimings(
 export function alignSrtToWhisper(cues: SrtCue[], phrases: SessionPhrase[]): AlignedPhrase[] {
   if (cues.length === 0 || phrases.length === 0) return []
 
+  // Detect and correct SRT time offset (e.g. DaVinci Resolve uses 01:00:00 timeline start)
+  // Compare the earliest SRT cue start with the earliest phrase start.
+  // If the SRT timestamps are significantly ahead (>30s offset), shift them down.
+  const earliestCueStart = Math.min(...cues.map((c) => c.startSec))
+  const earliestPhraseStart = Math.min(
+    ...phrases.filter((p) => p.words.length > 0).map((p) => p.words[0].start),
+  )
+  const timeOffset = earliestCueStart - earliestPhraseStart
+  const offsetCues = timeOffset > 30
+    ? cues.map((c) => ({ ...c, startSec: c.startSec - timeOffset, endSec: c.endSec - timeOffset }))
+    : cues
+
   // Map from phraseIndex -> best matched cue (winner so far)
   const phraseToMatch = new Map<number, { cue: SrtCue; overlapFraction: number }>()
 
-  for (const cue of cues) {
+  for (const cue of offsetCues) {
     const cueDuration = cue.endSec - cue.startSec
     if (cueDuration <= 0) continue
 
