@@ -252,3 +252,23 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 9.
 | 9. Speaker Lane Layout | 3/3 | ◆ Verifying | - |
 | 9.1 Transcription Upgrade | 1/2 | In Progress|  |
 | 10. SRT Import & Text Correction | 2/2 | Complete    | 2026-03-28 |
+
+### Phase 11: Text Editor Enhancements
+
+**Goal:** Improve the text editing view with phrase joining, find-and-replace for mass word correction, and better phrase manipulation UX
+**Requirements**: TBD
+**Depends on:** Phase 10
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 11 to break down)
+
+### Phase 12: UI/UX Layout Improvements
+
+**Goal:** Reposition Re-transcribe/Re-upload buttons, make style drawer behave like Animation page (inline, not overlay), and make Global Styling a permanent fixture on the left panel
+**Requirements**: TBD
+**Depends on:** Phase 11
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 12 to break down)
