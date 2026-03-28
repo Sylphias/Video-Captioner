@@ -246,12 +246,14 @@ When any phrase is selected OR when pointer enters the text editor (hover intent
 | Toast — merge success | "Merged {N} phrases" |
 | Toast — delete confirmation dialog title (> 3 phrases) | "Delete {N} phrases?" |
 | Toast — delete confirmation dialog body | "This cannot be undone in a single step. Use Ctrl+Z to restore." |
+| Delete inline confirmation — confirm button | "Delete {N} Phrases" |
+| Delete inline confirmation — dismiss button | "Keep Phrases" |
 | Empty state (no phrases yet) | "No transcript yet. Transcribe a video to begin editing." (existing, unchanged) |
 | Low-confidence word tooltip | "Confidence: {N}%" (e.g. "Confidence: 62%") |
 | Error (replace with empty find term) | (disable Replace All button — no error message needed; button is greyed) |
 
 Destructive actions in this phase:
-1. **Delete selected phrases** — if <= 3 phrases: execute immediately, single undo snapshot; if > 3 phrases: show inline confirmation in BulkActionsToolbar ("Delete 7 phrases? Confirm / Cancel"). No modal for small deletes to keep flow fast.
+1. **Delete selected phrases** — if <= 3 phrases: execute immediately, single undo snapshot; if > 3 phrases: show inline confirmation in BulkActionsToolbar ("Delete {N} phrases?") with two buttons: confirm button labeled "Delete {N} Phrases" (verb + noun, mirrors the action) and dismiss button labeled "Keep Phrases" (describes the outcome). No modal for small deletes to keep flow fast.
 2. **Replace All** — preview modal required before applying (D-06, locked decision). Not reversible after confirmation except via Ctrl+Z.
 
 ---
