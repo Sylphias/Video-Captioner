@@ -67,6 +67,11 @@ interface SubtitleStore {
   setMaxVisibleRows: (n: number) => void
   initSpeakerLanes: (speakerIds: string[]) => void
   loadLaneLayout: (layout: LaneLayout) => void
+  mergePhrases: (indices: number[]) => void
+  deletePhrases: (indices: number[]) => void
+  duplicatePhrase: (phraseIndex: number) => void
+  movePhraseUp: (phraseIndex: number) => void
+  movePhraseDown: (phraseIndex: number) => void
 }
 
 const DEFAULT_STYLE: StyleProps = {
@@ -1003,6 +1008,256 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         overlapGap: layout.overlapGap,
         maxVisibleRows: layout.maxVisibleRows,
       }
+    })
+  },
+
+  /**
+   * Merge multiple phrases (by index) into a single phrase placed at the
+   * position of the lowest selected index. Non-selected phrases are preserved
+   * in their original order. Pushes exactly one undo snapshot.
+   */
+  mergePhrases: (indices) => {
+    set((state) => {
+      if (!state.session) return state
+      if (indices.length < 2) return state // no-op, no undo push
+
+      pushUndo(state)
+
+      const phrases = state.session.phrases
+      // Sort and deduplicate indices
+      const sorted = [...new Set(indices)].sort((a, b) => a - b)
+
+      // Collect all words from selected phrases in order
+      const mergedWords = sorted.flatMap((i) => phrases[i]?.words ?? [])
+
+      // Build merged phrase at sorted[0]
+      const mergedPhrase: SessionPhrase = {
+        words: mergedWords,
+        isManualSplit: phrases[sorted[0]].isManualSplit,
+        dominantSpeaker: computeDominantSpeaker(mergedWords),
+      }
+
+      // Build new phrases: replace sorted[0] with merged, remove all other selected indices
+      const newPhrases: SessionPhrase[] = []
+      for (let i = 0; i < phrases.length; i++) {
+        if (i === sorted[0]) {
+          newPhrases.push(mergedPhrase)
+        } else if (!sorted.includes(i)) {
+          newPhrases.push(phrases[i])
+        }
+        // i in sorted but !== sorted[0] → dropped (merged into first)
+      }
+
+      // Rebuild flat words array from new phrases
+      const newWords = newPhrases.flatMap((p) => p.words)
+
+      // Rebuild manualSplitWordIndices from scratch based on new phrase boundaries
+      // Mark the start of each phrase (except the first) as a potential manual split
+      // only if it was originally a manual split
+      const newManualSplitWordIndices = new Set<number>()
+      let offset = 0
+      for (let i = 0; i < newPhrases.length; i++) {
+        if (i > 0 && newPhrases[i].isManualSplit) {
+          newManualSplitWordIndices.add(offset)
+        }
+        offset += newPhrases[i].words.length
+      }
+
+      // Rebuild phrases to recalculate dominantSpeaker and auto-boundaries
+      const rebuiltPhrases = buildSessionPhrases(newWords, newManualSplitWordIndices, state.maxWordsPerPhrase)
+
+      return {
+        session: {
+          ...state.session,
+          words: newWords,
+          phrases: rebuiltPhrases,
+          manualSplitWordIndices: newManualSplitWordIndices,
+        },
+      }
+    })
+  },
+
+  /**
+   * Delete multiple phrases by index. Refuses to delete all phrases.
+   * Pushes exactly one undo snapshot.
+   */
+  deletePhrases: (indices) => {
+    set((state) => {
+      if (!state.session) return state
+      if (indices.length === 0) return state
+
+      const phrases = state.session.phrases
+      const sorted = [...new Set(indices)].sort((a, b) => a - b)
+
+      // Calculate how many words would remain
+      const wordsToDelete = sorted.reduce((acc, i) => acc + (phrases[i]?.words.length ?? 0), 0)
+      const wordsRemaining = state.session.words.length - wordsToDelete
+      if (wordsRemaining <= 0) {
+        // Refuse to delete all phrases — keep at least one
+        return state
+      }
+
+      pushUndo(state)
+
+      // Build new flat words array by excluding words in deleted phrases
+      // Compute global offsets for each phrase
+      const phraseOffsets: number[] = []
+      let off = 0
+      for (const p of phrases) {
+        phraseOffsets.push(off)
+        off += p.words.length
+      }
+
+      // Build a Set of global word indices to exclude
+      const excludedWordIndices = new Set<number>()
+      for (const idx of sorted) {
+        const phraseStart = phraseOffsets[idx] ?? 0
+        const phraseLen = phrases[idx]?.words.length ?? 0
+        for (let k = 0; k < phraseLen; k++) {
+          excludedWordIndices.add(phraseStart + k)
+        }
+      }
+
+      const newWords = state.session.words.filter((_, i) => !excludedWordIndices.has(i))
+
+      // Build a mapping from old global index to new global index for manual splits
+      const newManualSplitWordIndices = new Set<number>()
+      const indexMap = new Map<number, number>()
+      let newIdx = 0
+      for (let i = 0; i < state.session.words.length; i++) {
+        if (!excludedWordIndices.has(i)) {
+          indexMap.set(i, newIdx)
+          newIdx++
+        }
+      }
+
+      for (const splitIdx of state.session.manualSplitWordIndices) {
+        if (excludedWordIndices.has(splitIdx)) continue // split at a deleted word, remove
+        const mapped = indexMap.get(splitIdx)
+        if (mapped !== undefined && mapped > 0) {
+          newManualSplitWordIndices.add(mapped)
+        }
+      }
+
+      const newPhrases = buildSessionPhrases(newWords, newManualSplitWordIndices, state.maxWordsPerPhrase)
+      return {
+        session: {
+          ...state.session,
+          words: newWords,
+          phrases: newPhrases,
+          manualSplitWordIndices: newManualSplitWordIndices,
+        },
+      }
+    })
+  },
+
+  /**
+   * Duplicate a phrase by index, inserting the clone immediately after the source.
+   * Pushes one undo snapshot.
+   */
+  duplicatePhrase: (phraseIndex) => {
+    set((state) => {
+      if (!state.session) return state
+      const phrase = state.session.phrases[phraseIndex]
+      if (!phrase) return state
+
+      pushUndo(state)
+
+      // Clone the phrase directly to preserve phrase structure
+      const clonedPhrase: SessionPhrase = {
+        words: structuredClone(phrase.words),
+        isManualSplit: true, // clone is always a manual boundary
+        dominantSpeaker: phrase.dominantSpeaker,
+        lingerDuration: phrase.lingerDuration,
+        styleOverride: phrase.styleOverride ? structuredClone(phrase.styleOverride) : undefined,
+      }
+
+      // Insert clone after the source phrase
+      const newPhrases = [...state.session.phrases]
+      newPhrases.splice(phraseIndex + 1, 0, clonedPhrase)
+
+      // Rebuild flat words from new phrases
+      const newWords = newPhrases.flatMap((p) => p.words)
+
+      // Rebuild manualSplitWordIndices from phrase boundaries
+      const newManualSplitWordIndices = new Set<number>()
+      let offset = 0
+      for (let i = 0; i < newPhrases.length; i++) {
+        if (i > 0 && newPhrases[i].isManualSplit) {
+          newManualSplitWordIndices.add(offset)
+        }
+        offset += newPhrases[i].words.length
+      }
+
+      return { session: { ...state.session, words: newWords, phrases: newPhrases, manualSplitWordIndices: newManualSplitWordIndices } }
+    })
+  },
+
+  /**
+   * Move a phrase one position up (swap with predecessor).
+   * No-op if phraseIndex === 0. Pushes one undo snapshot (unless no-op).
+   * Directly swaps in the phrases array to preserve phrase structure.
+   */
+  movePhraseUp: (phraseIndex) => {
+    set((state) => {
+      if (!state.session) return state
+      if (phraseIndex <= 0) return state // no-op
+
+      pushUndo(state)
+
+      const phrases = [...state.session.phrases]
+      // Swap phrases[phraseIndex] and phrases[phraseIndex - 1]
+      const temp = phrases[phraseIndex - 1]
+      phrases[phraseIndex - 1] = phrases[phraseIndex]
+      phrases[phraseIndex] = temp
+
+      const newWords = phrases.flatMap((p) => p.words)
+
+      // Rebuild manualSplitWordIndices from phrase boundaries
+      const newManualSplitWordIndices = new Set<number>()
+      let offset = 0
+      for (let i = 0; i < phrases.length; i++) {
+        if (i > 0 && phrases[i].isManualSplit) {
+          newManualSplitWordIndices.add(offset)
+        }
+        offset += phrases[i].words.length
+      }
+
+      return { session: { ...state.session, words: newWords, phrases, manualSplitWordIndices: newManualSplitWordIndices } }
+    })
+  },
+
+  /**
+   * Move a phrase one position down (swap with successor).
+   * No-op if phraseIndex is the last phrase. Pushes one undo snapshot (unless no-op).
+   * Directly swaps in the phrases array to preserve phrase structure.
+   */
+  movePhraseDown: (phraseIndex) => {
+    set((state) => {
+      if (!state.session) return state
+      if (phraseIndex >= state.session.phrases.length - 1) return state // no-op
+
+      pushUndo(state)
+
+      const phrases = [...state.session.phrases]
+      // Swap phrases[phraseIndex] and phrases[phraseIndex + 1]
+      const temp = phrases[phraseIndex]
+      phrases[phraseIndex] = phrases[phraseIndex + 1]
+      phrases[phraseIndex + 1] = temp
+
+      const newWords = phrases.flatMap((p) => p.words)
+
+      // Rebuild manualSplitWordIndices from phrase boundaries
+      const newManualSplitWordIndices = new Set<number>()
+      let offset = 0
+      for (let i = 0; i < phrases.length; i++) {
+        if (i > 0 && phrases[i].isManualSplit) {
+          newManualSplitWordIndices.add(offset)
+        }
+        offset += phrases[i].words.length
+      }
+
+      return { session: { ...state.session, words: newWords, phrases, manualSplitWordIndices: newManualSplitWordIndices } }
     })
   },
 }))
