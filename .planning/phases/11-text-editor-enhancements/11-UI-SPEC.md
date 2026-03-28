@@ -44,7 +44,7 @@ All values from `tokens.css`. Phase 11 adds no new spacing tokens.
 Exceptions:
 - Phrase row checkbox hit area: 24x24px (minimum touch target while keeping visual size 16px)
 - Checkbox column gutter: 20px wide (flex-shrink: 0, between line number and speaker dot)
-- BulkActionsToolbar height: 36px fixed (matches toolbar density of existing header at --header-height: 48px scale)
+- BulkActionsToolbar height: 36px fixed — justified exception: matches the density of the existing TextEditor header bar (--header-height: 48px scale); 32px would feel cramped next to the adjacent header; this is an inner-chrome toolbar, not a standalone button row
 
 ---
 
@@ -97,6 +97,8 @@ Three new components introduced. All others are modifications to existing TextEd
 
 ### FindReplaceBar (new — `FindReplaceBar.tsx` + `FindReplaceBar.css`)
 
+**Screen focal point:** The Find input (`<input type="text" placeholder="Find…">`) receives `autoFocus` when the bar opens. It is the primary interaction target for this screen state. No other element competes for initial focus.
+
 **Visual anatomy:**
 - Container: `position: sticky; top: 0; z-index: 10` within TextEditor scroll area
 - Background: `--color-bg-elevated` (#2e2e2e), `border-bottom: 1px solid var(--color-border)`
@@ -105,12 +107,12 @@ Three new components introduced. All others are modifications to existing TextEd
 
 **Elements (left to right):**
 1. "Find:" label — 14px, `--color-text-secondary`, width 32px
-2. Find input — `background: --color-bg-surface; border: 1px solid --color-border; border-radius: 4px; height: 28px; padding: 0 8px; font-size: 14px; min-width: 160px` — focus state: `border-color: --color-accent-green`
+2. Find input — `background: --color-bg-surface; border: 1px solid --color-border; border-radius: 4px; height: 32px; padding: 0 8px; font-size: 14px; min-width: 160px` — focus state: `border-color: --color-accent-green`
 3. "Replace:" label — 14px, `--color-text-secondary`, width 56px
-4. Replace input — same style as Find input
+4. Replace input — same style as Find input (height: 32px)
 5. Match count badge — "N matches" or "No matches" — 14px, `--color-text-secondary`; turns `--color-error` when 0 matches and find term is non-empty
-6. "Replace All" button — 14px, background `--color-accent-green`, color white, border-radius 4px, padding 4px 12px, height 28px — disabled (opacity 0.4) when 0 matches
-7. Close (×) button — 18px, `--color-text-secondary`, no border, background transparent, hover color `--color-text-primary`
+6. "Replace All" button — 14px, background `--color-accent-green`, color white, border-radius 4px, padding 4px 8px, height 32px — disabled (opacity 0.4) when 0 matches
+7. Close (×) button — 18px, `--color-text-secondary`, no border, background transparent, hover color `--color-text-primary`; `aria-label="Close find and replace"`
 
 **States:**
 - Hidden by default; toggled by Ctrl+H
@@ -123,15 +125,15 @@ Three new components introduced. All others are modifications to existing TextEd
 - Renders above the phrase list, outside the scroll area (inside TextEditor container but above the scrollable `.text-editor__lines` wrapper)
 - Background: `--color-bg-elevated` (#2e2e2e)
 - Border: `1px solid --color-border`; `border-radius: 4px`
-- Height: 36px; padding: `4px var(--spacing-md)`
+- Height: 36px (justified exception — see Spacing Scale); padding: `4px var(--spacing-md)`
 - Layout: `display: flex; align-items: center; gap: var(--spacing-sm)`
 
 **Elements (left to right):**
 1. Selection count label — "{N} selected" — 14px, `--color-text-secondary`
 2. Separator: `1px solid --color-border`, height 20px
-3. "Merge" button — 14px, background transparent, border `1px solid --color-border`, border-radius 4px, height 28px, padding 0 12px; hover: `border-color: --color-accent-green; color: --color-text-primary`
-4. "Delete" button — same style as Merge but hover: `border-color: --color-error; color: --color-error`
-5. "Reassign Speaker" dropdown button — 14px, same base style as Merge; opens inline dropdown list of speaker names; chevron icon (▾ Unicode U+25BE, 12px)
+3. "Merge Phrases" button — 14px, background transparent, border `1px solid --color-border`, border-radius 4px, height 32px, padding 0 8px; hover: `border-color: --color-accent-green; color: --color-text-primary`
+4. "Delete Phrases" button — same style as Merge Phrases but hover: `border-color: --color-error; color: --color-error`
+5. "Reassign Speaker" dropdown button — 14px, same base style as Merge Phrases; opens inline dropdown list of speaker names; chevron icon (▾ Unicode U+25BE, 12px)
 6. Keyboard hint — "Ctrl+M merge · Del delete" — 14px, `--color-text-disabled`, positioned `margin-left: auto`
 
 **States:**
@@ -170,7 +172,7 @@ When any phrase is selected OR when pointer enters the text editor (hover intent
 - Modal container: `position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: --color-bg-surface; border: 1px solid --color-border; border-radius: 8px; width: 520px; max-height: 70vh; display: flex; flex-direction: column`
 - Header bar: `padding: var(--spacing-md); border-bottom: 1px solid --color-border` — title "Replace All Preview" in 18px semibold + close × button right-aligned
 - Body (scrollable): `padding: var(--spacing-md); overflow-y: auto; flex: 1` — list of match rows
-- Footer: `padding: var(--spacing-sm) var(--spacing-md); border-top: 1px solid --color-border; display: flex; justify-content: flex-end; gap: var(--spacing-sm)` — Cancel button + Confirm Replace All button
+- Footer: `padding: var(--spacing-sm) var(--spacing-md); border-top: 1px solid --color-border; display: flex; justify-content: flex-end; gap: var(--spacing-sm)` — "Dismiss Preview" button + "Confirm Replace All" button
 
 **Match row anatomy:**
 - Line number: 14px `--color-text-disabled`, tabular-nums, width 32px
@@ -193,7 +195,7 @@ When any phrase is selected OR when pointer enters the text editor (hover intent
 | Type in Replace input | No effect until "Replace All" triggered |
 | Click "Replace All" | Open preview modal if matches > 0 |
 | Click "Confirm Replace All" in modal | Execute replacements, close modal, close bar, show toast "Replaced N occurrences" |
-| Click "Cancel" in modal | Close modal only, bar remains open |
+| Click "Dismiss Preview" in modal | Close modal only, bar remains open |
 
 ### Multi-Select
 
@@ -234,10 +236,10 @@ When any phrase is selected OR when pointer enters the text editor (hover intent
 | Preview modal title | "Replace All Preview" |
 | Preview modal — note on timestamp redistribution | "Note: Replacing text may redistribute word timestamps if word count changes." |
 | Preview modal — confirm CTA | "Confirm Replace All" |
-| Preview modal — cancel | "Cancel" |
+| Preview modal — dismiss | "Dismiss Preview" |
 | BulkActionsToolbar — selection count | "{N} selected" |
-| BulkActionsToolbar — merge button | "Merge" |
-| BulkActionsToolbar — delete button | "Delete" |
+| BulkActionsToolbar — merge button | "Merge Phrases" |
+| BulkActionsToolbar — delete button | "Delete Phrases" |
 | BulkActionsToolbar — reassign button | "Reassign Speaker" |
 | BulkActionsToolbar — keyboard hint | "Ctrl+M merge  ·  Del delete" |
 | Toast — replace success | "Replaced {N} occurrence{s}" |
