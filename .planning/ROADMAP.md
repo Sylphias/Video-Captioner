@@ -227,7 +227,11 @@ Plans:
   2. SRT text is aligned with Whisper word timestamps using rough timestamp matching
   3. Resulting transcript has accurate text (from SRT) with precise per-word timing (from Whisper)
   4. User can review and adjust the alignment before accepting
-**Plans:** TBD (to be defined during planning)
+**Plans:** 2 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — SRT parsing library, alignment algorithm, store action, useSrtImport hook
+- [ ] 10-02-PLAN.md — SrtDiffView component, Import SRT button, TextEditor integration, human verification
 
 ## Progress
 
@@ -247,4 +251,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 9.
 | 8. Keyframe Position Animation | 5/5 | ✓ Complete | 2026-03-25 |
 | 9. Speaker Lane Layout | 3/3 | ◆ Verifying | - |
 | 9.1 Transcription Upgrade | 1/2 | In Progress|  |
-| 10. SRT Import & Text Correction | 0/? | Planned | - |
+| 10. SRT Import & Text Correction | 0/2 | Planned | - |
