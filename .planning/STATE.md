@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 10 plans verified
-last_updated: "2026-03-28T04:04:13.558Z"
-last_activity: 2026-03-26
+stopped_at: Phase 10 Plan 01 complete — srtAlignment.ts, useSrtImport hook, applySrtPhrase store action. All 20 unit tests pass.
+last_updated: "2026-03-28T04:14:19.389Z"
+last_activity: 2026-03-28
 progress:
   total_phases: 12
-  completed_phases: 11
-  total_plans: 37
-  completed_plans: 37
+  completed_phases: 9
+  total_plans: 35
+  completed_plans: 36
   percent: 82
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Phase: 09.1 (transcription-diarization-upgrade-inserted) — EXECUTING
 Plan: 2 of 2
 Status: Phase complete — ready for verification
-Last activity: 2026-03-26
+Last activity: 2026-03-28
 
 Progress: [████████████████░░░░] 82% (8 of 11 phases complete; Phase 9 pending verification, 9.1 next)
 
@@ -63,6 +63,7 @@ Progress: [████████████████░░░░] 82% (8 
 *Updated after each plan completion*
 | Phase 09.1-transcription-diarization-upgrade-inserted P01 | 15 | 1 tasks | 8 files |
 | Phase 09.1-transcription-diarization-upgrade-inserted P01 | 20 | 2 tasks | 8 files |
+| Phase 10-srt-import-and-text-correction P01 | 6 | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -243,6 +244,9 @@ Recent decisions affecting current work:
 - [Phase 09.1]: Option B (WSL): NeMo officially unsupported on native Windows — triton has no Windows wheel; transcription and diarization Python scripts run via WSL spawn
 - [Phase 09.1]: WSL venv at /root/.venv-wsl (not /mnt/... Windows mount) — NTFS cannot host venv symlinks; pure Linux FS required
 - [Phase 09.1]: toWslPath() converts Windows paths at spawn boundary — rest of codebase (jobs, routes, store) stays Windows-path-aware
+- [Phase 10-srt-import-and-text-correction]: srt-parser-2 fromSrt() returns startSeconds/endSeconds — mapped to SrtCue.startSec/endSec in parseSrt
+- [Phase 10-srt-import-and-text-correction]: distributeTimings: end=start+perWord (not phraseStart+(i+1)*perWord) to guarantee exact per-word duration respecting IEEE 754
+- [Phase 10-srt-import-and-text-correction]: useSrtImport.importFile aligns against store.original (not session) per D-12 so re-import anchors to original Whisper timestamps
 
 ### Roadmap Evolution
 
@@ -273,8 +277,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-28T04:04:13.555Z
-Stopped at: Phase 10 plans verified
+Last session: 2026-03-28T04:14:19.386Z
+Stopped at: Phase 10 Plan 01 complete — srtAlignment.ts, useSrtImport hook, applySrtPhrase store action. All 20 unit tests pass.
 
 Next planned work:
 
