@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Transcribe + diarize audio/video using WhisperX on CUDA.
+"""Transcribe + diarize audio/video using WhisperX.
 
 Pipeline: Whisper transcription → wav2vec2 forced alignment → pyannote diarization → speaker-assigned words.
+Auto-detects device: CUDA → MPS (Apple Silicon) → CPU.
 Emits JSON-line progress to stdout.
 
 Usage: transcribe.py <audio_path> <output_path> [language] [hf_token] [num_speakers]
@@ -9,6 +10,17 @@ Usage: transcribe.py <audio_path> <output_path> [language] [hf_token] [num_speak
 import sys
 import json
 import os
+
+import torch
+
+
+def detect_device():
+    """Pick the best available device and matching compute type."""
+    if torch.cuda.is_available():
+        return "cuda", "float16", 16
+    if torch.backends.mps.is_available():
+        return "mps", "float32", 4
+    return "cpu", "int8", 4
 
 
 def main():
@@ -21,19 +33,19 @@ def main():
     language = sys.argv[3] if len(sys.argv) > 3 else "en"
     hf_token = sys.argv[4] if len(sys.argv) > 4 else os.environ.get("HUGGINGFACE_TOKEN")
     num_speakers = int(sys.argv[5]) if len(sys.argv) > 5 else None
-    device = "cuda"
+    device, compute_type, batch_size = detect_device()
 
-    print(json.dumps({"type": "progress", "percent": 0, "status": "loading_model"}), flush=True)
+    print(json.dumps({"type": "progress", "percent": 0, "status": "loading_model", "device": device}), flush=True)
 
     import whisperx
 
-    model = whisperx.load_model("large-v3", device, compute_type="float16", language=language)
+    model = whisperx.load_model("large-v3", device, compute_type=compute_type, language=language)
 
     # Step 1: Transcribe
     print(json.dumps({"type": "progress", "percent": 10, "status": "transcribing"}), flush=True)
 
     audio = whisperx.load_audio(audio_path)
-    result = model.transcribe(audio, batch_size=16)
+    result = model.transcribe(audio, batch_size=batch_size)
 
     # Step 2: Forced alignment with wav2vec2
     print(json.dumps({"type": "progress", "percent": 40, "status": "aligning"}), flush=True)

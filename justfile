@@ -14,19 +14,27 @@ backend:
 frontend:
     cd packages/frontend && npx vite --host
 
-# Set up Python venv with uv — CUDA PyTorch + NeMo (Parakeet TDT) + pyannote diarization
-setup-python:
+# Set up Python venv — NVIDIA GPU (CUDA)
+setup-python-cuda:
     uv venv .venv
     uv pip install --python .venv/bin/python torch torchaudio --index-url https://download.pytorch.org/whl/cu128
-    uv pip install --python .venv/bin/python 'nemo_toolkit[asr]' 'pyannote-audio==4.0.4'
+    uv pip install --python .venv/bin/python whisperx 'pyannote-audio>=3.1'
 
-# Validate the venv: confirm CUDA and NeMo ASR importable
+# Set up Python venv — Apple Silicon Mac (MPS)
+setup-python-mac:
+    uv venv .venv
+    uv pip install --python .venv/bin/python torch torchaudio
+    uv pip install --python .venv/bin/python whisperx 'pyannote-audio>=3.1'
+
+# Set up Python venv — CPU only
+setup-python-cpu:
+    uv venv .venv
+    uv pip install --python .venv/bin/python torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+    uv pip install --python .venv/bin/python whisperx 'pyannote-audio>=3.1'
+
+# Validate the venv: confirm torch + whisperx importable, show detected device
 check-env:
-    .venv/bin/python3 -c "import torch; print('CUDA:', torch.cuda.is_available()); import nemo.collections.asr; print('NeMo ASR: OK')"
-
-# Run the Parakeet TDT spike (validates install + CUDA + model load)
-spike-parakeet:
-    .venv/bin/python3 scripts/spike_parakeet.py
+    .venv/bin/python3 -c "import torch; print('CUDA:', torch.cuda.is_available()); print('MPS:', torch.backends.mps.is_available()); import whisperx; print('WhisperX: OK')"
 
 # Build shared-types and remotion-composition so downstream packages see updated types/exports
 build-libs:
