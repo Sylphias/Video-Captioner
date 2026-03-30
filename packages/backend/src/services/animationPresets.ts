@@ -106,71 +106,6 @@ const BUILTIN_PRESETS: BuiltinPreset[] = [
       exit: { mirrorEnter: false, type: 'fade', durationSec: 0.15, easing: 'ease-in', params: {} },
     },
   },
-  // ── Highlight presets (per-word karaoke animations) ──────────────────────────
-  {
-    id: 'builtin-highlight-scale',
-    name: 'Highlight: Scale',
-    scope: 'phrase',
-    params: {
-      enter: { type: 'none', durationSec: 0, easing: 'linear', params: {} },
-      active: { type: 'none', cycleDurationSec: 1, intensity: 0 },
-      exit: { mirrorEnter: false, type: 'none', durationSec: 0, easing: 'linear', params: {} },
-      highlightAnimation: {
-        enterPct: 30,
-        enterTracks: [
-          { property: 'scale', keyframes: [{ time: 0, value: 1 }, { time: 100, value: 1.15 }], easings: [{ type: 'ease-out' }] },
-        ],
-      },
-    },
-  },
-  {
-    id: 'builtin-highlight-pop',
-    name: 'Highlight: Pop',
-    scope: 'phrase',
-    params: {
-      enter: { type: 'none', durationSec: 0, easing: 'linear', params: {} },
-      active: { type: 'none', cycleDurationSec: 1, intensity: 0 },
-      exit: { mirrorEnter: false, type: 'none', durationSec: 0, easing: 'linear', params: {} },
-      highlightAnimation: {
-        enterPct: 25,
-        enterTracks: [
-          { property: 'scale', keyframes: [{ time: 0, value: 1 }, { time: 60, value: 1.25 }, { time: 100, value: 1.12 }], easings: [{ type: 'ease-out' }, { type: 'ease-in-out' }] },
-        ],
-      },
-    },
-  },
-  {
-    id: 'builtin-highlight-lift',
-    name: 'Highlight: Lift',
-    scope: 'phrase',
-    params: {
-      enter: { type: 'none', durationSec: 0, easing: 'linear', params: {} },
-      active: { type: 'none', cycleDurationSec: 1, intensity: 0 },
-      exit: { mirrorEnter: false, type: 'none', durationSec: 0, easing: 'linear', params: {} },
-      highlightAnimation: {
-        enterPct: 30,
-        enterTracks: [
-          { property: 'y', keyframes: [{ time: 0, value: 0 }, { time: 100, value: -3 }], easings: [{ type: 'ease-out' }] },
-        ],
-      },
-    },
-  },
-  {
-    id: 'builtin-highlight-bounce',
-    name: 'Highlight: Bounce',
-    scope: 'phrase',
-    params: {
-      enter: { type: 'none', durationSec: 0, easing: 'linear', params: {} },
-      active: { type: 'none', cycleDurationSec: 1, intensity: 0 },
-      exit: { mirrorEnter: false, type: 'none', durationSec: 0, easing: 'linear', params: {} },
-      highlightAnimation: {
-        enterPct: 35,
-        enterTracks: [
-          { property: 'y', keyframes: [{ time: 0, value: 0 }, { time: 40, value: -5 }, { time: 70, value: -2 }, { time: 100, value: -3 }], easings: [{ type: 'ease-out' }, { type: 'ease-in' }, { type: 'ease-out' }] },
-        ],
-      },
-    },
-  },
 ]
 
 // ── Seeding helper ────────────────────────────────────────────────────────────
@@ -184,6 +119,11 @@ function seedBuiltinPresets(db: Database.Database): void {
   const updateStmt = db.prepare(`
     UPDATE animation_presets SET name = ?, scope = ?, params = ?, updated_at = ? WHERE id = ?
   `)
+
+  // Remove defunct highlight-only built-in presets (now merged into regular presets)
+  const defunctIds = ['builtin-highlight-scale', 'builtin-highlight-pop', 'builtin-highlight-lift', 'builtin-highlight-bounce']
+  const deleteStmt = db.prepare('DELETE FROM animation_presets WHERE id = ? AND is_builtin = 1')
+  for (const id of defunctIds) deleteStmt.run(id)
 
   const now = Date.now()
   // Use incrementing timestamps so built-ins sort before user presets (created_at ASC)

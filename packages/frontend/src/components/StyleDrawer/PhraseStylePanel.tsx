@@ -284,6 +284,70 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
             </div>
           )}
 
+          {/* Letter spacing override */}
+          <div className="speaker-section__control-row">
+            <label className="speaker-section__toggle-label">
+              <input
+                type="checkbox"
+                checked={hasOverride('letterSpacing')}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setField('letterSpacing', 0)
+                  } else {
+                    toggleField('letterSpacing', false)
+                  }
+                }}
+              />
+              Override letter spacing
+              {hasOverride('letterSpacing') && (
+                <span className="speaker-section__value">{override.letterSpacing}px</span>
+              )}
+            </label>
+            {hasOverride('letterSpacing') && (
+              <input
+                type="range"
+                className="speaker-section__slider"
+                min={-5}
+                max={20}
+                step={0.5}
+                value={override.letterSpacing ?? 0}
+                onChange={(e) => setField('letterSpacing', Number(e.target.value))}
+              />
+            )}
+          </div>
+
+          {/* Word spacing override */}
+          <div className="speaker-section__control-row">
+            <label className="speaker-section__toggle-label">
+              <input
+                type="checkbox"
+                checked={hasOverride('wordSpacing')}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setField('wordSpacing', 0)
+                  } else {
+                    toggleField('wordSpacing', false)
+                  }
+                }}
+              />
+              Override word spacing
+              {hasOverride('wordSpacing') && (
+                <span className="speaker-section__value">{override.wordSpacing}px</span>
+              )}
+            </label>
+            {hasOverride('wordSpacing') && (
+              <input
+                type="range"
+                className="speaker-section__slider"
+                min={-5}
+                max={30}
+                step={1}
+                value={override.wordSpacing ?? 0}
+                onChange={(e) => setField('wordSpacing', Number(e.target.value))}
+              />
+            )}
+          </div>
+
           {/* Vertical position override */}
           <div className="speaker-section__control-row">
             <label className="speaker-section__toggle-label">

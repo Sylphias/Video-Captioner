@@ -35,7 +35,8 @@ def main():
             "pyannote/speaker-diarization-3.1",
             token=hf_token,
         )
-        pipeline.to(torch.device("cuda"))
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        pipeline.to(torch.device(device))
     except Exception as e:
         print(json.dumps({"type": "error", "message": f"Failed to load pipeline: {e}"}), flush=True)
         sys.exit(1)

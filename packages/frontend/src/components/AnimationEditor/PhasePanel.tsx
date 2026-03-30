@@ -5,6 +5,8 @@ import type {
   ActiveType,
   EasingType,
   AnimationScope,
+  HighlightKeyframeConfig,
+  KeyframeTrack,
 } from '@eigen/shared-types'
 import './PhasePanel.css'
 
@@ -272,6 +274,86 @@ export function PhasePanel({ phase, config, scope, onConfigChange, onScopeChange
           </>
         )
       })()}
+    </div>
+  )
+}
+
+// ─── Highlight presets (quick selection for common karaoke word effects) ──────
+
+type HighlightType = 'none' | 'scale' | 'pop' | 'lift' | 'bounce'
+
+const HIGHLIGHT_PRESETS: Record<HighlightType, HighlightKeyframeConfig | undefined> = {
+  none: undefined,
+  scale: {
+    enterPct: 30,
+    enterTracks: [
+      { property: 'scale', keyframes: [{ time: 0, value: 1 }, { time: 100, value: 1.15 }], easings: [{ type: 'ease-out' }] },
+    ],
+  },
+  pop: {
+    enterPct: 25,
+    enterTracks: [
+      { property: 'scale', keyframes: [{ time: 0, value: 1 }, { time: 60, value: 1.25 }, { time: 100, value: 1.12 }], easings: [{ type: 'ease-out' }, { type: 'ease-in-out' }] },
+    ],
+  },
+  lift: {
+    enterPct: 30,
+    enterTracks: [
+      { property: 'y', keyframes: [{ time: 0, value: 0 }, { time: 100, value: -3 }], easings: [{ type: 'ease-out' }] },
+    ],
+  },
+  bounce: {
+    enterPct: 35,
+    enterTracks: [
+      { property: 'y', keyframes: [{ time: 0, value: 0 }, { time: 40, value: -5 }, { time: 70, value: -2 }, { time: 100, value: -3 }], easings: [{ type: 'ease-out' }, { type: 'ease-in' }, { type: 'ease-out' }] },
+    ],
+  },
+}
+
+function detectHighlightType(hl?: HighlightKeyframeConfig): HighlightType {
+  if (!hl || hl.enterTracks.length === 0) return 'none'
+  const track = hl.enterTracks[0]
+  if (track.property === 'scale' && track.keyframes.length === 2) return 'scale'
+  if (track.property === 'scale' && track.keyframes.length === 3) return 'pop'
+  if (track.property === 'y' && track.keyframes.length === 2) return 'lift'
+  if (track.property === 'y' && track.keyframes.length >= 4) return 'bounce'
+  return 'none' // custom keyframes — show as none for now
+}
+
+interface HighlightPanelProps {
+  highlight?: HighlightKeyframeConfig
+  onChange: (hl: HighlightKeyframeConfig | undefined) => void
+}
+
+export function HighlightPanel({ highlight, onChange }: HighlightPanelProps) {
+  const currentType = detectHighlightType(highlight)
+  const enterPct = highlight?.enterPct ?? 30
+
+  return (
+    <div className="phase-panel">
+      <h3 className="phase-panel__heading">Highlight Animation</h3>
+      <SelectControl
+        label="Highlight Type"
+        value={currentType}
+        options={['none', 'scale', 'pop', 'lift', 'bounce']}
+        onChange={(v) => {
+          const preset = HIGHLIGHT_PRESETS[v as HighlightType]
+          onChange(preset ? { ...preset } : undefined)
+        }}
+      />
+      {currentType !== 'none' && (
+        <SliderControl
+          label="Enter %"
+          value={enterPct}
+          min={5}
+          max={80}
+          step={5}
+          onChange={(v) => {
+            if (highlight) onChange({ ...highlight, enterPct: v })
+          }}
+          format={(v) => v + '%'}
+        />
+      )}
     </div>
   )
 }

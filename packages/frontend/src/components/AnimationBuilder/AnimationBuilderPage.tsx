@@ -197,33 +197,6 @@ function synthesizeTracksFromPreset(preset: AnimationPreset): KeyframePhases {
 
 // ─── Preset classification ───────────────────────────────────────────────────
 
-/** Does this preset have meaningful enter/exit animations? */
-function isEnterExitPreset(preset: AnimationPreset): boolean {
-  if (preset.enter.type !== 'none' || preset.exit.type !== 'none') return true
-  // For user presets with keyframeTracks, check if enter/exit phases have tracks
-  const kf = preset.keyframeTracks
-  if (kf && !isLegacyKeyframeTracks(kf)) {
-    if (kf.enter.tracks.length > 0 || kf.exit.tracks.length > 0) return true
-  }
-  return false
-}
-
-/** Does this preset have a meaningful hold (active cycle) animation? */
-function isHoldPreset(preset: AnimationPreset): boolean {
-  if (preset.active.type !== 'none') return true
-  // For user presets with keyframeTracks, check if active phase has tracks
-  const kf = preset.keyframeTracks
-  if (kf && !isLegacyKeyframeTracks(kf)) {
-    if (kf.active.tracks.length > 0) return true
-  }
-  return false
-}
-
-/** Does this preset have highlight animation keyframes? */
-function isHighlightPreset(preset: AnimationPreset): boolean {
-  const hl = preset.highlightAnimation
-  return !!hl && hl.enterTracks.length > 0
-}
 
 // ─── Rescale phases to target FPS ────────────────────────────────────────────
 
@@ -330,28 +303,14 @@ export function AnimationBuilderPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Filter presets by current edit mode
-  const filteredPresets = useMemo(() => {
-    if (editMode === 'highlight') return presets.filter(isHighlightPreset)
-    if (editMode === 'hold') return presets.filter(isHoldPreset)
-    return presets.filter(isEnterExitPreset)
-  }, [presets, editMode])
-
   // Load the first preset on initial render
   const [hasInitialized, setHasInitialized] = useState(false)
   useEffect(() => {
-    if (!hasInitialized && filteredPresets.length > 0) {
-      loadPresetIntoStore(filteredPresets[0])
+    if (!hasInitialized && presets.length > 0) {
+      loadPresetIntoStore(presets[0])
       setHasInitialized(true)
     }
-  }, [filteredPresets, hasInitialized])
-
-  // When mode changes, if current preset isn't in the filtered list, switch to the first one
-  useEffect(() => {
-    if (!hasInitialized || filteredPresets.length === 0) return
-    if (preset && filteredPresets.some((p) => p.id === preset.id)) return
-    loadPresetIntoStore(filteredPresets[0])
-  }, [editMode, filteredPresets, preset, hasInitialized])
+  }, [presets, hasInitialized])
 
   // Preset selector change
   const handlePresetChange = useCallback(
@@ -485,7 +444,7 @@ export function AnimationBuilderPage() {
             aria-label="Select preset"
           >
             {!preset && <option value="">-- No preset selected --</option>}
-            {filteredPresets.map((p) => (
+            {presets.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}{p.isBuiltin ? ' (built-in)' : ''}
               </option>

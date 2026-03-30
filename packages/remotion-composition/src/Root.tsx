@@ -19,6 +19,8 @@ const DEFAULT_PROPS: SubtitleCompositionProps = {
     shadowOffsetX: 0,
     shadowOffsetY: 2,
     shadowBlur: 4,
+    letterSpacing: 0,
+    wordSpacing: 0,
     verticalPosition: 80,
     lingerDuration: 1.0,
     laneGap: 8,

@@ -333,6 +333,7 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
               fontSize: effectiveStyle.fontSize,
               fontFamily: effectiveStyle.fontFamily,
               fontWeight: effectiveStyle.fontWeight,
+              letterSpacing: effectiveStyle.letterSpacing || undefined,
               lineHeight: 1.4,
             }
           : {
@@ -346,6 +347,7 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
               fontSize: effectiveStyle.fontSize,
               fontFamily: effectiveStyle.fontFamily,
               fontWeight: effectiveStyle.fontWeight,
+              letterSpacing: effectiveStyle.letterSpacing || undefined,
               lineHeight: 1.4,
             }
 
@@ -364,6 +366,11 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
         }
 
         const wordCount = activePhrase.words.length
+        const extraHalf = effectiveStyle.wordSpacing ? effectiveStyle.wordSpacing / 2 : 0
+        const wordMarginLeft = extraHalf ? `${extraHalf}px` : undefined
+        const wordMarginRight = extraHalf
+          ? `calc(0.25em + ${extraHalf}px)`
+          : '0.25em'
 
         return (
           <div
@@ -406,7 +413,8 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
                       key={`${word.start}-${i}`}
                       style={{
                         color: effectiveStyle.strokeColor,
-                        marginRight: '0.25em',
+                        marginLeft: wordMarginLeft,
+                        marginRight: wordMarginRight,
                         WebkitTextStroke: `${effectiveStyle.strokeWidth * 2}px ${effectiveStyle.strokeColor}`,
                         ...cleanWordAnimStyles,
                         ...hlStylesStroke,
@@ -456,7 +464,8 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
                   style={{
                     position: 'relative',
                     color: wordColor,
-                    marginRight: '0.25em',
+                    marginLeft: wordMarginLeft,
+                    marginRight: wordMarginRight,
                     textShadow: `${effectiveStyle.shadowOffsetX ?? 0}px ${effectiveStyle.shadowOffsetY ?? 2}px ${effectiveStyle.shadowBlur ?? 4}px ${effectiveStyle.shadowColor ?? '#000000'}`,
                     ...cleanWordAnimStyles,
                     ...hlStyles,

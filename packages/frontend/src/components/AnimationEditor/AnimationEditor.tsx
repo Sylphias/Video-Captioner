@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from 'react'
-import type { AnimationPreset, AnimationPhaseConfig, ActivePhaseConfig } from '@eigen/shared-types'
+import type { AnimationPreset, AnimationPhaseConfig, ActivePhaseConfig, HighlightKeyframeConfig } from '@eigen/shared-types'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useAnimationPresets } from '../../hooks/useAnimationPresets.ts'
 import { useDebounced } from '../../hooks/useDebounced.ts'
 import { PresetList } from './PresetList.tsx'
 import { AnimationPreview } from './AnimationPreview.tsx'
 import { PhaseTimeline } from './PhaseTimeline.tsx'
-import { PhasePanel } from './PhasePanel.tsx'
+import { PhasePanel, HighlightPanel } from './PhasePanel.tsx'
 import './AnimationEditor.css'
 
 type SelectedPhase = 'enter' | 'active' | 'exit'
@@ -17,6 +17,7 @@ interface EditingParams {
   enter: AnimationPhaseConfig
   active: ActivePhaseConfig
   exit: AnimationPhaseConfig & { mirrorEnter: boolean }
+  highlightAnimation?: HighlightKeyframeConfig
 }
 
 const DEFAULT_ENTER: AnimationPhaseConfig = {
@@ -57,6 +58,7 @@ function presetToEditingParams(preset: AnimationPreset): EditingParams {
     enter: { ...preset.enter },
     active: { ...preset.active },
     exit: { ...preset.exit },
+    highlightAnimation: preset.highlightAnimation ? { ...preset.highlightAnimation } : undefined,
   }
 }
 
@@ -73,6 +75,7 @@ function editingParamsToPreset(params: EditingParams, base: AnimationPreset): An
     enter: params.enter,
     active: params.active,
     exit: exitConfig,
+    highlightAnimation: params.highlightAnimation,
   }
 }
 
@@ -134,6 +137,8 @@ export function AnimationEditor() {
         enter: editingParams.enter,
         active: editingParams.active,
         exit: editingParams.exit,
+        highlightAnimation: editingParams.highlightAnimation ?? null,
+        keyframeTracks: null,  // clear keyframe overrides — AnimationEditor uses declarative params
       })
     } catch (err) {
       console.error('[AnimationEditor] save failed:', err)
@@ -149,6 +154,7 @@ export function AnimationEditor() {
         enter: editingParams.enter,
         active: editingParams.active,
         exit: editingParams.exit,
+        highlightAnimation: editingParams.highlightAnimation,
       })
       setSelectedPresetId(created.id)
     } catch (err) {
@@ -166,6 +172,7 @@ export function AnimationEditor() {
         enter: defaults.enter,
         active: defaults.active,
         exit: defaults.exit,
+        highlightAnimation: defaults.highlightAnimation,
       })
       setSelectedPresetId(created.id)
       setEditingParams(defaults)
@@ -326,6 +333,12 @@ export function AnimationEditor() {
               scope={editingParams.scope}
               onConfigChange={(config) => handlePhaseConfigChange(selectedPhase, config)}
               onScopeChange={(scope) => setEditingParams((prev) => ({ ...prev, scope }))}
+            />
+
+            {/* Highlight (karaoke) animation */}
+            <HighlightPanel
+              highlight={editingParams.highlightAnimation}
+              onChange={(hl) => setEditingParams((prev) => ({ ...prev, highlightAnimation: hl }))}
             />
           </>
         ) : (

@@ -121,15 +121,23 @@ async function presetsRoutes(fastify: FastifyInstance): Promise<void> {
       active: body.active ?? existingParams.active,
       exit: body.exit ?? existingParams.exit,
     }
-    // Preserve or update keyframeTracks: if provided in body, use it; if not, keep existing
-    const updatedKeyframeTracks = body.keyframeTracks ?? existingParams.keyframeTracks
-    if (updatedKeyframeTracks !== undefined) {
-      mergedParams.keyframeTracks = updatedKeyframeTracks
+    // Preserve or update keyframeTracks: null = clear, undefined = keep existing
+    if (body.keyframeTracks === null) {
+      // Explicitly cleared
+    } else {
+      const updatedKeyframeTracks = body.keyframeTracks ?? existingParams.keyframeTracks
+      if (updatedKeyframeTracks !== undefined) {
+        mergedParams.keyframeTracks = updatedKeyframeTracks
+      }
     }
-    // Preserve or update highlightAnimation
-    const updatedHighlight = body.highlightAnimation ?? existingParams.highlightAnimation
-    if (updatedHighlight !== undefined) {
-      mergedParams.highlightAnimation = updatedHighlight
+    // Preserve or update highlightAnimation: null = clear, undefined = keep existing
+    if (body.highlightAnimation === null) {
+      // Explicitly cleared
+    } else {
+      const updatedHighlight = body.highlightAnimation ?? existingParams.highlightAnimation
+      if (updatedHighlight !== undefined) {
+        mergedParams.highlightAnimation = updatedHighlight
+      }
     }
 
     const updatedName = body.name ?? existing.name

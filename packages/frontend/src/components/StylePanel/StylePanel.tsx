@@ -238,6 +238,8 @@ export function StylePanel() {
   const shadowOffsetX = useSubtitleStore((s) => s.style.shadowOffsetX)
   const shadowOffsetY = useSubtitleStore((s) => s.style.shadowOffsetY)
   const shadowBlur = useSubtitleStore((s) => s.style.shadowBlur)
+  const letterSpacing = useSubtitleStore((s) => s.style.letterSpacing)
+  const wordSpacing = useSubtitleStore((s) => s.style.wordSpacing)
   const verticalPosition = useSubtitleStore((s) => s.style.verticalPosition)
   const laneGap = useSubtitleStore((s) => s.style.laneGap)
   const lingerDuration = useSubtitleStore((s) => s.style.lingerDuration)
@@ -429,6 +431,38 @@ export function StylePanel() {
             />
           </div>
         </div>
+      </div>
+
+      {/* Letter spacing (kerning) */}
+      <div className="style-panel__section">
+        <label className="style-panel__label">
+          Letter spacing <span className="style-panel__value">{letterSpacing}px</span>
+        </label>
+        <input
+          type="range"
+          className="style-panel__slider"
+          min={-5}
+          max={20}
+          step={0.5}
+          value={letterSpacing}
+          onChange={(e) => setStyle({ letterSpacing: Number(e.target.value) })}
+        />
+      </div>
+
+      {/* Word spacing */}
+      <div className="style-panel__section">
+        <label className="style-panel__label">
+          Word spacing <span className="style-panel__value">{wordSpacing}px</span>
+        </label>
+        <input
+          type="range"
+          className="style-panel__slider"
+          min={-5}
+          max={30}
+          step={1}
+          value={wordSpacing}
+          onChange={(e) => setStyle({ wordSpacing: Number(e.target.value) })}
+        />
       </div>
 
       {/* Vertical position slider */}

@@ -15,11 +15,12 @@ import torch
 
 
 def detect_device():
-    """Pick the best available device and matching compute type."""
+    """Pick the best available device and matching compute type.
+
+    CTranslate2 (faster-whisper backend) only supports CUDA and CPU — not MPS.
+    """
     if torch.cuda.is_available():
         return "cuda", "float16", 16
-    if torch.backends.mps.is_available():
-        return "mps", "float32", 4
     return "cpu", "int8", 4
 
 

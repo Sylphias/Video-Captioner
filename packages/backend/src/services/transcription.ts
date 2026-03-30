@@ -58,10 +58,12 @@ export function runTranscription(
       stderr += chunk.toString()
     })
 
-    proc.on('close', (code) => {
+    proc.on('close', (code, signal) => {
       if (code === 0) {
         if (onProgress) onProgress(100)
         resolve()
+      } else if (signal) {
+        reject(new Error(`transcribe.py killed by ${signal} (likely out of memory loading model on CPU). stderr: ${stderr.slice(-500)}`))
       } else {
         reject(new Error(`transcribe.py exited ${code}: ${stderr.slice(-500)}`))
       }

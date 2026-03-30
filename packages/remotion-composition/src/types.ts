@@ -12,6 +12,8 @@ export interface StyleProps {
   shadowOffsetX: number    // px — horizontal shadow offset
   shadowOffsetY: number    // px — vertical shadow offset
   shadowBlur: number       // px — shadow blur radius (0 = sharp)
+  letterSpacing: number    // px — kerning between letters (CSS letter-spacing)
+  wordSpacing: number      // px — extra spacing between words (CSS word-spacing)
   verticalPosition: number // 0-100 percentage from top of frame
   lingerDuration: number   // seconds a phrase stays visible after last word ends
   laneGap: number          // percentage points between simultaneous speaker lanes

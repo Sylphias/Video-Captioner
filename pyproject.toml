@@ -1,0 +1,26 @@
+[project]
+name = "eigen-video-editor-scripts"
+version = "0.1.0"
+description = "Python scripts for transcription and speaker diarization"
+requires-python = ">=3.12"
+dependencies = [
+    "torch>=2.8.0",
+    "torchaudio>=2.8.0",
+    "whisperx",
+    "pyannote-audio>=4.0.4",
+    "soundfile>=0.13.1",
+]
+
+[tool.uv]
+# whisperX declares conflicting PyTorch indexes (cpu vs cu128); override to use default PyPI
+override-dependencies = [
+    "torch>=2.8.0,<2.9",
+    "torchaudio>=2.8.0,<2.9",
+]
+
+[tool.uv.sources]
+whisperx = { git = "https://github.com/m-bain/whisperX.git" }
+
+[project.scripts]
+transcribe = "scripts.transcribe:main"
+diarize = "scripts.diarize:main"

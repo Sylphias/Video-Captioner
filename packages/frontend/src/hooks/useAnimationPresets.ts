@@ -1,13 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { AnimationPreset } from '@eigen/shared-types'
 
+// Global event target so all hook instances refresh when any one mutates
+const presetsChanged = new EventTarget()
+function notifyPresetsChanged() {
+  presetsChanged.dispatchEvent(new Event('change'))
+}
+
 interface UseAnimationPresetsReturn {
   presets: AnimationPreset[]
   loading: boolean
   error: string | null
   refresh: () => void
   createPreset: (preset: Omit<AnimationPreset, 'id' | 'isBuiltin' | 'createdAt' | 'updatedAt'>) => Promise<AnimationPreset>
-  updatePreset: (id: string, patch: Partial<Pick<AnimationPreset, 'name' | 'scope' | 'enter' | 'active' | 'exit'>>) => Promise<AnimationPreset>
+  updatePreset: (id: string, patch: Partial<Pick<AnimationPreset, 'name' | 'scope' | 'enter' | 'active' | 'exit'>> & { highlightAnimation?: AnimationPreset['highlightAnimation'] | null; keyframeTracks?: AnimationPreset['keyframeTracks'] | null }) => Promise<AnimationPreset>
   deletePreset: (id: string) => Promise<void>
   duplicatePreset: (id: string) => Promise<AnimationPreset>
 }
@@ -21,6 +27,13 @@ export function useAnimationPresets(): UseAnimationPresetsReturn {
   const refresh = useCallback(() => {
     setRefreshTick((n) => n + 1)
   }, [])
+
+  // Listen for changes from other hook instances
+  useEffect(() => {
+    const handler = () => refresh()
+    presetsChanged.addEventListener('change', handler)
+    return () => presetsChanged.removeEventListener('change', handler)
+  }, [refresh])
 
   useEffect(() => {
     let cancelled = false
@@ -64,13 +77,13 @@ export function useAnimationPresets(): UseAnimationPresetsReturn {
       throw new Error(`Create preset failed (HTTP ${res.status}): ${text}`)
     }
     const created = (await res.json()) as AnimationPreset
-    refresh()
+    notifyPresetsChanged()
     return created
-  }, [refresh])
+  }, [])
 
   const updatePreset = useCallback(async (
     id: string,
-    patch: Partial<Pick<AnimationPreset, 'name' | 'scope' | 'enter' | 'active' | 'exit'>>
+    patch: Partial<Pick<AnimationPreset, 'name' | 'scope' | 'enter' | 'active' | 'exit'>> & { highlightAnimation?: AnimationPreset['highlightAnimation'] | null; keyframeTracks?: AnimationPreset['keyframeTracks'] | null }
   ): Promise<AnimationPreset> => {
     const res = await fetch(`/api/presets/${id}`, {
       method: 'PUT',
@@ -82,9 +95,9 @@ export function useAnimationPresets(): UseAnimationPresetsReturn {
       throw new Error(`Update preset failed (HTTP ${res.status}): ${text}`)
     }
     const updated = (await res.json()) as AnimationPreset
-    refresh()
+    notifyPresetsChanged()
     return updated
-  }, [refresh])
+  }, [])
 
   const deletePreset = useCallback(async (id: string): Promise<void> => {
     const res = await fetch(`/api/presets/${id}`, { method: 'DELETE' })
@@ -92,8 +105,8 @@ export function useAnimationPresets(): UseAnimationPresetsReturn {
       const text = await res.text()
       throw new Error(`Delete preset failed (HTTP ${res.status}): ${text}`)
     }
-    refresh()
-  }, [refresh])
+    notifyPresetsChanged()
+  }, [])
 
   const duplicatePreset = useCallback(async (id: string): Promise<AnimationPreset> => {
     const res = await fetch(`/api/presets/${id}/duplicate`, { method: 'POST' })
@@ -102,9 +115,9 @@ export function useAnimationPresets(): UseAnimationPresetsReturn {
       throw new Error(`Duplicate preset failed (HTTP ${res.status}): ${text}`)
     }
     const duplicated = (await res.json()) as AnimationPreset
-    refresh()
+    notifyPresetsChanged()
     return duplicated
-  }, [refresh])
+  }, [])
 
   return {
     presets,
