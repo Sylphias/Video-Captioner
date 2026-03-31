@@ -3,25 +3,30 @@ import type { FastifyInstance } from 'fastify'
 import path from 'node:path'
 import { createReadStream } from 'node:fs'
 import { access } from 'node:fs/promises'
-import type { TranscriptPhrase } from '@eigen/shared-types'
-import type { StyleProps, SpeakerStyleOverride } from '@eigen/remotion-composition'
+import type { TranscriptPhrase, AnimationPreset } from '@eigen/shared-types'
+import type { StyleProps, SpeakerStyleOverride, CompositionPhrase } from '@eigen/remotion-composition'
 
 import { DATA_ROOT } from '../index.ts'
 import { updateJob } from '../services/jobStore.ts'
 import { dispatchRender } from '../services/render.ts'
 
 interface RenderBody {
-  phrases: TranscriptPhrase[]
+  phrases: CompositionPhrase[]
   style: StyleProps
   speakerStyles: Record<string, SpeakerStyleOverride>
+  animationPreset?: AnimationPreset
+  phraseLaneOverrides?: Record<number, number>
 }
 
 async function renderRoutes(fastify: FastifyInstance): Promise<void> {
   // POST /api/jobs/:jobId/render — dispatch a render job to worker thread
   fastify.post('/api/jobs/:jobId/render', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
-    const { phrases, style } = req.body as RenderBody
-    const speakerStyles = (req.body as RenderBody).speakerStyles ?? {}
+    const body = req.body as RenderBody
+    const { phrases, style } = body
+    const speakerStyles = body.speakerStyles ?? {}
+    const animationPreset = body.animationPreset
+    const phraseLaneOverrides = body.phraseLaneOverrides
 
     const job = fastify.jobs.get(jobId)
 
@@ -51,6 +56,8 @@ async function renderRoutes(fastify: FastifyInstance): Promise<void> {
       phrases,
       style,
       speakerStyles,
+      animationPreset,
+      phraseLaneOverrides,
     }
 
     // Dispatch to worker thread (non-blocking — returns immediately)

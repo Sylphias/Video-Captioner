@@ -502,6 +502,23 @@
   padding: 0;
 }
 
+.timing-editor__phrase-lane-select {
+  position: absolute;
+  top: 1px;
+  right: 33px;
+  width: 40px;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 2px;
+  color: var(--color-text-secondary);
+  font-size: 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  padding: 0 2px;
+}
+
 .timing-editor__phrase-edit {
   right: 17px;
 }
@@ -510,6 +527,7 @@
   right: 1px;
 }
 
+.timing-editor__phrase-block:hover .timing-editor__phrase-lane-select,
 .timing-editor__phrase-block:hover .timing-editor__phrase-edit,
 .timing-editor__phrase-block:hover .timing-editor__phrase-delete {
   opacity: 1;

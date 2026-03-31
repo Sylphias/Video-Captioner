@@ -170,6 +170,47 @@ function EnterExitPanel({ config, disabled, onChange }: EnterExitPanelProps) {
   )
 }
 
+// Active/Hold phase panel
+interface ActivePanelProps {
+  config: ActivePhaseConfig
+  onChange: (config: ActivePhaseConfig) => void
+}
+
+function ActivePanel({ config, onChange }: ActivePanelProps) {
+  return (
+    <>
+      <SelectControl
+        label="Animation Type"
+        value={config.type}
+        options={ACTIVE_TYPES}
+        onChange={(v) => onChange({ ...config, type: v as ActiveType })}
+      />
+      {config.type !== 'none' && (
+        <>
+          <SliderControl
+            label="Cycle Duration"
+            value={config.cycleDurationSec}
+            min={0.1}
+            max={3.0}
+            step={0.1}
+            onChange={(v) => onChange({ ...config, cycleDurationSec: v })}
+            format={(v) => v.toFixed(1) + 's'}
+          />
+          <SliderControl
+            label="Intensity"
+            value={config.intensity}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={(v) => onChange({ ...config, intensity: v })}
+            format={(v) => Math.round(v * 100) + '%'}
+          />
+        </>
+      )}
+    </>
+  )
+}
+
 export function PhasePanel({ phase, config, scope, onConfigChange, onScopeChange }: PhasePanelProps) {
   const phaseLabels: Record<Phase, string> = {
     enter: 'Enter Animation',
@@ -217,37 +258,12 @@ export function PhasePanel({ phase, config, scope, onConfigChange, onScopeChange
         </>
       )}
 
-      {phase === 'active' && (() => {
-        const ac = config as ActivePhaseConfig
-        return (
-          <>
-            <SelectControl
-              label="Animation Type"
-              value={ac.type}
-              options={ACTIVE_TYPES}
-              onChange={(v) => onConfigChange({ ...ac, type: v as ActiveType })}
-            />
-            <SliderControl
-              label="Cycle Duration"
-              value={ac.cycleDurationSec}
-              min={0.2}
-              max={3.0}
-              step={0.1}
-              onChange={(v) => onConfigChange({ ...ac, cycleDurationSec: v })}
-              format={(v) => v.toFixed(1) + 's'}
-            />
-            <SliderControl
-              label="Intensity"
-              value={ac.intensity}
-              min={0.0}
-              max={1.0}
-              step={0.1}
-              onChange={(v) => onConfigChange({ ...ac, intensity: v })}
-              format={(v) => Math.round(v * 100) + '%'}
-            />
-          </>
-        )
-      })()}
+      {phase === 'active' && (
+        <ActivePanel
+          config={config as ActivePhaseConfig}
+          onChange={(c) => onConfigChange(c)}
+        />
+      )}
 
       {phase === 'exit' && (() => {
         const ec = config as ExitConfig

@@ -24,11 +24,15 @@ interface SubtitleStore {
     manualSplitWordIndices: Set<number> // global word indices where user forced splits
   } | null
   style: StyleProps
-  maxWordsPerPhrase: number             // max words per auto-grouped phrase (default 8)
+  maxWordsPerPhrase: number             // max words per auto-grouped phrase (default 5)
   speakerNames: Record<string, string>               // maps raw speaker IDs to display names
   speakerStyles: Record<string, SpeakerStyleOverride> // per-speaker style overrides
-  activeAnimationPresetId: string | null              // globally active animation preset ID
+  activeAnimationPresetId: string | null              // globally active animation preset ID (Entry/Exit/Hold)
+  activeHighlightPresetId: string | null             // globally active highlight preset ID
   phraseAnimationPresetIds: Record<number, string>    // maps phrase index to override preset ID
+  laneCount: number                                   // number of available lanes (min 1)
+  laneLocks: Record<number, boolean>                   // per-lane lock state (locked lanes don't move when others are dragged)
+  phraseLaneOverrides: Record<number, number>         // phrase index → forced lane number
   // Actions
   setJob: (jobId: string, transcript: Transcript, videoMetadata: VideoMetadata) => void
   updateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
@@ -57,7 +61,11 @@ interface SubtitleStore {
   setPhraseStyle: (phraseIndex: number, override: PhraseStyleOverride) => void
   clearPhraseStyle: (phraseIndex: number) => void
   setActiveAnimationPresetId: (id: string | null) => void
+  setActiveHighlightPresetId: (id: string | null) => void
   setPhraseAnimationPresetId: (phraseIndex: number, presetId: string | null) => void
+  setLaneCount: (count: number) => void
+  setPhraseLane: (phraseIndex: number, laneNumber: number | null) => void
+  clearAllLaneOverrides: () => void
   applySrtPhrase: (phraseIndex: number, replacementWords: SessionWord[]) => void
   mergePhrases: (indices: number[]) => void
   deletePhrases: (indices: number[]) => void
@@ -70,7 +78,7 @@ interface SubtitleStore {
 const DEFAULT_STYLE: StyleProps = {
   highlightColor: '#FFFF00',
   baseColor: '#FFFFFF',
-  fontSize: 48,
+  fontSize: 90,
   fontFamily: 'Inter',
   fontWeight: 700,
   strokeColor: '#000000',
@@ -97,7 +105,10 @@ function captureSnapshot(state: {
   speakerNames: Record<string, string>
   speakerStyles: Record<string, SpeakerStyleOverride>
   activeAnimationPresetId: string | null
+  activeHighlightPresetId: string | null
   phraseAnimationPresetIds: Record<number, string>
+  laneCount: number
+  phraseLaneOverrides: Record<number, number>
 }): StateSnapshot {
   return {
     session: state.session
@@ -112,7 +123,10 @@ function captureSnapshot(state: {
     speakerNames: { ...state.speakerNames },
     speakerStyles: structuredClone(state.speakerStyles) as Record<string, Record<string, unknown>>,
     activeAnimationPresetId: state.activeAnimationPresetId,
+    activeHighlightPresetId: state.activeHighlightPresetId,
     phraseAnimationPresetIds: { ...state.phraseAnimationPresetIds },
+    laneCount: state.laneCount,
+    phraseLaneOverrides: { ...state.phraseLaneOverrides },
   }
 }
 
@@ -127,7 +141,10 @@ function pushUndo(state: {
   speakerNames: Record<string, string>
   speakerStyles: Record<string, SpeakerStyleOverride>
   activeAnimationPresetId: string | null
+  activeHighlightPresetId: string | null
   phraseAnimationPresetIds: Record<number, string>
+  laneCount: number
+  phraseLaneOverrides: Record<number, number>
 }): void {
   useUndoStore.getState().pushSnapshot(captureSnapshot(state))
 }
@@ -152,11 +169,14 @@ export function restoreSnapshot(snapshot: StateSnapshot): void {
         manualSplitWordIndices,
       },
       style: structuredClone(snapshot.style) as unknown as StyleProps,
-      maxWordsPerPhrase: snapshot.maxWordsPerPhrase ?? 8,
+      maxWordsPerPhrase: snapshot.maxWordsPerPhrase ?? 5,
       speakerNames: { ...snapshot.speakerNames },
       speakerStyles: structuredClone(snapshot.speakerStyles) as unknown as Record<string, SpeakerStyleOverride>,
       activeAnimationPresetId: snapshot.activeAnimationPresetId ?? null,
+      activeHighlightPresetId: snapshot.activeHighlightPresetId ?? null,
       phraseAnimationPresetIds: snapshot.phraseAnimationPresetIds ?? {},
+      laneCount: snapshot.laneCount ?? 2,
+      phraseLaneOverrides: snapshot.phraseLaneOverrides ?? {},
     }
   })
 }
@@ -167,11 +187,15 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   videoMetadata: null,
   session: null,
   style: DEFAULT_STYLE,
-  maxWordsPerPhrase: 8,
+  maxWordsPerPhrase: 5,
   speakerNames: {},
   speakerStyles: {},
   activeAnimationPresetId: null,
+  activeHighlightPresetId: null,
   phraseAnimationPresetIds: {},
+  laneCount: 2,
+  laneLocks: {},
+  phraseLaneOverrides: {},
 
   setJob: (jobId, transcript, videoMetadata) => {
     const words: SessionWord[] = transcript.words.map((w) => ({ ...w }))
@@ -366,6 +390,12 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       if (state.session.phrases.length === 0) {
         newStart = 0
         newEnd = DEFAULT_WORD_DURATION
+      } else if (afterPhraseIndex < 0) {
+        // Inserting before the first phrase
+        const firstPhrase = state.session.phrases[0]
+        const firstWord = firstPhrase.words[0]
+        newEnd = firstWord ? firstWord.start : DEFAULT_WORD_DURATION
+        newStart = Math.max(0, newEnd - DEFAULT_WORD_DURATION)
       } else {
         const prevPhrase = state.session.phrases[Math.min(afterPhraseIndex, state.session.phrases.length - 1)]
         const lastWord = prevPhrase.words[prevPhrase.words.length - 1]
@@ -615,7 +645,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     })
   },
 
-  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, maxWordsPerPhrase: 8, speakerNames: {}, speakerStyles: {}, activeAnimationPresetId: null, phraseAnimationPresetIds: {} }),
+  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, maxWordsPerPhrase: 5, speakerNames: {}, speakerStyles: {}, activeAnimationPresetId: null, activeHighlightPresetId: null, phraseAnimationPresetIds: {}, laneCount: 2, phraseLaneOverrides: {} }),
 
   renameSpeaker: (speakerId, displayName) => {
     set((state) => {
@@ -942,6 +972,40 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     set((state) => {
       pushUndo(state)
       return { activeAnimationPresetId: id }
+    })
+  },
+
+  setActiveHighlightPresetId: (id) => {
+    set((state) => {
+      pushUndo(state)
+      return { activeHighlightPresetId: id }
+    })
+  },
+
+  setLaneCount: (count) => {
+    set((state) => {
+      pushUndo(state)
+      return { laneCount: Math.max(1, count) }
+    })
+  },
+
+  setPhraseLane: (phraseIndex, laneNumber) => {
+    set((state) => {
+      pushUndo(state)
+      const phraseLaneOverrides = { ...state.phraseLaneOverrides }
+      if (laneNumber === null) {
+        delete phraseLaneOverrides[phraseIndex]
+      } else {
+        phraseLaneOverrides[phraseIndex] = laneNumber
+      }
+      return { phraseLaneOverrides }
+    })
+  },
+
+  clearAllLaneOverrides: () => {
+    set((state) => {
+      pushUndo(state)
+      return { phraseLaneOverrides: {} }
     })
   },
 

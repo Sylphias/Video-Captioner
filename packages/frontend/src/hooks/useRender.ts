@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import type { AnimationPreset } from '@eigen/shared-types'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
 
 export interface RenderState {
@@ -35,16 +36,55 @@ export function useRender() {
 
     setState({ status: 'rendering', progress: 0 })
 
-    // Read current phrases, style, and speakerStyles from Zustand store
-    const { session, style, speakerStyles } = useSubtitleStore.getState()
-    const phrases = (session?.phrases ?? []).map((p) => ({ words: p.words, dominantSpeaker: p.dominantSpeaker }))
+    // Read current state from Zustand store
+    const {
+      session, style, speakerStyles,
+      activeAnimationPresetId, activeHighlightPresetId,
+      phraseAnimationPresetIds, phraseLaneOverrides,
+    } = useSubtitleStore.getState()
+
+    // Fetch presets to resolve IDs → full objects (composition can't access APIs)
+    let presets: AnimationPreset[] = []
+    try {
+      const presetsRes = await fetch('/api/presets')
+      if (presetsRes.ok) presets = (await presetsRes.json()) as AnimationPreset[]
+    } catch { /* proceed without presets */ }
+
+    // Resolve global animation preset (same merge logic as PreviewPanel)
+    const basePreset = activeAnimationPresetId
+      ? presets.find((p) => p.id === activeAnimationPresetId)
+      : undefined
+    const highlightPreset = activeHighlightPresetId
+      ? presets.find((p) => p.id === activeHighlightPresetId)
+      : undefined
+    const animationPreset = basePreset
+      ? {
+          ...basePreset,
+          ...(highlightPreset?.highlightAnimation ? { highlightAnimation: highlightPreset.highlightAnimation } : {}),
+        }
+      : undefined
+
+    // Resolve per-phrase animation presets and build composition phrases
+    const phrases = (session?.phrases ?? []).map((p, i) => {
+      const phrasePresetId = phraseAnimationPresetIds[i]
+      const phrasePreset = phrasePresetId ? presets.find((pr) => pr.id === phrasePresetId) : undefined
+      return {
+        words: p.words,
+        dominantSpeaker: p.dominantSpeaker,
+        lingerDuration: p.lingerDuration,
+        styleOverride: p.styleOverride,
+        animationPreset: phrasePreset,
+      }
+    })
+
+    const laneOverrides = Object.keys(phraseLaneOverrides).length > 0 ? phraseLaneOverrides : undefined
 
     // POST to trigger the render
     try {
       const res = await fetch(`/api/jobs/${jobId}/render`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phrases, style, speakerStyles }),
+        body: JSON.stringify({ phrases, style, speakerStyles, animationPreset, phraseLaneOverrides: laneOverrides }),
       })
       if (!res.ok) {
         let errorMsg = `HTTP ${res.status}`

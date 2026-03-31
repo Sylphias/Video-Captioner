@@ -4,6 +4,7 @@ import { SubtitleComposition } from '@eigen/remotion-composition'
 import { useSubtitleStore } from '../store/subtitleStore.ts'
 import { useWaveform } from '../hooks/useWaveform.ts'
 import { useAnimationPresets } from '../hooks/useAnimationPresets.ts'
+import { LaneDragOverlay } from './LaneDragOverlay.tsx'
 import './PreviewPanel.css'
 
 interface PreviewPanelProps {
@@ -21,7 +22,10 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
   const style = useSubtitleStore((s) => s.style)
   const speakerStyles = useSubtitleStore((s) => s.speakerStyles)
   const activeAnimationPresetId = useSubtitleStore((s) => s.activeAnimationPresetId)
+  const activeHighlightPresetId = useSubtitleStore((s) => s.activeHighlightPresetId)
   const phraseAnimationPresetIds = useSubtitleStore((s) => s.phraseAnimationPresetIds)
+  const phraseLaneOverrides = useSubtitleStore((s) => s.phraseLaneOverrides)
+  const laneCount = useSubtitleStore((s) => s.laneCount)
   const { presets } = useAnimationPresets()
 
   const playerRef = useRef<PlayerRef>(null)
@@ -129,9 +133,30 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
     // Resolve the global active animation preset from the presets list.
     // The Remotion composition runs at a serialization boundary — it cannot access
     // hooks, stores, or APIs. All preset IDs must be resolved to full objects here.
-    const animationPreset = activeAnimationPresetId
+    // Resolve highlight preset (always layered on top of entry/exit)
+    const highlightPreset = activeHighlightPresetId
+      ? presets.find((p) => p.id === activeHighlightPresetId) ?? undefined
+      : undefined
+
+    const baseAnimationPreset = activeAnimationPresetId
       ? presets.find((p) => p.id === activeAnimationPresetId) ?? undefined
       : undefined
+
+    // Merge highlight into the animation preset so the renderer gets both
+    const animationPreset = baseAnimationPreset
+      ? {
+          ...baseAnimationPreset,
+          ...(highlightPreset?.highlightAnimation ? { highlightAnimation: highlightPreset.highlightAnimation } : {}),
+        }
+      : highlightPreset
+        ? {
+            // No entry/exit preset but highlight is set — create a minimal wrapper
+            ...highlightPreset,
+            enter: { type: 'none' as const, durationSec: 0, easing: 'linear' as const, params: {} },
+            active: { type: 'none' as const, cycleDurationSec: 1, intensity: 0 },
+            exit: { type: 'none' as const, durationSec: 0, easing: 'linear' as const, params: {}, mirrorEnter: false },
+          }
+        : undefined
 
     // Resolve per-phrase animation preset IDs to full AnimationPreset objects.
     // SubtitleOverlay uses: phrase.animationPreset ?? globalAnimationPreset (prop)
@@ -157,8 +182,10 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
       speakerStyles,
       animationPreset,
       showSpeakerBorders,
+      phraseLaneOverrides: Object.keys(phraseLaneOverrides).length > 0 ? phraseLaneOverrides : undefined,
+      laneCount: showSpeakerBorders ? laneCount : undefined,
     }
-  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets, showSpeakerBorders])
+  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets, showSpeakerBorders, phraseLaneOverrides, laneCount])
 
   if (!jobId || !session || !videoMetadata || !inputProps) {
     return null
@@ -196,7 +223,7 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
         </button>
       )}
       {/* Click video to play/pause */}
-      <div ref={playerWrapperRef} className="preview-panel__player-wrapper" onClick={togglePlayPause}>
+      <div ref={playerWrapperRef} className="preview-panel__player-wrapper" onClick={togglePlayPause} style={{ position: 'relative' }}>
         <Player
           ref={playerRef}
           component={SubtitleComposition}
@@ -209,6 +236,7 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
           inputProps={inputProps}
           acknowledgeRemotionLicense
         />
+        {showSpeakerBorders && <LaneDragOverlay containerRef={playerWrapperRef} />}
       </div>
 
       {/* Mini waveform scrubber */}

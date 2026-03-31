@@ -48,13 +48,33 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
       }
     }, 500)
 
+    // Track whether this SSE connection ever observed a running subprocess.
+    // Only kill subprocesses on disconnect if THIS connection was watching one —
+    // prevents the upload SSE close from killing a just-started transcription.
+    let observedTranscribing = false
+    let observedDiarizing = false
+    const origWrite = reply.raw.write.bind(reply.raw)
+    reply.raw.write = function (chunk: any, ...args: any[]) {
+      try {
+        const str = typeof chunk === 'string' ? chunk : chunk.toString()
+        if (str.includes('"transcribing"')) observedTranscribing = true
+        if (str.includes('"diarizing"')) observedDiarizing = true
+      } catch { /* ignore */ }
+      return (origWrite as any)(chunk, ...args)
+    }
+
     // Clean up interval if client disconnects early
     req.raw.on('close', () => {
       clearInterval(interval)
-      // Kill transcription subprocess if still running (prevents zombie — Pitfall 4)
-      killTranscription(jobId)
-      // Kill diarization subprocess if still running (prevents zombie)
-      killDiarization(jobId)
+      // Only kill subprocesses if this SSE connection was actively watching them
+      if (observedTranscribing) {
+        const job = fastify.jobs.get(jobId)
+        if (job?.status === 'transcribing') killTranscription(jobId)
+      }
+      if (observedDiarizing) {
+        const job = fastify.jobs.get(jobId)
+        if (job?.status === 'diarizing') killDiarization(jobId)
+      }
     })
   })
 

@@ -8,10 +8,12 @@ import { PreviewPanel } from '../components/PreviewPanel.tsx'
 import { StageTabBar, type StageId } from '../components/StageTabBar.tsx'
 import { StyleDrawer, type DrawerMode } from '../components/StyleDrawer/StyleDrawer.tsx'
 import { TextEditor } from '../components/TextEditor/TextEditor.tsx'
+import { MiniTimeline } from '../components/TextEditor/MiniTimeline.tsx'
 import { TimingEditor } from '../components/TimingEditor/TimingEditor.tsx'
 import { AnimationEditor } from '../components/AnimationEditor/AnimationEditor.tsx'
 import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
 import { useUndoStore } from '../store/undoMiddleware.ts'
+import { useWaveform } from '../hooks/useWaveform.ts'
 import './SubtitlesPage.css'
 
 // Toast state for stage transition notifications
@@ -112,6 +114,86 @@ export function SubtitlesPage() {
   const canRedo = useUndoStore((s) => s.canRedo)
 
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
+  const session = useSubtitleStore((s) => s.session)
+  const updateWord = useSubtitleStore((s) => s.updateWord)
+  const addPhraseAtTime = useSubtitleStore((s) => s.addPhraseAtTime)
+  const deletePhrase = useSubtitleStore((s) => s.deletePhrase)
+  const storeJobId = useSubtitleStore((s) => s.jobId)
+  // Only fetch waveform once session exists (transcription done → video is normalized)
+  const waveformJobId = session ? (storeJobId ?? uploadState.jobId ?? null) : null
+  const { waveform } = useWaveform(waveformJobId)
+
+  // Mini timeline: track current time + active phrase for playhead
+  const [miniTimelineTime, setMiniTimelineTime] = useState(0)
+  const [miniTimelineActivePhrase, setMiniTimelineActivePhrase] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!getCurrentTime || !session) return
+    const interval = setInterval(() => {
+      const t = getCurrentTime()
+      setMiniTimelineTime(t)
+      let found: number | null = null
+      for (let i = 0; i < session.phrases.length; i++) {
+        const p = session.phrases[i]
+        if (p.words.length === 0) continue
+        const start = p.words[0].start
+        const end = p.words[p.words.length - 1].end
+        if (t >= start && t <= end + 0.5) { found = i; break }
+      }
+      setMiniTimelineActivePhrase(found)
+    }, 100)
+    return () => clearInterval(interval)
+  }, [getCurrentTime, session])
+
+  const miniTimelineTotalDuration = session
+    ? Math.max(...session.phrases.filter(p => p.words.length > 0).map(p => p.words[p.words.length - 1].end), 0)
+    : 0
+
+  // Hotkeys: Ctrl+1 add phrase at playhead, Ctrl+2 delete phrase at playhead
+  useEffect(() => {
+    if (activeStage !== 'text') return
+
+    const handler = (e: KeyboardEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return
+      if (!getCurrentTime || !session) return
+
+      if (e.key === '1') {
+        e.preventDefault()
+        const t = getCurrentTime()
+        // Use the speaker of the nearest phrase, or first speaker
+        const speakerIds = Object.keys(speakerNames)
+        let speakerId = speakerIds[0] ?? 'SPEAKER_00'
+        // Find the phrase closest to current time for speaker context
+        for (const p of session.phrases) {
+          if (p.words.length === 0) continue
+          const end = p.words[p.words.length - 1].end
+          if (end <= t && p.dominantSpeaker) {
+            speakerId = p.dominantSpeaker
+          }
+        }
+        addPhraseAtTime(t, speakerId)
+      }
+
+      if (e.key === '2') {
+        e.preventDefault()
+        const t = getCurrentTime()
+        // Find the phrase under the playhead
+        for (let i = 0; i < session.phrases.length; i++) {
+          const p = session.phrases[i]
+          if (p.words.length === 0) continue
+          const start = p.words[0].start
+          const end = p.words[p.words.length - 1].end
+          if (t >= start && t <= end + 0.2) {
+            deletePhrase(i)
+            break
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [activeStage, getCurrentTime, session, speakerNames, addPhraseAtTime, deletePhrase])
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -579,6 +661,30 @@ export function SubtitlesPage() {
             </div>
           )}
           <StageTabBar activeStage={activeStage} onStageChange={handleStageChange} />
+
+          {/* Mini timeline — lane-based overview (always visible above editor) */}
+          {activeStage === 'text' && session && miniTimelineTotalDuration > 0 && (
+            <MiniTimeline
+              phrases={session.phrases}
+              totalDuration={miniTimelineTotalDuration}
+              currentTime={miniTimelineTime}
+              activePhraseIndex={miniTimelineActivePhrase}
+              speakerNames={speakerNames}
+              waveform={waveform}
+              onSeek={seekToTime ?? (() => {})}
+              onAdjustStart={(phraseIndex, newStart) => {
+                let globalIdx = 0
+                for (let i = 0; i < phraseIndex; i++) globalIdx += session.phrases[i].words.length
+                updateWord(globalIdx, { start: Math.max(0, newStart) })
+              }}
+              onAdjustEnd={(phraseIndex, newEnd) => {
+                let globalIdx = 0
+                for (let i = 0; i <= phraseIndex; i++) globalIdx += session.phrases[i].words.length
+                globalIdx--
+                updateWord(globalIdx, { end: Math.max(0, newEnd) })
+              }}
+            />
+          )}
 
           <div className="subtitles-page__editor-section">
             {activeStage === 'text' && (

@@ -47,6 +47,43 @@
   max-width: 280px;
 }
 
+/* ---- Highlight section ---- */
+.animation-editor__highlight-section {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.animation-editor__highlight-heading {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.animation-editor__highlight-desc {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.animation-editor__highlight-select {
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  outline: none;
+}
+
+.animation-editor__highlight-select:focus {
+  border-color: var(--color-accent-green);
+}
+
 /* ---- Top bar: preset name + actions ---- */
 .animation-editor__top-bar {
   display: flex;

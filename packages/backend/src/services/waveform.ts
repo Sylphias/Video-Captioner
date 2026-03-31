@@ -35,6 +35,11 @@ function extractRawSamples(videoPath: string): Promise<Float32Array> {
   return new Promise((resolve, reject) => {
     const args = [
       '-i', videoPath,
+      '-af', [
+        'highpass=f=100',      // cut below 100Hz (rumble, wind, AC hum)
+        'lowpass=f=3000',      // cut above 3kHz (hiss, high-frequency noise)
+        'dynaudnorm=p=0.9',   // normalize dynamics so speech peaks stand out
+      ].join(','),
       '-ac', '1',          // mono
       '-ar', '8000',       // 8kHz sample rate — enough for visual waveform
       '-f', 'f32le',       // raw 32-bit float little-endian

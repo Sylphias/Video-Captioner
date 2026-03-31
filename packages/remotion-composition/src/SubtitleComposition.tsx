@@ -3,7 +3,7 @@ import type { SubtitleCompositionProps } from './types'
 import { SubtitleOverlay } from './SubtitleOverlay'
 import './fonts' // triggers module-level Google Font loading side effects
 
-export function SubtitleComposition({ videoSrc, phrases, style, speakerStyles, animationPreset, showSpeakerBorders }: SubtitleCompositionProps) {
+export function SubtitleComposition({ videoSrc, phrases, style, speakerStyles, animationPreset, showSpeakerBorders, phraseLaneOverrides, laneCount }: SubtitleCompositionProps) {
   const { isRendering } = useRemotionEnvironment()
 
   return (
@@ -22,6 +22,8 @@ export function SubtitleComposition({ videoSrc, phrases, style, speakerStyles, a
           speakerStyles={speakerStyles}
           animationPreset={animationPreset}
           showSpeakerBorders={!isRendering && showSpeakerBorders}
+          phraseLaneOverrides={phraseLaneOverrides}
+          laneCount={laneCount}
         />
       </AbsoluteFill>
     </AbsoluteFill>

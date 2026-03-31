@@ -1,0 +1,54 @@
+/* Overlay — covers the full player area */
+.lane-drag-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Per-lane container — positioned at the lane's vertical % */
+.lane-drag-overlay__lane {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  pointer-events: auto;
+  cursor: ns-resize;
+}
+
+.lane-drag-overlay__lane--locked {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Horizontal dashed line with centered label */
+.lane-drag-overlay__handle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* Dashed guide lines on either side of the label */
+.lane-drag-overlay__guide {
+  flex: 1;
+  height: 0;
+  border-top: 1px dashed rgba(0, 230, 150, 0.4);
+  min-width: 8px;
+}
+
+/* Centered label pill */
+.lane-drag-overlay__label {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 230, 150, 0.3);
+  background: rgba(0, 230, 150, 0.1);
+  color: rgba(0, 230, 150, 0.8);
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  flex-shrink: 0;
+}

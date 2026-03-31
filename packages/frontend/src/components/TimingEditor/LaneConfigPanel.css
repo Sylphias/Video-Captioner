@@ -1,0 +1,148 @@
+/* ---- Lane Configuration Panel ---- */
+
+.lane-config {
+  padding: var(--spacing-sm);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.lane-config__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+}
+
+.lane-config__title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.lane-config__header-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.lane-config__clear-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.lane-config__clear-btn:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+/* ---- Lane rows ---- */
+.lane-config__lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.lane-config__lane-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+  padding: 0 var(--spacing-xs);
+  border-radius: 4px;
+  background: var(--color-bg-surface);
+}
+
+.lane-config__lock-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.lane-config__lock-btn:hover {
+  opacity: 0.8;
+}
+
+.lane-config__lock-btn--locked {
+  opacity: 0.8;
+}
+
+.lane-config__lane-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  flex: 1;
+}
+
+.lane-config__lane-pos {
+  font-size: 0.65rem;
+  color: var(--color-text-disabled);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Add/Remove buttons ---- */
+.lane-config__lane-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.lane-config__add-btn,
+.lane-config__remove-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) 0;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.lane-config__add-btn:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-accent-green);
+}
+
+.lane-config__remove-btn:hover {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+/* ---- Gap control ---- */
+.lane-config__gap-control {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lane-config__gap-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+.lane-config__gap-value {
+  color: var(--color-text-disabled);
+  font-variant-numeric: tabular-nums;
+}
+
+.lane-config__gap-slider {
+  width: 100%;
+  accent-color: var(--color-accent-green);
+}

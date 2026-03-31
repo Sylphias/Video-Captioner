@@ -4,7 +4,6 @@ import { useSrtImport } from '../../hooks/useSrtImport.ts'
 import { SrtDiffView } from './SrtDiffView.tsx'
 import { BulkActionsToolbar } from './BulkActionsToolbar.tsx'
 import { FindReplaceBar } from './FindReplaceBar.tsx'
-import { MiniTimeline } from './MiniTimeline.tsx'
 import './TextEditor.css'
 
 interface TextEditorProps {
@@ -24,12 +23,12 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     updatePhraseText,
     mergePhrases,
     deletePhrases,
+    deletePhrase,
     duplicatePhrase,
     movePhraseUp,
     movePhraseDown,
     reassignPhraseSpeaker,
     replaceAllPhraseTexts,
-    updateWord,
   } = useSubtitleStore()
 
   const { state: srtState, fileInputRef, importFile, reset: resetSrt, acceptPhrase, rejectPhrase } = useSrtImport()
@@ -61,15 +60,11 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
 
   // Active phrase tracking — follows video playback
   const [activePhraseIndex, setActivePhraseIndex] = useState<number | null>(null)
-  const [currentTime, setCurrentTime] = useState(0)
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!getCurrentTime || !session) return
     const interval = setInterval(() => {
       const t = getCurrentTime()
-      setCurrentTime(t)
-      // Find the phrase that contains the current time
       let found: number | null = null
       for (let i = 0; i < session.phrases.length; i++) {
         const p = session.phrases[i]
@@ -95,11 +90,6 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     }
   }, [activePhraseIndex])
 
-  // Compute total duration for mini timeline
-  const totalDuration = session
-    ? Math.max(...session.phrases.filter(p => p.words.length > 0).map(p => p.words[p.words.length - 1].end), 0)
-    : 0
-
   // Drag-to-select state
   const dragSelectRef = useRef<{ startIndex: number; active: boolean } | null>(null)
 
@@ -107,6 +97,14 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     setSelectedPhraseIndices(new Set())
     setLastClickedIndex(null)
   }, [])
+
+  const handleSeek = useCallback((phraseIndex: number) => {
+    if (!session) return
+    const phrase = session.phrases[phraseIndex]
+    if (phrase && phrase.words.length > 0) {
+      seekToTime(phrase.words[0].start)
+    }
+  }, [session, seekToTime])
 
   const handleCheckboxClick = useCallback((e: React.MouseEvent, phraseIndex: number) => {
     e.stopPropagation()
@@ -122,17 +120,13 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     setLastClickedIndex(phraseIndex)
   }, [])
 
-  const handleRowMouseDown = useCallback((e: React.MouseEvent, phraseIndex: number) => {
-    const target = e.target as HTMLElement
-    const isContentEditable = target.contentEditable === 'true' || target.closest('[contenteditable="true"]') !== null
-    const isCheckbox = (target as HTMLInputElement).type === 'checkbox'
-    if (isCheckbox || isContentEditable) return
+  // Gutter drag-to-select: mousedown on line number starts selection drag
+  const handleGutterMouseDown = useCallback((e: React.MouseEvent, phraseIndex: number) => {
+    e.preventDefault()
+    e.stopPropagation()
 
-    // Start drag-to-select
-    dragSelectRef.current = { startIndex: phraseIndex, active: false }
-
+    // Shift+click: range select from last clicked
     if (e.shiftKey && lastClickedIndex !== null) {
-      // Range select with shift
       const start = Math.min(lastClickedIndex, phraseIndex)
       const end = Math.max(lastClickedIndex, phraseIndex)
       setSelectedPhraseIndices(prev => {
@@ -144,6 +138,10 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     }
 
     setLastClickedIndex(phraseIndex)
+    dragSelectRef.current = { startIndex: phraseIndex, active: false }
+
+    // Immediately select this row
+    setSelectedPhraseIndices(new Set([phraseIndex]))
 
     const onMove = (moveE: MouseEvent) => {
       if (!dragSelectRef.current) return
@@ -153,7 +151,6 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
       const el = document.elementFromPoint(moveE.clientX, moveE.clientY)
       const lineEl = el?.closest('.text-editor__line') as HTMLElement | null
       if (!lineEl) return
-      // Find phraseIndex from the line's child contentEditable data attribute
       const contentEl = lineEl.querySelector('[data-phrase-index]') as HTMLElement | null
       if (!contentEl) return
       const hoverIndex = parseInt(contentEl.dataset.phraseIndex ?? '-1', 10)
@@ -170,33 +167,17 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     const onUp = () => {
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
-
-      // If it was just a click (no drag), toggle selection
+      // If no drag happened, treat as a seek click
       if (dragSelectRef.current && !dragSelectRef.current.active) {
-        setSelectedPhraseIndices(prev => {
-          const next = new Set(prev)
-          if (next.has(phraseIndex)) {
-            next.delete(phraseIndex)
-          } else {
-            next.add(phraseIndex)
-          }
-          return next
-        })
+        handleSeek(phraseIndex)
+        clearSelection()
       }
       dragSelectRef.current = null
     }
 
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
-  }, [lastClickedIndex])
-
-  const handleSeek = useCallback((phraseIndex: number) => {
-    if (!session) return
-    const phrase = session.phrases[phraseIndex]
-    if (phrase && phrase.words.length > 0) {
-      seekToTime(phrase.words[0].start)
-    }
-  }, [session, seekToTime])
+  }, [lastClickedIndex, handleSeek, clearSelection])
 
   const handleBlur = useCallback((phraseIndex: number) => {
     if (!session) return
@@ -270,12 +251,38 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     }
 
     if (e.key === 'Backspace') {
+      const el = lineRefs.current.get(phraseIndex)
+      if (!el) return
+
+      const text = el.innerText.trim()
+      const phrase = session.phrases[phraseIndex]
+
+      // If line is empty or just placeholder text, delete the entire phrase
+      if (!text || text === '...' || (phrase && phrase.words.length === 1 && phrase.words[0].word === '...')) {
+        e.preventDefault()
+        deletePhrase(phraseIndex)
+        // Focus the previous line (or next if this was the first)
+        setTimeout(() => {
+          const targetIdx = phraseIndex > 0 ? phraseIndex - 1 : 0
+          const targetEl = lineRefs.current.get(targetIdx)
+          if (targetEl) {
+            targetEl.focus()
+            const sel = window.getSelection()
+            if (sel) {
+              const r = document.createRange()
+              r.selectNodeContents(targetEl)
+              r.collapse(false)
+              sel.removeAllRanges()
+              sel.addRange(r)
+            }
+          }
+        }, 50)
+        return
+      }
+
       const selection = window.getSelection()
       if (!selection || selection.rangeCount === 0) return
       const range = selection.getRangeAt(0)
-
-      const el = lineRefs.current.get(phraseIndex)
-      if (!el) return
 
       // Check if cursor is at position 0 (start of line content)
       const isAtStart =
@@ -291,7 +298,6 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
           const prevEl = lineRefs.current.get(phraseIndex - 1)
           if (prevEl) {
             prevEl.focus()
-            // Place cursor at end
             const sel = window.getSelection()
             if (sel) {
               const r = document.createRange()
@@ -507,31 +513,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
         </div>
       )}
 
-      {/* Mini timeline — speech overview with playhead + draggable edges */}
-      {session && totalDuration > 0 && (
-        <MiniTimeline
-          phrases={session.phrases}
-          totalDuration={totalDuration}
-          currentTime={currentTime}
-          activePhraseIndex={activePhraseIndex}
-          onSeek={seekToTime}
-          onAdjustStart={(phraseIndex, newStart) => {
-            // Compute global word index of the first word in this phrase
-            let globalIdx = 0
-            for (let i = 0; i < phraseIndex; i++) globalIdx += session.phrases[i].words.length
-            updateWord(globalIdx, { start: Math.max(0, newStart) })
-          }}
-          onAdjustEnd={(phraseIndex, newEnd) => {
-            // Compute global word index of the last word in this phrase
-            let globalIdx = 0
-            for (let i = 0; i <= phraseIndex; i++) globalIdx += session.phrases[i].words.length
-            globalIdx-- // last word of this phrase
-            updateWord(globalIdx, { end: Math.max(0, newEnd) })
-          }}
-        />
-      )}
-
-      {/* Find/Replace bar (D-04, D-05, D-06, D-07) */}
+      {/* Find/Replace bar */}
       {findReplaceOpen && session && (
         <FindReplaceBar
           phrases={session.phrases}
@@ -558,7 +540,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
         </div>
       )}
 
-      {/* SRT Diff View (D-07: side-by-side) */}
+      {/* SRT Diff View */}
       {srtState.status === 'parsed' && (
         <SrtDiffView
           alignedPhrases={srtState.alignedPhrases}
@@ -568,7 +550,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
         />
       )}
 
-      {/* BulkActionsToolbar (D-09) — visible when 2+ phrases selected and not in confirm-delete mode */}
+      {/* BulkActionsToolbar — visible when 2+ phrases selected */}
       {selectedPhraseIndices.size >= 2 && confirmDeleteCount === null && (
         <BulkActionsToolbar
           count={selectedPhraseIndices.size}
@@ -589,7 +571,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
         />
       )}
 
-      {/* Delete confirmation inline bar (> 3 phrases) */}
+      {/* Delete confirmation inline bar */}
       {confirmDeleteCount !== null && (
         <div className="text-editor__delete-confirm">
           <span>Delete {confirmDeleteCount} phrases?</span>
@@ -614,7 +596,17 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
         </div>
       )}
 
+      {/* ---- Insert before first line ---- */}
+      <button
+        type="button"
+        className="text-editor__insert-btn text-editor__insert-btn--first"
+        onClick={(e) => { e.stopPropagation(); addPhrase(-1) }}
+        title="Insert phrase before line 1"
+      >
+        +
+      </button>
 
+      {/* ---- Phrase list ---- */}
       {session.phrases.map((phrase, phraseIndex) => {
         const phraseText = phrase.words.map((w) => w.word).join(' ')
         const speakerIdx = phrase.dominantSpeaker
@@ -628,30 +620,30 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
           <React.Fragment key={phraseIndex}>
           <div
             className={`text-editor__line${isSelected ? ' text-editor__line--selected' : ''}${isActive ? ' text-editor__line--active' : ''}`}
-            onMouseDown={(e) => handleRowMouseDown(e, phraseIndex)}
           >
-            {/* Checkbox column (D-02) */}
+            {/* Checkbox column */}
             <input
               type="checkbox"
               className="text-editor__line-checkbox"
               style={{ opacity: hasAnySelected ? 1 : 0 }}
               checked={isSelected}
-              onChange={() => {}} // controlled via onClick
+              onChange={() => {}}
               onClick={(e) => handleCheckboxClick(e, phraseIndex)}
               aria-label={`Select phrase ${phraseIndex + 1}`}
             />
 
-            {/* Line number — click to seek */}
+            {/* Line number gutter — drag to select rows */}
             <button
               type="button"
               className="text-editor__line-number"
-              onClick={(e) => { e.stopPropagation(); handleSeek(phraseIndex) }}
-              title={`Seek to line ${phraseIndex + 1}`}
+              onClick={(e) => { e.stopPropagation() }}
+              onMouseDown={(e) => handleGutterMouseDown(e, phraseIndex)}
+              title={`Drag to select · Click to seek`}
             >
               {phraseIndex + 1}
             </button>
 
-            {/* Speaker indicator dot (only when speakers detected) */}
+            {/* Speaker indicator dot */}
             {hasSpeakers && (
               <span
                 className="text-editor__speaker-indicator"
@@ -664,7 +656,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
               />
             )}
 
-            {/* Editable phrase text with confidence underlines (D-10, D-11) */}
+            {/* Editable phrase text with confidence underlines */}
             <div
               key={phraseText}
               ref={(el) => setLineRef(phraseIndex, el)}
@@ -688,6 +680,17 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
                 )
               })}
             </div>
+
+            {/* Delete phrase button */}
+            <button
+              type="button"
+              className="text-editor__delete-btn"
+              onClick={(e) => { e.stopPropagation(); deletePhrase(phraseIndex) }}
+              title={`Delete line ${phraseIndex + 1}`}
+              aria-label={`Delete phrase ${phraseIndex + 1}`}
+            >
+              {'\u00D7'}
+            </button>
           </div>
 
           {/* Insert line after this phrase */}

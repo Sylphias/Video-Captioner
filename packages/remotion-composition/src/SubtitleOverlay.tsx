@@ -47,7 +47,15 @@ const DEFAULT_LANE_GAP = 8
  * Same-speaker phrases inherit the previous slot while lingering,
  * different speakers get the next available slot.
  */
-function assignSlots(phrases: CompositionPhrase[], defaultLinger: number): Map<CompositionPhrase, number> {
+function assignSlots(
+  phrases: CompositionPhrase[],
+  defaultLinger: number,
+  phraseLaneOverrides?: Record<number, number>,
+): Map<CompositionPhrase, number> {
+  // Build phrase index lookup (phrases may be passed in any order)
+  const phraseIndexMap = new Map<CompositionPhrase, number>()
+  phrases.forEach((p, i) => phraseIndexMap.set(p, i))
+
   const sorted = [...phrases].sort((a, b) => a.words[0].start - b.words[0].start)
   const slotMap = new Map<CompositionPhrase, number>()
   const assigned: { phrase: CompositionPhrase; end: number; slot: number }[] = []
@@ -58,6 +66,16 @@ function assignSlots(phrases: CompositionPhrase[], defaultLinger: number): Map<C
     const speaker = phrase.dominantSpeaker ?? '__default__'
     const lingerSec = phrase.lingerDuration ?? defaultLinger
     const phraseEnd = phrase.words[phrase.words.length - 1].end + lingerSec
+
+    // Check for per-phrase lane override
+    const phraseIdx = phraseIndexMap.get(phrase)
+    const overrideSlot = phraseIdx !== undefined ? phraseLaneOverrides?.[phraseIdx] : undefined
+    if (overrideSlot !== undefined) {
+      slotMap.set(phrase, overrideSlot)
+      lastSpeakerSlot.set(speaker, { slot: overrideSlot, end: phraseEnd })
+      assigned.push({ phrase, end: phraseEnd, slot: overrideSlot })
+      continue
+    }
 
     // If the previous phrase from this speaker is still lingering when this
     // one starts, inherit its slot so the speaker stays in the same row.
@@ -197,17 +215,19 @@ interface SubtitleOverlayProps {
   speakerStyles: Record<string, SpeakerStyleOverride>
   animationPreset?: AnimationPreset  // global default animation preset for all phrases
   showSpeakerBorders?: boolean  // show colored borders per-speaker (editor preview only)
+  phraseLaneOverrides?: Record<number, number>  // phrase index → forced lane number
+  laneCount?: number  // number of lanes to show guides for (editor preview only)
 }
 
-export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset, showSpeakerBorders }: SubtitleOverlayProps) {
+export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset, showSpeakerBorders, phraseLaneOverrides, laneCount }: SubtitleOverlayProps) {
   const frame = useCurrentFrame()
   const { fps, width, height } = useVideoConfig()
 
   const currentTimeSec = frame / fps
 
   const slotMap = useMemo(
-    () => assignSlots(phrases, style.lingerDuration ?? 1.0),
-    [phrases, style.lingerDuration],
+    () => assignSlots(phrases, style.lingerDuration ?? 1.0, phraseLaneOverrides),
+    [phrases, style.lingerDuration, phraseLaneOverrides],
   )
 
   // Find ALL active phrases — supports overlapping speakers
@@ -218,10 +238,6 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
     const phraseEnd = phrase.words[phrase.words.length - 1].end + phraseLingerSec
     return currentTimeSec >= phraseStart && currentTimeSec <= phraseEnd
   })
-
-  if (activePhrases.length === 0) {
-    return null
-  }
 
   // Same-speaker phrases replace each other — only keep the latest per speaker.
   // Phrases without a dominantSpeaker share a common "__default__" bucket so
@@ -248,8 +264,32 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
     return { ...style, ...override, ...phraseOverride } as StyleProps
   })
 
+  const laneGap = style.laneGap ?? DEFAULT_LANE_GAP
+  const guideLaneCount = laneCount ?? 0
+
   return (
     <>
+      {/* Always-visible lane guide boxes (editor preview only) */}
+      {showSpeakerBorders && guideLaneCount > 0 && Array.from({ length: guideLaneCount }).map((_, i) => {
+        const top = style.verticalPosition - i * laneGap
+        return (
+          <div
+            key={`lane-guide-${i}`}
+            style={{
+              position: 'absolute',
+              top: `${top}%`,
+              transform: 'translateY(-50%)',
+              left: '5%',
+              right: '5%',
+              height: style.fontSize * 2.8,
+              border: '2px solid rgba(0, 230, 150, 0.4)',
+              borderRadius: 4,
+              pointerEvents: 'none',
+            }}
+          />
+        )
+      })}
+
       {visiblePhrases.map((activePhrase, phraseIdx) => {
         const activeWordIndex = findActiveWordIndex(activePhrase.words, currentTimeSec)
 
@@ -357,11 +397,10 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
           containerKeyframeStyles,
         )
 
-        // Speaker-colored border for editor preview
-        if (showSpeakerBorders && activePhrase.dominantSpeaker) {
-          const speakerColor = getSpeakerColor(activePhrase.dominantSpeaker)
-          containerStyle.outline = `3px solid ${speakerColor}cc`
-          containerStyle.outlineOffset = '5px'
+        // Green bounding box for editor preview — shows where text will appear
+        if (showSpeakerBorders) {
+          containerStyle.outline = '2px solid rgba(0, 230, 150, 0.6)'
+          containerStyle.outlineOffset = '4px'
           containerStyle.borderRadius = '4px'
         }
 

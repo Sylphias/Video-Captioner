@@ -4,6 +4,7 @@ import { useWaveform } from '../../hooks/useWaveform.ts'
 import { WaveformCanvas } from './WaveformCanvas.tsx'
 import type { SessionPhrase, SessionWord } from '../../store/subtitleStore.ts'
 import type { DiarizeState } from '../../hooks/useDiarize.ts'
+import { LaneConfigPanel } from './LaneConfigPanel.tsx'
 import './TimingEditor.css'
 
 interface TimingEditorProps {
@@ -46,7 +47,6 @@ function buildSpeakerLanes(phrases: SessionPhrase[], speakerNames: Record<string
     laneMap.get(speaker)!.phrases.push({ phrase, phraseIndex: i })
   }
 
-  // Only return lanes that have phrases or are in speakerNames
   return Array.from(laneMap.values()).filter(
     (lane) => lane.phrases.length > 0 || speakerNames[lane.speakerId]
   )
@@ -98,6 +98,7 @@ export function TimingEditor({
     addPhraseAtTime,
     addWord,
     shiftPhrase,
+    setPhraseLane,
   } = useSubtitleStore()
 
   const { waveform } = useWaveform(jobId)
@@ -141,6 +142,8 @@ export function TimingEditor({
   const timelineWidth = Math.ceil(totalDuration * PIXELS_PER_SECOND)
 
   const phrases = session?.phrases ?? []
+  const phraseLaneOverrides = useSubtitleStore((s) => s.phraseLaneOverrides)
+  const laneCount = useSubtitleStore((s) => s.laneCount)
   const lanes = buildSpeakerLanes(phrases, speakerNames)
   const lanesHeight = Math.max(1, lanes.length) * LANE_HEIGHT
 
@@ -408,6 +411,9 @@ export function TimingEditor({
         </div>
       )}
 
+      {/* Lane configuration panel */}
+      <LaneConfigPanel />
+
       {/* Horizontally scrollable timeline with speaker lanes */}
       <div className="timing-editor__timeline-scroll" ref={scrollContainerRef}>
         {/* Playhead line */}
@@ -641,6 +647,23 @@ export function TimingEditor({
                         ) : (
                           <span className="timing-editor__phrase-text">{phraseText}</span>
                         )}
+                        {/* Lane override selector */}
+                        <select
+                          className="timing-editor__phrase-lane-select"
+                          value={phraseLaneOverrides[phraseIndex] ?? ''}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation()
+                            const val = e.target.value
+                            setPhraseLane(phraseIndex, val === '' ? null : parseInt(val, 10))
+                          }}
+                          title="Assign to lane"
+                        >
+                          <option value="">Auto</option>
+                          {Array.from({ length: laneCount }).map((_, li) => (
+                            <option key={li} value={li}>L{li + 1}</option>
+                          ))}
+                        </select>
                         <button
                           className="timing-editor__phrase-edit"
                           type="button"

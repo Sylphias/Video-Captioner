@@ -38,4 +38,6 @@ export interface SubtitleCompositionProps {
   speakerStyles: Record<string, SpeakerStyleOverride>  // per-speaker style overrides keyed by speaker ID
   animationPreset?: AnimationPreset                     // global default animation preset for all phrases
   showSpeakerBorders?: boolean  // show colored borders per-speaker in preview (not in final render)
+  phraseLaneOverrides?: Record<number, number>          // phrase index → forced lane number
+  laneCount?: number                                    // number of lanes (for guide boxes in preview)
 }
