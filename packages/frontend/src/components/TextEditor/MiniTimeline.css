@@ -4,11 +4,15 @@
   padding: 0;
 }
 
-/* ---- Waveform canvas (above lanes) ---- */
-.mini-timeline__waveform {
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
-  cursor: pointer;
-  background: var(--color-surface-secondary);
+/* ---- Waveform canvas (behind lanes as absolute overlay) ---- */
+.mini-timeline__waveform-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ---- Scroll wrapper (clips to max 3 lanes, scrolls if more) ---- */
@@ -24,6 +28,7 @@
 /* ---- Lane row: relative container for absolute blocks ---- */
 .mini-timeline__lane {
   position: relative;
+  z-index: 1;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
 }
 

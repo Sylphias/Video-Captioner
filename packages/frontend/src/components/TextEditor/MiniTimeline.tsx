@@ -174,24 +174,22 @@ export function MiniTimeline({
 
   return (
     <div className="mini-timeline" ref={containerRef}>
-      {/* Waveform canvas — responsive width, click-to-seek */}
-      {waveform && waveform.samples.length > 0 && (
-        <div className="mini-timeline__waveform" onClick={handleTrackClick}>
-          <canvas
-            ref={waveformCanvasRef}
-            width={canvasWidth}
-            height={WAVEFORM_HEIGHT}
-            style={{ display: 'block', width: '100%', height: WAVEFORM_HEIGHT }}
-          />
-        </div>
-      )}
-
-      {/* Speaker lanes */}
+      {/* Speaker lanes with waveform overlay */}
       <div
         className="mini-timeline__scroll"
         style={needsScroll ? { maxHeight, overflowY: 'auto' } : undefined}
         onClick={handleTrackClick}
       >
+        {/* Waveform canvas — rendered behind lanes as absolute overlay */}
+        {waveform && waveform.samples.length > 0 && (
+          <canvas
+            ref={waveformCanvasRef}
+            className="mini-timeline__waveform-canvas"
+            width={canvasWidth}
+            height={lanes.length * LANE_HEIGHT + emptyLaneCount * LANE_HEIGHT}
+            style={{ display: 'block', width: '100%', height: '100%' }}
+          />
+        )}
         {/* Playhead overlay */}
         <div
           className="mini-timeline__playhead"
