@@ -5,6 +5,12 @@ interface ProjectCardProps {
   project: ProjectRecord
   onClick: () => void
   onRefresh: () => void
+  onContextMenu: (e: React.MouseEvent) => void
+  isRenaming: boolean
+  renamingValue: string
+  onRenameChange: (val: string) => void
+  onRenameCommit: () => void
+  onRenameCancel: () => void
 }
 
 function formatDate(epochMs: number): string {
@@ -18,12 +24,22 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-export function ProjectCard({ project, onClick }: ProjectCardProps) {
+export function ProjectCard({
+  project,
+  onClick,
+  onContextMenu,
+  isRenaming,
+  renamingValue,
+  onRenameChange,
+  onRenameCommit,
+  onRenameCancel,
+}: ProjectCardProps) {
   return (
     <div
       className="project-card"
-      onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter') onClick() }}
+      onClick={isRenaming ? undefined : onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={(e) => { if (!isRenaming && e.key === 'Enter') onClick() }}
       role="button"
       tabIndex={0}
     >
@@ -36,7 +52,22 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
         />
       </div>
       <div className="project-card__meta">
-        <span className="project-card__name">{project.name}</span>
+        {isRenaming ? (
+          <input
+            className="project-card__rename-input"
+            value={renamingValue}
+            onChange={(e) => onRenameChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onRenameCommit()
+              else if (e.key === 'Escape') onRenameCancel()
+            }}
+            onBlur={onRenameCommit}
+            autoFocus
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className="project-card__name">{project.name}</span>
+        )}
         <span className="project-card__date">{formatDate(project.updatedAt)}</span>
         {project.duration != null && (
           <span className="project-card__duration">{formatDuration(project.duration)}</span>

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import type { ProjectRecord } from '@eigen/shared-types'
 import { UploadZone } from '../components/UploadZone.tsx'
 import { ProjectCard } from '../components/ProjectCard.tsx'
+import { ProjectContextMenu } from '../components/ProjectContextMenu.tsx'
+import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog.tsx'
 import { useUpload } from '../hooks/useUpload.ts'
 import './ProjectsPage.css'
 
@@ -13,6 +15,14 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
   const [projects, setProjects] = useState<ProjectRecord[]>([])
   const [loading, setLoading] = useState(true)
   const { state: uploadState, upload, reset: resetUpload } = useUpload()
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; projectId: string } | null>(null)
+  // Delete dialog state
+  const [deleteTarget, setDeleteTarget] = useState<ProjectRecord | null>(null)
+  // Rename state
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renamingValue, setRenamingValue] = useState('')
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -54,6 +64,95 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
     upload(file)
   }, [upload])
 
+  // Context menu handler
+  const handleContextMenu = useCallback((e: React.MouseEvent, project: ProjectRecord) => {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY, projectId: project.id })
+  }, [])
+
+  // Rename flow
+  const handleRenameStart = useCallback(() => {
+    if (!contextMenu) return
+    const project = projects.find((p) => p.id === contextMenu.projectId)
+    if (!project) return
+    setRenamingId(project.id)
+    setRenamingValue(project.name)
+  }, [contextMenu, projects])
+
+  const handleRenameCommit = useCallback(async () => {
+    if (!renamingId || renamingValue.trim() === '') {
+      setRenamingId(null)
+      setRenamingValue('')
+      return
+    }
+    try {
+      await fetch(`/api/projects/${renamingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: renamingValue }),
+      })
+      await fetchProjects()
+    } catch {
+      // ignore errors — leave name unchanged
+    }
+    setRenamingId(null)
+    setRenamingValue('')
+  }, [renamingId, renamingValue, fetchProjects])
+
+  const handleRenameCancel = useCallback(() => {
+    setRenamingId(null)
+    setRenamingValue('')
+  }, [])
+
+  // Duplicate flow
+  const handleDuplicate = useCallback(async () => {
+    if (!contextMenu) return
+    try {
+      await fetch(`/api/projects/${contextMenu.projectId}/duplicate`, {
+        method: 'POST',
+      })
+      await fetchProjects()
+    } catch {
+      // ignore errors
+    }
+  }, [contextMenu, fetchProjects])
+
+  // Re-transcribe flow
+  const handleRetranscribe = useCallback(async () => {
+    if (!contextMenu) return
+    try {
+      await fetch(`/api/projects/${contextMenu.projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stateJson: null }),
+      })
+      await fetchProjects()
+    } catch {
+      // ignore errors
+    }
+  }, [contextMenu, fetchProjects])
+
+  // Delete flow
+  const handleDeleteRequest = useCallback(() => {
+    if (!contextMenu) return
+    const project = projects.find((p) => p.id === contextMenu.projectId)
+    if (!project) return
+    setDeleteTarget(project)
+  }, [contextMenu, projects])
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteTarget) return
+    try {
+      await fetch(`/api/projects/${deleteTarget.id}`, {
+        method: 'DELETE',
+      })
+      await fetchProjects()
+    } catch {
+      // ignore errors
+    }
+    setDeleteTarget(null)
+  }, [deleteTarget, fetchProjects])
+
   if (loading) return null // brief flash before data loads
 
   // D-03: Empty state — no projects → show upload dropzone directly
@@ -94,6 +193,12 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
             project={p}
             onClick={() => onOpenProject(p.id)}
             onRefresh={fetchProjects}
+            onContextMenu={(e) => handleContextMenu(e, p)}
+            isRenaming={renamingId === p.id}
+            renamingValue={renamingValue}
+            onRenameChange={setRenamingValue}
+            onRenameCommit={handleRenameCommit}
+            onRenameCancel={handleRenameCancel}
           />
         ))}
         <button
@@ -113,6 +218,26 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
           <span className="create-new-card__label">New Project</span>
         </button>
       </div>
+
+      {contextMenu && (
+        <ProjectContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onRename={handleRenameStart}
+          onDuplicate={() => { void handleDuplicate() }}
+          onRetranscribe={() => { void handleRetranscribe() }}
+          onDelete={handleDeleteRequest}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteConfirmDialog
+          projectName={deleteTarget.name}
+          onConfirm={() => { void handleDeleteConfirm() }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   )
 }
