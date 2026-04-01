@@ -699,22 +699,33 @@ export function TimingEditor({
           speakerNames={speakerNames}
           allSpeakerIds={allSpeakerIds}
           onUpdateWord={(wordIndex, patch) => {
-            // Compute global word index
+            // Compute global word index for this phrase
             let globalOffset = 0
             for (let i = 0; i < selectedPhraseIndex; i++) {
               globalOffset += phrases[i].words.length
             }
-            // Clamp end time: cannot exceed next word's end - 0.1s
-            if (patch.end !== undefined && wordIndex < selectedPhrase.words.length - 1) {
-              const nextWord = selectedPhrase.words[wordIndex + 1]
-              const maxEnd = nextWord.end - 0.1
-              patch = { ...patch, end: Math.min(patch.end, maxEnd) }
+            const globalIdx = globalOffset + wordIndex
+
+            // Total word count across all phrases
+            const totalWords = session ? session.words.length : 0
+
+            // When end time changes, push next word's start forward (no overlap)
+            if (patch.end !== undefined && globalIdx + 1 < totalWords) {
+              const nextWord = session!.words[globalIdx + 1]
+              if (patch.end > nextWord.start) {
+                updateWord(globalIdx + 1, { start: patch.end })
+              }
             }
-            updateWord(globalOffset + wordIndex, patch)
-            // When end time changes, cascade to next word's start time
-            if (patch.end !== undefined && wordIndex < selectedPhrase.words.length - 1) {
-              updateWord(globalOffset + wordIndex + 1, { start: patch.end })
+
+            // When start time changes, push previous word's end back (no overlap)
+            if (patch.start !== undefined && globalIdx > 0) {
+              const prevWord = session!.words[globalIdx - 1]
+              if (patch.start < prevWord.end) {
+                updateWord(globalIdx - 1, { end: patch.start })
+              }
             }
+
+            updateWord(globalIdx, patch)
           }}
           onSplitPhrase={(splitBeforeWordIndex) => {
             splitPhrase(selectedPhraseIndex, splitBeforeWordIndex)
