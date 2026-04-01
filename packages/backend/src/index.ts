@@ -8,6 +8,7 @@ import multipartPlugin from './plugins/multipart.ts'
 import jobStorePlugin from './services/jobStore.ts'
 import animationPresetsPlugin from './services/animationPresets.ts'
 import lanePresetsPlugin from './services/lanePresets.ts'
+import projectStorePlugin from './services/projectStore.ts'
 import uploadRoutes from './routes/upload.ts'
 import jobRoutes from './routes/jobs.ts'
 import transcribeRoutes from './routes/transcribe.ts'
@@ -16,6 +17,7 @@ import renderRoutes from './routes/render.ts'
 import waveformRoutes from './routes/waveform.ts'
 import presetsRoutes from './routes/presets.ts'
 import lanePresetsRoutes from './routes/lanePresets.ts'
+import projectsRoutes from './routes/projects.ts'
 import { initBundle } from './services/render.ts'
 
 // ESM __dirname equivalent
@@ -39,6 +41,7 @@ await fastify.register(multipartPlugin)
 await fastify.register(jobStorePlugin)
 await fastify.register(animationPresetsPlugin)
 await fastify.register(lanePresetsPlugin)
+await fastify.register(projectStorePlugin)
 
 // Register route plugins after store is decorated
 await fastify.register(uploadRoutes)
@@ -49,6 +52,7 @@ await fastify.register(renderRoutes)
 await fastify.register(waveformRoutes)
 await fastify.register(presetsRoutes)
 await fastify.register(lanePresetsRoutes)
+await fastify.register(projectsRoutes)
 
 // Health check endpoint
 fastify.get('/api/health', async (_request, _reply) => {
