@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Phase 13 context gathered
-last_updated: "2026-03-31T16:53:44.923Z"
-last_activity: 2026-03-28
+stopped_at: Completed 13-01-PLAN.md — ProjectRecord type, projectStore plugin, 7 CRUD routes with thumbnail endpoint
+last_updated: "2026-04-01T12:44:47.152Z"
+last_activity: 2026-04-01
 progress:
-  total_phases: 15
+  total_phases: 14
   completed_phases: 13
   total_plans: 40
   completed_plans: 42
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Phase: 09.1 (transcription-diarization-upgrade-inserted) — EXECUTING
 Plan: 2 of 2
 Status: Phase complete — ready for verification
-Last activity: 2026-03-28
+Last activity: 2026-04-01
 
 Progress: [████████████████░░░░] 82% (8 of 11 phases complete; Phase 9 pending verification, 9.1 next)
 
@@ -66,6 +66,7 @@ Progress: [████████████████░░░░] 82% (8 
 | Phase 11-text-editor-enhancements P01 | 6 | 1 tasks | 2 files |
 | Phase 11-text-editor-enhancements P02 | 4 | 2 tasks | 4 files |
 | Phase 11-text-editor-enhancements P03 | 4 | 2 tasks | 7 files |
+| Phase 13-project-persistence-and-landing-page P01 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -251,11 +252,12 @@ Recent decisions affecting current work:
 - [Phase 11-02]: Checkbox opacity:0 (not display:none) when no selection to prevent layout shift in flex row
 - [Phase 11-03]: findMatches uses case-insensitive RegExp gi flags — handles 'the'/'THE'/'there' correctly
 - [Phase 11-03]: replaceAllPhraseTexts processes replacements in reverse phraseIndex order to keep global word offsets accurate
+- [Phase 13-project-persistence-and-landing-page]: projectsDb registered as separate SQLite instance to avoid collision with fastify.db and fastify.lanePresetsDb
+- [Phase 13-project-persistence-and-landing-page]: DELETE /api/projects/:id uses reference counting via countByJobIdStmt — only deletes job directory files when last project for that jobId is removed
 
 ### Roadmap Evolution
 
 - Phase 04.1 inserted after Phase 4: Multi-Speaker Diarization and Speaker Lanes (URGENT) — auto-detect speakers via pyannote.audio, propagate speaker labels through types/grouping/store/composition, add speaker lanes to editor UI with manual override
-- Phase 13 added: Project persistence and landing page — save/load video projects, project list UI, nav restructure
 
 ### Pending Todos
 
@@ -282,8 +284,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-31T16:53:44.920Z
-Stopped at: Phase 13 context gathered
+Last session: 2026-04-01T12:44:47.148Z
+Stopped at: Completed 13-01-PLAN.md — ProjectRecord type, projectStore plugin, 7 CRUD routes with thumbnail endpoint
 
 Next planned work:
 
