@@ -13,8 +13,9 @@ import { TimingEditor } from '../components/TimingEditor/TimingEditor.tsx'
 import { AnimationEditor } from '../components/AnimationEditor/AnimationEditor.tsx'
 import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
 import { useUndoStore } from '../store/undoMiddleware.ts'
-import { loadProjectBlob, type ProjectStateBlob } from '../lib/projectState.ts'
+import { buildStateBlob, loadProjectBlob, type ProjectStateBlob } from '../lib/projectState.ts'
 import { useWaveform } from '../hooks/useWaveform.ts'
+import { AutoSaveIndicator, type SaveStatus } from '../components/AutoSaveIndicator.tsx'
 import './SubtitlesPage.css'
 
 // Toast state for stage transition notifications
@@ -404,6 +405,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
 
   // Load project state from backend when projectId is provided
   const [projectLoaded, setProjectLoaded] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
 
   useEffect(() => {
     if (!projectId) {
@@ -433,6 +435,37 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
     void loadProject()
     return () => { cancelled = true }
   }, [projectId])
+
+  // D-04: Auto-save on store changes with 4-second debounce
+  useEffect(() => {
+    if (!projectId || !projectLoaded) return
+
+    let timer: ReturnType<typeof setTimeout>
+    const unsub = useSubtitleStore.subscribe(() => {
+      clearTimeout(timer)
+      timer = setTimeout(async () => {
+        const blob = buildStateBlob()
+        if (!blob) return // session not loaded yet — skip save (Pitfall #2)
+
+        setSaveStatus('saving')
+        try {
+          const res = await fetch(`/api/projects/${projectId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stateJson: JSON.stringify(blob) }),
+          })
+          setSaveStatus(res.ok ? 'saved' : 'error')
+        } catch {
+          setSaveStatus('error')
+        }
+      }, 4000)
+    })
+
+    return () => {
+      unsub()
+      clearTimeout(timer)
+    }
+  }, [projectId, projectLoaded])
 
   if (!projectLoaded) return null
 
@@ -767,6 +800,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
         </div>
 
         <StyleDrawer mode={drawerMode} onClose={() => setDrawerMode(null)} />
+        {projectId && <AutoSaveIndicator status={saveStatus} />}
       </div>
     )
   }

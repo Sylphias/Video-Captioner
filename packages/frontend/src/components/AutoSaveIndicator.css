@@ -1,0 +1,39 @@
+.auto-save-indicator {
+  position: fixed;
+  bottom: var(--spacing-md);
+  right: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  z-index: 100;
+  animation: auto-save-fade-in 200ms ease;
+}
+
+@keyframes auto-save-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.auto-save-indicator__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent-green);
+}
+
+.auto-save-indicator__text {
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+}
+
+.auto-save-indicator--saving .auto-save-indicator__text {
+  color: var(--color-text-secondary);
+}
+
+.auto-save-indicator--saved .auto-save-indicator__text {
+  color: var(--color-text-secondary);
+}
+
+.auto-save-indicator--error .auto-save-indicator__text {
+  color: var(--color-error);
+}
