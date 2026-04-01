@@ -494,8 +494,12 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
 
   if (!projectLoaded) return null
 
-  // State: idle — show upload zone
-  if (uploadState.status === 'idle') {
+  // Check if the Zustand store already has a loaded session (from loadProjectBlob).
+  // If so, skip the upload/transcribe flow and go straight to the editor.
+  const storeHasSession = useSubtitleStore.getState().session !== null
+
+  // State: idle — show upload zone (only if store doesn't have a loaded session)
+  if (uploadState.status === 'idle' && !storeHasSession) {
     return (
       <div className="subtitles-page subtitles-page--centered">
         <UploadZone onFile={upload} />
@@ -584,8 +588,8 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
     )
   }
 
-  // State: transcribed — show 4-stage editing layout
-  if (transcribeState.status === 'transcribed' && transcribeState.transcript) {
+  // State: transcribed OR project loaded from store — show 4-stage editing layout
+  if ((transcribeState.status === 'transcribed' && transcribeState.transcript) || storeHasSession) {
     return (
       <div className="subtitles-page subtitles-page--preview" ref={containerRef}>
         {/* Top: preview panel */}
