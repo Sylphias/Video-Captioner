@@ -59,7 +59,7 @@ export function buildStateBlob(): ProjectStateBlob | null {
       phrases: structuredClone(state.session.phrases),
       manualSplitWordIndices: Array.from(state.session.manualSplitWordIndices),
     },
-    style: structuredClone(state.style) as Record<string, unknown>,
+    style: structuredClone(state.style) as unknown as Record<string, unknown>,
     maxWordsPerPhrase: state.maxWordsPerPhrase,
     speakerNames: { ...state.speakerNames },
     speakerStyles: structuredClone(state.speakerStyles) as Record<string, Record<string, unknown>>,
