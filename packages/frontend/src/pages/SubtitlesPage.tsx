@@ -126,8 +126,10 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   const addPhraseAtTime = useSubtitleStore((s) => s.addPhraseAtTime)
   const deletePhrase = useSubtitleStore((s) => s.deletePhrase)
   const storeJobId = useSubtitleStore((s) => s.jobId)
+  // Resolve jobId: prefer store (works for loaded projects), fall back to upload hook
+  const resolvedJobId = storeJobId ?? uploadState.jobId ?? null
   // Only fetch waveform once session exists (transcription done → video is normalized)
-  const waveformJobId = session ? (storeJobId ?? uploadState.jobId ?? null) : null
+  const waveformJobId = session ? resolvedJobId : null
   const { waveform } = useWaveform(waveformJobId)
 
   // Mini timeline: track current time + active phrase for playhead
@@ -668,7 +670,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
               <div className="subtitles-page__render-controls">
                 <button
                   className="subtitles-page__render-btn"
-                  onClick={() => render(uploadState.jobId!)}
+                  onClick={() => render(resolvedJobId!)}
                   disabled={renderState.status === 'rendering'}
                 >
                   {renderState.status === 'rendering'
@@ -683,7 +685,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
                 {renderState.status === 'rendered' && (
                   <a
                     className="subtitles-page__download-btn"
-                    href={`/api/jobs/${uploadState.jobId}/download`}
+                    href={`/api/jobs/${resolvedJobId}/download`}
                     download
                   >
                     Download MP4
@@ -714,7 +716,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
                 </label>
                 <button
                   className="subtitles-page__diarize-btn"
-                  onClick={() => diarize(uploadState.jobId!, numSpeakers)}
+                  onClick={() => diarize(resolvedJobId!, numSpeakers)}
                   disabled={diarizeState.status === 'diarizing'}
                 >
                   {diarizeState.status === 'diarizing'
@@ -800,7 +802,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
               <TimingEditor
                 seekToTime={seekToTime ?? (() => {})}
                 getCurrentTime={getCurrentTime}
-                jobId={uploadState.jobId!}
+                jobId={resolvedJobId!}
                 diarizeState={diarizeState}
                 diarize={diarize}
                 numSpeakers={numSpeakers}
@@ -818,7 +820,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
 
           <button
             className="subtitles-page__transcribe-btn subtitles-page__transcribe-btn--narrow"
-            onClick={() => transcribe(uploadState.jobId!, numSpeakers)}
+            onClick={() => transcribe(resolvedJobId!, numSpeakers)}
           >
             Re-transcribe
           </button>
