@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 13-01-PLAN.md — ProjectRecord type, projectStore plugin, 7 CRUD routes with thumbnail endpoint
-last_updated: "2026-04-01T12:44:47.152Z"
+stopped_at: Completed 13-02-PLAN.md — projectState.ts with buildStateBlob, loadProjectBlob, ProjectStateBlob. Frontend serialization library ready for plans 13-03 and 13-04.
+last_updated: "2026-04-01T12:47:16.600Z"
 last_activity: 2026-04-01
 progress:
   total_phases: 14
@@ -66,7 +66,7 @@ Progress: [████████████████░░░░] 82% (8 
 | Phase 11-text-editor-enhancements P01 | 6 | 1 tasks | 2 files |
 | Phase 11-text-editor-enhancements P02 | 4 | 2 tasks | 4 files |
 | Phase 11-text-editor-enhancements P03 | 4 | 2 tasks | 7 files |
-| Phase 13-project-persistence-and-landing-page P01 | 2 | 2 tasks | 4 files |
+| Phase 13-project-persistence-and-landing-page P02 | 8 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -252,8 +252,8 @@ Recent decisions affecting current work:
 - [Phase 11-02]: Checkbox opacity:0 (not display:none) when no selection to prevent layout shift in flex row
 - [Phase 11-03]: findMatches uses case-insensitive RegExp gi flags — handles 'the'/'THE'/'there' correctly
 - [Phase 11-03]: replaceAllPhraseTexts processes replacements in reverse phraseIndex order to keep global word offsets accurate
-- [Phase 13-project-persistence-and-landing-page]: projectsDb registered as separate SQLite instance to avoid collision with fastify.db and fastify.lanePresetsDb
-- [Phase 13-project-persistence-and-landing-page]: DELETE /api/projects/:id uses reference counting via countByJobIdStmt — only deletes job directory files when last project for that jobId is removed
+- [Phase 13-project-persistence-and-landing-page]: FullSubtitleState intersection type for projectState.ts allows accessing lane/highlight fields not yet in store interface — forward-compat without TS errors
+- [Phase 13-project-persistence-and-landing-page]: loadProjectBlob uses spread syntax for optional fields — setState only sets keys present in blob, avoids errors on older store versions
 
 ### Roadmap Evolution
 
@@ -284,8 +284,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-01T12:44:47.148Z
-Stopped at: Completed 13-01-PLAN.md — ProjectRecord type, projectStore plugin, 7 CRUD routes with thumbnail endpoint
+Last session: 2026-04-01T12:47:16.596Z
+Stopped at: Completed 13-02-PLAN.md — projectState.ts with buildStateBlob, loadProjectBlob, ProjectStateBlob. Frontend serialization library ready for plans 13-03 and 13-04.
 
 Next planned work:
 
