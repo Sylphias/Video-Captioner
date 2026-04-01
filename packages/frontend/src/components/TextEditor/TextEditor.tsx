@@ -257,8 +257,8 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
       const text = el.innerText.trim()
       const phrase = session.phrases[phraseIndex]
 
-      // If line is empty or just placeholder text, delete the entire phrase
-      if (!text || text === '...' || (phrase && phrase.words.length === 1 && phrase.words[0].word === '...')) {
+      // If line is empty, delete the entire phrase
+      if (!text) {
         e.preventDefault()
         deletePhrase(phraseIndex)
         // Focus the previous line (or next if this was the first)
