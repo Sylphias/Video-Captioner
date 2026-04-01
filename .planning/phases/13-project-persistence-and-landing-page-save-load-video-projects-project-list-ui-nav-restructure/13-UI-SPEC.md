@@ -151,10 +151,10 @@ Structure:
 - Header: Heading (18px/600) "Delete Project?", `padding: var(--spacing-md)`, `border-bottom: 1px solid var(--color-border)`
 - Body: `padding: var(--spacing-md)`. Copy: see Copywriting Contract below.
 - Footer: `padding: var(--spacing-md)`, right-aligned button row, `gap: var(--spacing-sm)`
-  - Cancel button: `background: var(--color-bg-elevated)`, `border: 1px solid var(--color-border)`, `color: var(--color-text-primary)`
+  - Keep Project button: `background: var(--color-bg-elevated)`, `border: 1px solid var(--color-border)`, `color: var(--color-text-primary)`
   - Delete button: `background: transparent`, `border: 1px solid var(--color-error)`, `color: var(--color-error)`
   - Delete button hover: `background: rgba(224,84,84,0.1)`
-- Dismiss: Cancel button, Escape key, or backdrop click
+- Dismiss: Keep Project button, Escape key, or backdrop click
 
 ### RenameInput
 
@@ -164,7 +164,7 @@ Trigger: "Rename" selected from context menu.
 Behavior: Project name text replaced with a full-width `<input type="text">` pre-filled with current name.
 Commit: Enter key or blur.
 Cancel: Escape key (reverts to original name).
-Style: `background: var(--color-bg-base)`, `border: 1px solid var(--color-accent-green)`, `border-radius: 3px`, `padding: 2px var(--spacing-xs)`, same font as the replaced text (16px/400).
+Style: `background: var(--color-bg-base)`, `border: 1px solid var(--color-accent-green)`, `border-radius: 3px`, `padding: var(--spacing-xs) var(--spacing-xs)`, same font as the replaced text (16px/400).
 
 ### AutoSaveIndicator
 
@@ -173,7 +173,7 @@ Subtle status indicator in the top-right area of the editing view (SubtitlesPage
 States:
 - Saving: Label (14px/400) "Saving…" in `--color-text-secondary`
 - Saved: Label (14px/400) "Saved" with a 6px filled circle in `--color-accent-green` before the text
-- Error: Label (14px/400) "Save failed" in `--color-error`
+- Error: Label (14px/400) "Save failed — retrying…" in `--color-error`
 - Idle (no recent save): hidden (opacity: 0)
 
 Transition: fade in on state change, fade to opacity:0 after 3 seconds of "Saved" state.
@@ -218,7 +218,7 @@ No manual save button anywhere in the UI.
 1. User right-clicks card → context menu appears
 2. User clicks "Delete" → `ProjectContextMenu` closes, `DeleteConfirmDialog` opens
 3. User clicks "Delete Project" → dialog closes, card animates out (`opacity: 0, height: 0` over 200ms), project removed from grid
-4. User clicks "Cancel" or presses Escape → dialog closes, no change
+4. User clicks "Keep Project" or presses Escape → dialog closes, no change
 
 ### Rename Flow
 
@@ -241,7 +241,7 @@ Source: CONTEXT.md decisions; defaults applied where not specified.
 | Empty state body | "Upload a video file and Eigen will transcribe and caption it automatically." |
 | Auto-save saving | "Saving…" |
 | Auto-save saved | "Saved" |
-| Auto-save error | "Save failed" |
+| Auto-save error | "Save failed — retrying…" |
 | Context menu — rename | "Rename" |
 | Context menu — duplicate | "Duplicate" |
 | Context menu — re-transcribe | "Re-transcribe" |
@@ -249,7 +249,7 @@ Source: CONTEXT.md decisions; defaults applied where not specified.
 | Delete dialog title | "Delete Project?" |
 | Delete dialog body | "This will permanently delete the project, video files, and all rendered output. This cannot be undone." |
 | Delete dialog confirm button | "Delete Project" |
-| Delete dialog cancel button | "Cancel" |
+| Delete dialog cancel button | "Keep Project" |
 | Rename input placeholder | current project name (pre-filled, not placeholder text) |
 | No thumbnail fallback label | none (use visual placeholder only — no text) |
 
