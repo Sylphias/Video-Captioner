@@ -704,28 +704,7 @@ export function TimingEditor({
             for (let i = 0; i < selectedPhraseIndex; i++) {
               globalOffset += phrases[i].words.length
             }
-            const globalIdx = globalOffset + wordIndex
-
-            // Total word count across all phrases
-            const totalWords = session ? session.words.length : 0
-
-            // When end time changes, push next word's start forward (no overlap)
-            if (patch.end !== undefined && globalIdx + 1 < totalWords) {
-              const nextWord = session!.words[globalIdx + 1]
-              if (patch.end > nextWord.start) {
-                updateWord(globalIdx + 1, { start: patch.end })
-              }
-            }
-
-            // When start time changes, push previous word's end back (no overlap)
-            if (patch.start !== undefined && globalIdx > 0) {
-              const prevWord = session!.words[globalIdx - 1]
-              if (patch.start < prevWord.end) {
-                updateWord(globalIdx - 1, { end: patch.start })
-              }
-            }
-
-            updateWord(globalIdx, patch)
+            updateWord(globalOffset + wordIndex, patch)
           }}
           onSplitPhrase={(splitBeforeWordIndex) => {
             splitPhrase(selectedPhraseIndex, splitBeforeWordIndex)

@@ -221,22 +221,31 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       const word = state.session.words[wordIndex]
       if (!word) return state
 
-      // Timestamp validation
-      if ('start' in patch) {
-        if (patch.start! >= word.end) return state
-        if (wordIndex > 0 && patch.start! < state.session.words[wordIndex - 1].end) return state
-      }
-      if ('end' in patch) {
-        if (patch.end! <= word.start) return state
-        if (wordIndex < state.session.words.length - 1 && patch.end! > state.session.words[wordIndex + 1].start) return state
-      }
+      // Timestamp validation (basic sanity)
+      if ('start' in patch && patch.start! >= (patch.end ?? word.end)) return state
+      if ('end' in patch && patch.end! <= (patch.start ?? word.start)) return state
 
       // Push undo snapshot before mutating
       pushUndo(state)
 
-      const words = state.session.words.map((w, i) =>
-        i === wordIndex ? { ...w, ...patch } : w
-      )
+      const words = [...state.session.words]
+
+      // Apply the patch to the target word
+      words[wordIndex] = { ...word, ...patch }
+
+      // Cascade: push neighbors to prevent overlap
+      if ('end' in patch && wordIndex < words.length - 1) {
+        const next = words[wordIndex + 1]
+        if (patch.end! > next.start) {
+          words[wordIndex + 1] = { ...next, start: patch.end! }
+        }
+      }
+      if ('start' in patch && wordIndex > 0) {
+        const prev = words[wordIndex - 1]
+        if (patch.start! < prev.end) {
+          words[wordIndex - 1] = { ...prev, end: patch.start! }
+        }
+      }
 
       // Only recompute phrase boundaries when timestamps change.
       // Text-only edits update the word in-place in existing phrases to avoid
