@@ -3,7 +3,6 @@ import type { FastifyInstance } from 'fastify'
 import crypto from 'node:crypto'
 import path from 'node:path'
 import { rm } from 'node:fs/promises'
-import { createReadStream, existsSync } from 'node:fs'
 
 import { DATA_ROOT } from '../index.ts'
 
@@ -168,17 +167,6 @@ async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
     })
   })
 
-  // GET /api/jobs/:jobId/thumbnail — serve thumbnail JPEG
-  fastify.get('/api/jobs/:jobId/thumbnail', async (req, reply) => {
-    const { jobId } = req.params as { jobId: string }
-    const thumbPath = path.join(DATA_ROOT, jobId, 'thumbnail.jpg')
-
-    if (!existsSync(thumbPath)) {
-      return reply.code(404).send({ error: 'Thumbnail not found' })
-    }
-
-    return reply.type('image/jpeg').send(createReadStream(thumbPath))
-  })
 }
 
 export default fp(projectsRoutes)
