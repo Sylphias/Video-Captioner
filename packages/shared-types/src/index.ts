@@ -171,3 +171,15 @@ export interface LanePreset {
   createdAt: number
   updatedAt: number
 }
+
+// ─── Project persistence types ─────────────────────────────────────────────
+
+export interface ProjectRecord {
+  id: string                    // UUID
+  jobId: string                 // references data/{jobId}/ directory
+  name: string                  // display name (user-editable)
+  stateJson: string | null      // serialized editing state blob (null before transcription completes)
+  createdAt: number             // epoch ms
+  updatedAt: number             // epoch ms
+  duration: number | null       // video duration in seconds (from VideoMetadata, for card display)
+}
