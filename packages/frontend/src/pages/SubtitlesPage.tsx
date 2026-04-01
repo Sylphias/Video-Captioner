@@ -36,7 +36,7 @@ interface SubtitlesPageProps {
 }
 
 export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps) {
-  const { state: uploadState, upload, reset: resetUpload } = useUpload()
+  const { state: uploadState, upload, reset: resetUpload, hydrate: hydrateUpload } = useUpload()
   const { state: transcribeState, transcribe, reset: resetTranscribe } = useTranscribe()
   const { state: diarizeState, diarize, reset: resetDiarize } = useDiarize()
   const { state: renderState, render, reset: resetRender } = useRender()
@@ -425,8 +425,30 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
         if (project.stateJson) {
           const blob = JSON.parse(project.stateJson) as ProjectStateBlob
           loadProjectBlob(blob)
+        } else if (project.jobId) {
+          // stateJson is null but job exists — hydrate upload state so SubtitlesPage
+          // skips to the correct stage (e.g. 'ready' triggers auto-transcribe)
+          try {
+            const jobRes = await fetch(`/api/jobs/${project.jobId}/status`)
+            if (jobRes.ok && jobRes.headers.get('content-type')?.includes('text/event-stream')) {
+              // SSE endpoint — just set as ready since the video is normalized
+              hydrateUpload(project.jobId, {
+                id: project.jobId,
+                status: 'ready',
+                progress: 100,
+                createdAt: Date.now(),
+              })
+            }
+          } catch {
+            // Fallback: set as ready directly — the video files exist on disk
+            hydrateUpload(project.jobId, {
+              id: project.jobId,
+              status: 'ready',
+              progress: 100,
+              createdAt: Date.now(),
+            })
+          }
         }
-        // If stateJson is null, this is a new project — SubtitlesPage shows upload/transcribe flow naturally
         setProjectLoaded(true)
       } catch {
         setProjectLoaded(true) // proceed even on error

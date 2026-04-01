@@ -139,5 +139,16 @@ export function useUpload() {
     setState(INITIAL_STATE)
   }, [])
 
-  return { state, upload, reset }
+  // Hydrate upload state from an existing job (for project loading)
+  const hydrate = useCallback((jobId: string, job: Job) => {
+    setState({
+      status: job.status as UploadState['status'],
+      progress: job.progress,
+      jobId,
+      job,
+      error: null,
+    })
+  }, [])
+
+  return { state, upload, reset, hydrate }
 }
