@@ -93,45 +93,34 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/api/jobs/:jobId/thumbnail', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
 
+    // Try in-memory job first, fall back to predictable disk path
     const job = fastify.jobs.get(jobId)
-    if (!job) {
-      return reply.code(404).send({ error: 'Job not found' })
-    }
+    const thumbPath = job?.thumbnailPath ?? path.join(DATA_ROOT, jobId, 'thumbnail.jpg')
 
-    if (!job.thumbnailPath) {
-      return reply.code(404).send({ error: 'Thumbnail not yet available' })
-    }
-
-    // Verify the thumbnail file actually exists before serving
     try {
-      await access(job.thumbnailPath)
+      await access(thumbPath)
     } catch {
-      return reply.code(404).send({ error: 'Thumbnail file not found on disk' })
+      return reply.code(404).send({ error: 'Thumbnail not found' })
     }
 
     reply.header('Content-Type', 'image/jpeg')
-    return reply.send(createReadStream(job.thumbnailPath))
+    return reply.send(createReadStream(thumbPath))
   })
 
   // GET /api/jobs/:jobId/transcript — Serve transcript JSON content (not the file path)
   fastify.get('/api/jobs/:jobId/transcript', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
+
+    // Try in-memory job first, fall back to predictable disk path
     const job = fastify.jobs.get(jobId)
+    const transcriptPath = job?.transcriptPath ?? path.join(DATA_ROOT, jobId, 'transcript.json')
 
-    if (!job) {
-      return reply.code(404).send({ error: 'Job not found' })
-    }
-    if (!job.transcriptPath) {
-      return reply.code(404).send({ error: 'Transcript not yet available' })
-    }
-
-    // Read and serve the transcript file content
     try {
-      const content = await readFile(job.transcriptPath, 'utf-8')
+      const content = await readFile(transcriptPath, 'utf-8')
       reply.header('Content-Type', 'application/json')
       return reply.send(content)
     } catch {
-      return reply.code(404).send({ error: 'Transcript file not found on disk' })
+      return reply.code(404).send({ error: 'Transcript not found' })
     }
   })
 
@@ -140,11 +129,12 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
     const { jobId } = req.params as { jobId: string }
     const job = fastify.jobs.get(jobId)
 
-    // Only serve video once normalization is complete
-    if (!job || job.status === 'uploading' || job.status === 'normalizing') {
+    // If job is in memory and still processing, reject
+    if (job && (job.status === 'uploading' || job.status === 'normalizing')) {
       return reply.code(404).send({ error: 'Video not ready' })
     }
 
+    // Serve from predictable disk path (works even after server restart)
     const normalizedPath = path.join(DATA_ROOT, jobId, 'normalized.mp4')
 
     // Verify file exists on disk
