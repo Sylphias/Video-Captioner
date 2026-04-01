@@ -219,9 +219,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
       const splitBeforeWordIndex = wordsBeforeCursor.length
 
       const phrase = session.phrases[phraseIndex]
-      if (!phrase || splitBeforeWordIndex <= 0 || splitBeforeWordIndex >= phrase.words.length) {
-        return // can't split at first word or at/after last word
-      }
+      if (!phrase) return
 
       // First save any pending text edit on the current line
       const currentText = el.innerText.trim()
@@ -230,7 +228,12 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
         updatePhraseText(phraseIndex, currentWords)
       }
 
-      splitPhrase(phraseIndex, splitBeforeWordIndex)
+      // Cursor at end (or start) of phrase — create a new empty phrase after
+      if (splitBeforeWordIndex <= 0 || splitBeforeWordIndex >= phrase.words.length) {
+        addPhrase(phraseIndex)
+      } else {
+        splitPhrase(phraseIndex, splitBeforeWordIndex)
+      }
 
       // Focus the new line (next phraseIndex) after React re-renders
       setTimeout(() => {
