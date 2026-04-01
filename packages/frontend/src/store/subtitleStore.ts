@@ -412,11 +412,18 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         newEnd = cap
       }
 
+      // Inherit speaker from the previous phrase
+      const prevPhrase = afterPhraseIndex >= 0 && afterPhraseIndex < state.session.phrases.length
+        ? state.session.phrases[afterPhraseIndex]
+        : null
+      const prevSpeaker = prevPhrase?.dominantSpeaker ?? prevPhrase?.words[0]?.speaker
+
       const newWord: SessionWord = {
         word: '...',
         start: newStart,
         end: newEnd,
         confidence: 1,
+        ...(prevSpeaker ? { speaker: prevSpeaker } : {}),
       }
 
       // Compute global index: after all words in phrases up to and including afterPhraseIndex
