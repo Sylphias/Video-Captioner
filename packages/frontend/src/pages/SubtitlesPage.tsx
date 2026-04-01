@@ -13,6 +13,7 @@ import { TimingEditor } from '../components/TimingEditor/TimingEditor.tsx'
 import { AnimationEditor } from '../components/AnimationEditor/AnimationEditor.tsx'
 import { useSubtitleStore, restoreSnapshot } from '../store/subtitleStore.ts'
 import { useUndoStore } from '../store/undoMiddleware.ts'
+import { loadProjectBlob, type ProjectStateBlob } from '../lib/projectState.ts'
 import { useWaveform } from '../hooks/useWaveform.ts'
 import './SubtitlesPage.css'
 
@@ -28,7 +29,12 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-export function SubtitlesPage() {
+interface SubtitlesPageProps {
+  projectId?: string
+  onBack?: () => void
+}
+
+export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps) {
   const { state: uploadState, upload, reset: resetUpload } = useUpload()
   const { state: transcribeState, transcribe, reset: resetTranscribe } = useTranscribe()
   const { state: diarizeState, diarize, reset: resetDiarize } = useDiarize()
@@ -395,6 +401,40 @@ export function SubtitlesPage() {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [transcribeState.status, handleUndo, handleRedo])
+
+  // Load project state from backend when projectId is provided
+  const [projectLoaded, setProjectLoaded] = useState(false)
+
+  useEffect(() => {
+    if (!projectId) {
+      setProjectLoaded(true) // No project to load — proceed with fresh state
+      return
+    }
+
+    let cancelled = false
+    const loadProject = async () => {
+      try {
+        const res = await fetch(`/api/projects/${projectId}`)
+        if (!res.ok) return
+        const project = await res.json() as { stateJson: string | null, jobId: string, name: string }
+
+        if (cancelled) return
+
+        if (project.stateJson) {
+          const blob = JSON.parse(project.stateJson) as ProjectStateBlob
+          loadProjectBlob(blob)
+        }
+        // If stateJson is null, this is a new project — SubtitlesPage shows upload/transcribe flow naturally
+        setProjectLoaded(true)
+      } catch {
+        setProjectLoaded(true) // proceed even on error
+      }
+    }
+    void loadProject()
+    return () => { cancelled = true }
+  }, [projectId])
+
+  if (!projectLoaded) return null
 
   // State: idle — show upload zone
   if (uploadState.status === 'idle') {
