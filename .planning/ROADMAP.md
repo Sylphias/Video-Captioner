@@ -274,3 +274,16 @@ Plans:
 
 Plans:
 - [ ] TBD (run /gsd:plan-phase 12 to break down)
+
+### Phase 13: Project persistence and landing page — save/load video projects, project list UI, nav restructure
+
+**Goal:** Users can save and load video editing sessions as named projects, with a landing page showing a card grid of existing projects, auto-save, and full project lifecycle management (rename, delete, duplicate, re-transcribe)
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15, D-16, D-17
+**Depends on:** Phase 12
+**Plans:** 4 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — Backend SQLite project store, CRUD API routes, thumbnail endpoint
+- [ ] 13-02-PLAN.md — Frontend state serialization (buildStateBlob, loadProjectBlob)
+- [ ] 13-03-PLAN.md — Nav restructure (Projects | Animation Builder), ProjectsPage card grid, SubtitlesPage project-scoping
+- [ ] 13-04-PLAN.md — Project lifecycle (context menu, delete, rename, duplicate, re-transcribe), auto-save with indicator
