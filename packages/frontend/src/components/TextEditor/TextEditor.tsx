@@ -180,7 +180,12 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
   }, [lastClickedIndex, handleSeek, clearSelection])
 
   const handleBlur = useCallback((phraseIndex: number) => {
-    if (!session) return
+    // Read fresh state to avoid stale closure issues after deletions
+    const currentSession = useSubtitleStore.getState().session
+    if (!currentSession) return
+    const phrase = currentSession.phrases[phraseIndex]
+    if (!phrase) return // phrase was deleted — stale blur, skip
+
     const el = lineRefs.current.get(phraseIndex)
     if (!el) return
 
@@ -191,8 +196,12 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     const newWords = text.split(/\s+/).filter(Boolean)
     if (newWords.length === 0) return
 
+    // Skip if text hasn't changed from the store (avoids spurious writes)
+    const storeText = phrase.words.map((w) => w.word).join(' ')
+    if (newWords.join(' ') === storeText) return
+
     updatePhraseText(phraseIndex, newWords)
-  }, [session, updatePhraseText])
+  }, [updatePhraseText])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>, phraseIndex: number) => {
     if (!session) return
