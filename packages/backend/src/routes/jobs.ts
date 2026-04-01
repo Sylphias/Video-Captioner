@@ -9,6 +9,17 @@ import { killTranscription } from './transcribe.ts'
 import { killDiarization } from './diarize.ts'
 
 async function jobRoutes(fastify: FastifyInstance): Promise<void> {
+  // GET /api/jobs/:jobId — get job info (non-SSE, one-shot)
+  fastify.get('/api/jobs/:jobId', async (req, reply) => {
+    const { jobId } = req.params as { jobId: string }
+    const job = fastify.jobs.get(jobId)
+    if (!job) {
+      return reply.code(404).send({ error: 'Job not found' })
+    }
+    const { transcriptPath, thumbnailPath, outputPath, ...safeJob } = job
+    return reply.send(safeJob)
+  })
+
   // GET /api/jobs/:jobId/status — Server-Sent Events stream of job progress
   fastify.get('/api/jobs/:jobId/status', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }

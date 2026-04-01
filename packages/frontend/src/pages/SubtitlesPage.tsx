@@ -426,12 +426,16 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
           const blob = JSON.parse(project.stateJson) as ProjectStateBlob
           loadProjectBlob(blob)
         } else if (project.jobId) {
-          // stateJson is null but job exists — hydrate upload state so SubtitlesPage
-          // skips to the correct stage (e.g. 'ready' triggers auto-transcribe)
+          // stateJson is null but job exists — fetch job info and hydrate upload state
+          // so SubtitlesPage skips to the correct stage (e.g. 'ready' triggers auto-transcribe)
           try {
-            const jobRes = await fetch(`/api/jobs/${project.jobId}/status`)
-            if (jobRes.ok && jobRes.headers.get('content-type')?.includes('text/event-stream')) {
-              // SSE endpoint — just set as ready since the video is normalized
+            const jobRes = await fetch(`/api/jobs/${project.jobId}`)
+            if (jobRes.ok) {
+              const jobData = await jobRes.json() as import('@eigen/shared-types').Job
+              hydrateUpload(project.jobId, jobData)
+            } else {
+              // Job not in memory (server restarted) — set as ready with no metadata
+              // The video files exist on disk; metadata will be re-probed on transcribe
               hydrateUpload(project.jobId, {
                 id: project.jobId,
                 status: 'ready',
@@ -440,7 +444,6 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
               })
             }
           } catch {
-            // Fallback: set as ready directly — the video files exist on disk
             hydrateUpload(project.jobId, {
               id: project.jobId,
               status: 'ready',
