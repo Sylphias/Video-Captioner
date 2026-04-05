@@ -37,6 +37,24 @@ export function findActiveWordIndex(words: TranscriptWord[], currentTimeSec: num
   return result
 }
 
+/**
+ * Generate text-shadow CSS for a stroke/outline effect.
+ * Uses evenly-spaced shadow offsets around a circle — doesn't bleed into
+ * letter counters (holes in o, e, a, etc.) unlike -webkit-text-stroke.
+ */
+function generateStrokeShadow(width: number, color: string): string {
+  if (width <= 0) return ''
+  const STEPS = 16
+  const shadows: string[] = []
+  for (let i = 0; i < STEPS; i++) {
+    const angle = (2 * Math.PI * i) / STEPS
+    const x = (Math.cos(angle) * width).toFixed(1)
+    const y = (Math.sin(angle) * width).toFixed(1)
+    shadows.push(`${x}px ${y}px 0 ${color}`)
+  }
+  return shadows.join(',')
+}
+
 /** Default vertical offset (in percentage points) between simultaneous phrases */
 const DEFAULT_LANE_GAP = 8
 
@@ -419,69 +437,25 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
           ? `calc(0.25em + ${extraHalf}px)`
           : '0.25em'
 
+        // Pre-compute stroke shadow (shared across all words in phrase)
+        const strokeShadow = hasStroke
+          ? generateStrokeShadow(effectiveStyle.strokeWidth * 2, effectiveStyle.strokeColor)
+          : ''
+        const dropShadow = `${effectiveStyle.shadowOffsetX ?? 0}px ${effectiveStyle.shadowOffsetY ?? 2}px ${effectiveStyle.shadowBlur ?? 4}px ${effectiveStyle.shadowColor ?? '#000000'}`
+        const combinedShadow = strokeShadow ? `${strokeShadow},${dropShadow}` : dropShadow
+
         return (
           <div
             key={`${activePhrase.words[0].start}-${phraseIdx}`}
             style={containerStyle}
           >
-            {/* Stroke layer: text in stroke color with thick WebkitTextStroke, behind fill */}
-            {hasStroke && (
-              <div aria-hidden style={{ position: 'absolute', inset: 0, textAlign: 'center' }}>
-                {activePhrase.words.map((word, i) => {
-                  // Word-scope animation for stroke layer
-                  const wordAnimStyles: React.CSSProperties = (effectivePreset && effectivePreset.scope === 'word')
-                    ? computeWordAnimationStyles(i, wordCount, phraseStart, phraseEnd, effectivePreset, frame, fps, width, height)
-                    : {}
-
-                  // Typewriter slicing for stroke layer
-                  const wordTextSliceProgress = ('--textSliceProgress' in wordAnimStyles)
-                    ? (wordAnimStyles as Record<string, unknown>)['--textSliceProgress'] as number
-                    : null
-                  const cleanWordAnimStyles = wordTextSliceProgress !== null
-                    ? (() => { const { ['--textSliceProgress' as keyof React.CSSProperties]: _, ...rest } = wordAnimStyles as Record<string, unknown>; return rest as React.CSSProperties })()
-                    : wordAnimStyles
-
-                  const displayText = wordTextSliceProgress !== null
-                    ? word.word.slice(0, Math.floor(wordTextSliceProgress * word.word.length))
-                    : (textSliceProgress !== null
-                        ? word.word.slice(0, Math.floor(textSliceProgress * word.word.length))
-                        : word.word)
-
-                  // Highlight animation for stroke layer
-                  const hlPctStroke = hlConfig
-                    ? computeHighlightPct(i, activeWordIndex, activePhrase.words, currentTimeSec, hlConfig)
-                    : -1
-                  const hlStylesStroke = hlPctStroke >= 0 && hlConfig
-                    ? computeHighlightKeyframeStyles(hlConfig.enterTracks, hlPctStroke)
-                    : {}
-
-                  return (
-                    <span
-                      key={`${word.start}-${i}`}
-                      style={{
-                        color: effectiveStyle.strokeColor,
-                        marginLeft: wordMarginLeft,
-                        marginRight: wordMarginRight,
-                        WebkitTextStroke: `${effectiveStyle.strokeWidth * 2}px ${effectiveStyle.strokeColor}`,
-                        ...cleanWordAnimStyles,
-                        ...hlStylesStroke,
-                      }}
-                    >
-                      {displayText}
-                    </span>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Fill layer: clean colored text on top */}
             {activePhrase.words.map((word, i) => {
-              // Word-scope animation for fill layer
+              // Word-scope animation
               const wordAnimStyles: React.CSSProperties = (effectivePreset && effectivePreset.scope === 'word')
                 ? computeWordAnimationStyles(i, wordCount, phraseStart, phraseEnd, effectivePreset, frame, fps, width, height)
                 : {}
 
-              // Typewriter slicing for fill layer
+              // Typewriter slicing
               const wordTextSliceProgress = ('--textSliceProgress' in wordAnimStyles)
                 ? (wordAnimStyles as Record<string, unknown>)['--textSliceProgress'] as number
                 : null
@@ -495,7 +469,7 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
                     ? word.word.slice(0, Math.floor(textSliceProgress * word.word.length))
                     : word.word)
 
-              // Highlight keyframe animation styles for this word
+              // Highlight keyframe animation styles
               const hlPct = hlConfig
                 ? computeHighlightPct(i, activeWordIndex, activePhrase.words, currentTimeSec, hlConfig)
                 : -1
@@ -513,7 +487,7 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
                     color: wordColor,
                     marginLeft: wordMarginLeft,
                     marginRight: wordMarginRight,
-                    textShadow: `${effectiveStyle.shadowOffsetX ?? 0}px ${effectiveStyle.shadowOffsetY ?? 2}px ${effectiveStyle.shadowBlur ?? 4}px ${effectiveStyle.shadowColor ?? '#000000'}`,
+                    textShadow: combinedShadow,
                     ...cleanWordAnimStyles,
                     ...hlStyles,
                   }}
