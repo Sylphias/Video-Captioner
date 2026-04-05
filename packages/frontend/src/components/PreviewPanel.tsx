@@ -26,6 +26,7 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
   const phraseAnimationPresetIds = useSubtitleStore((s) => s.phraseAnimationPresetIds)
   const phraseLaneOverrides = useSubtitleStore((s) => s.phraseLaneOverrides)
   const laneCount = useSubtitleStore((s) => s.laneCount)
+  const speakerHighlightDisabled = useSubtitleStore((s) => s.speakerHighlightDisabled)
   const { presets } = useAnimationPresets()
 
   const playerRef = useRef<PlayerRef>(null)
@@ -170,6 +171,7 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
         dominantSpeaker: p.dominantSpeaker,
         lingerDuration: p.lingerDuration,
         styleOverride: p.styleOverride,
+        highlightDisabled: p.highlightDisabled,
         // Per-phrase resolved AnimationPreset (full object, not just an ID).
         animationPreset: phraseAnimationPreset,
       }
@@ -184,8 +186,9 @@ export function PreviewPanel({ onSeekReady, onGetTimeReady, collapsed = false, o
       showSpeakerBorders,
       phraseLaneOverrides: Object.keys(phraseLaneOverrides).length > 0 ? phraseLaneOverrides : undefined,
       laneCount: showSpeakerBorders ? laneCount : undefined,
+      speakerHighlightDisabled: Object.keys(speakerHighlightDisabled).length > 0 ? speakerHighlightDisabled : undefined,
     }
-  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets, showSpeakerBorders, phraseLaneOverrides, laneCount])
+  }, [jobId, session, style, speakerStyles, activeAnimationPresetId, phraseAnimationPresetIds, presets, showSpeakerBorders, phraseLaneOverrides, laneCount, speakerHighlightDisabled])
 
   if (!jobId || !session || !videoMetadata || !inputProps) {
     return null

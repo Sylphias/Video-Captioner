@@ -7,7 +7,8 @@ import type { TranscriptPhrase, AnimationPreset } from '@eigen/shared-types'
 import type { StyleProps, SpeakerStyleOverride, CompositionPhrase } from '@eigen/remotion-composition'
 
 import { DATA_ROOT } from '../index.ts'
-import { updateJob } from '../services/jobStore.ts'
+import { createJob, updateJob } from '../services/jobStore.ts'
+import { probeVideo } from '../services/ffmpeg.ts'
 import { dispatchRender } from '../services/render.ts'
 
 interface RenderBody {
@@ -28,21 +29,38 @@ async function renderRoutes(fastify: FastifyInstance): Promise<void> {
     const animationPreset = body.animationPreset
     const phraseLaneOverrides = body.phraseLaneOverrides
 
-    const job = fastify.jobs.get(jobId)
+    let job = fastify.jobs.get(jobId)
 
+    // Job not in memory (server restarted) — re-hydrate from disk if video exists
     if (!job) {
-      return reply.code(404).send({ error: 'Job not found' })
+      const normalizedPath = path.join(DATA_ROOT, jobId, 'normalized.mp4')
+      try {
+        await access(normalizedPath)
+        const metadata = await probeVideo(normalizedPath)
+        job = { ...createJob(jobId, ''), status: 'ready', progress: 100, metadata }
+        fastify.jobs.set(jobId, job)
+      } catch {
+        return reply.code(404).send({ error: 'Job not found' })
+      }
     }
 
-    // Only render once transcription is complete (diarization returns to 'transcribed')
-    if (job.status !== 'transcribed') {
+    // Allow render from: transcribed (normal flow), rendered (re-render),
+    // or ready (server restarted — job re-hydrated from disk, session loaded on frontend)
+    if (job.status !== 'transcribed' && job.status !== 'rendered' && job.status !== 'ready') {
       return reply
         .code(409)
         .send({ error: `Job is in '${job.status}' state — render requires 'transcribed' status` })
     }
 
+    // Re-probe metadata if missing (e.g. server restart hydrated job without metadata)
     if (!job.metadata) {
-      return reply.code(409).send({ error: 'Job metadata not available — video may not have been processed' })
+      try {
+        const normalizedPath = path.join(DATA_ROOT, jobId, 'normalized.mp4')
+        job.metadata = await probeVideo(normalizedPath)
+        fastify.jobs.set(jobId, job)
+      } catch {
+        return reply.code(409).send({ error: 'Job metadata not available — video may not have been processed' })
+      }
     }
 
     const outputPath = path.join(DATA_ROOT, jobId, 'output.mp4')

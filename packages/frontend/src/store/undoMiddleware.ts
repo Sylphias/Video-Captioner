@@ -35,6 +35,8 @@ export interface StateSnapshot {
   phraseAnimationPresetIds?: Record<number, string>
   laneCount?: number
   phraseLaneOverrides?: Record<number, number>
+  additionalSpeakerCount?: number
+  speakerHighlightDisabled?: Record<string, boolean>
 }
 
 const MAX_HISTORY = 50

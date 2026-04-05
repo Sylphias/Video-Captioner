@@ -29,6 +29,7 @@ export type SpeakerStyleOverride = Partial<StyleProps>
 // and cannot access hooks/stores/APIs.
 export type CompositionPhrase = TranscriptPhrase & {
   animationPreset?: AnimationPreset  // resolved per-phrase animation preset (takes priority over global)
+  highlightDisabled?: boolean        // suppress karaoke word highlighting for this phrase
 }
 
 export interface SubtitleCompositionProps {
@@ -40,4 +41,5 @@ export interface SubtitleCompositionProps {
   showSpeakerBorders?: boolean  // show colored borders per-speaker in preview (not in final render)
   phraseLaneOverrides?: Record<number, number>          // phrase index → forced lane number
   laneCount?: number                                    // number of lanes (for guide boxes in preview)
+  speakerHighlightDisabled?: Record<string, boolean>    // per-speaker highlight disable
 }

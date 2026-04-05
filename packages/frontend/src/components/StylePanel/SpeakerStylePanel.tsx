@@ -42,12 +42,14 @@ function SpeakerSection({ speakerId, displayName, override, onSet, onClear, defa
 
   const toggleField = (field: StyleField, checked: boolean) => {
     if (!checked) {
-      // Remove this field from overrides
+      // Remove this field: clear entire override, then re-set remaining fields
       const next = { ...override }
       delete next[field]
-      onSet(next)
+      onClear()
+      if (Object.keys(next).length > 0) {
+        onSet(next)
+      }
     }
-    // When checked, initialize with a reasonable default; the control below will allow changing it
   }
 
   const hasOverride = (field: StyleField) => field in override

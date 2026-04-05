@@ -39,6 +39,9 @@ export interface ProjectStateBlob {
   laneCount: number
   laneLocks: Record<number, boolean>
   phraseLaneOverrides: Record<number, number>
+  // Speaker rows & highlight
+  additionalSpeakerCount: number
+  speakerHighlightDisabled: Record<string, boolean>
   // Extra fields not in StateSnapshot (needed for full reload)
   jobId: string
   original: Transcript | null
@@ -69,6 +72,8 @@ export function buildStateBlob(): ProjectStateBlob | null {
     laneCount: state.laneCount ?? 2,
     laneLocks: { ...(state.laneLocks ?? {}) },
     phraseLaneOverrides: { ...(state.phraseLaneOverrides ?? {}) },
+    additionalSpeakerCount: state.additionalSpeakerCount ?? 0,
+    speakerHighlightDisabled: { ...(state.speakerHighlightDisabled ?? {}) },
     jobId: state.jobId,
     original: state.original,
     videoMetadata: state.videoMetadata,
@@ -103,6 +108,8 @@ export function loadProjectBlob(blob: ProjectStateBlob): void {
     ...(blob.laneLocks !== undefined ? { laneLocks: blob.laneLocks } : {}),
     ...(blob.phraseLaneOverrides !== undefined ? { phraseLaneOverrides: blob.phraseLaneOverrides } : {}),
     ...(blob.activeHighlightPresetId !== undefined ? { activeHighlightPresetId: blob.activeHighlightPresetId } : {}),
+    ...(blob.additionalSpeakerCount !== undefined ? { additionalSpeakerCount: blob.additionalSpeakerCount } : {}),
+    ...(blob.speakerHighlightDisabled !== undefined ? { speakerHighlightDisabled: blob.speakerHighlightDisabled } : {}),
   })
 
   // D-06: fresh undo stack on load — clear both past and future

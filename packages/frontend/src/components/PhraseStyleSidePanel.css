@@ -1,0 +1,72 @@
+/* ---- Phrase Style Side Panel (right side, mirrors lane panel) ---- */
+
+.phrase-side-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+  animation: phrase-side-panel-slide-in 0.2s ease;
+}
+
+@keyframes phrase-side-panel-slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ---- Toggle / header button ---- */
+.phrase-side-panel__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--color-surface-secondary);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  width: 100%;
+  text-align: left;
+}
+
+.phrase-side-panel__toggle:hover {
+  color: var(--color-text-primary);
+}
+
+.phrase-side-panel__toggle-arrow {
+  font-size: 10px;
+}
+
+/* ---- Scrollable content ---- */
+.phrase-side-panel__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-xs);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+/* Compact overrides for the phrase style panel inside the side panel */
+.phrase-side-panel__content .speaker-style-panel {
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.phrase-side-panel__content .speaker-style-panel__row {
+  gap: 4px;
+}
+
+.phrase-side-panel__content .speaker-style-panel__label {
+  font-size: 0.7rem;
+}

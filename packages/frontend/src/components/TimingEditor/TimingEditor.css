@@ -648,6 +648,54 @@
   accent-color: var(--color-accent-green, #00e696);
 }
 
+/* ── Zoom controls ─────────────────────────────────────────────────────── */
+
+.timing-editor__zoom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px var(--spacing-sm, 8px);
+  font-size: 10px;
+  color: var(--color-text-disabled, #555);
+}
+
+.timing-editor__zoom-hint {
+  letter-spacing: 0.02em;
+}
+
+.timing-editor__zoom-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.timing-editor__zoom-btn {
+  background: transparent;
+  border: 1px solid var(--color-border, #333);
+  border-radius: 3px;
+  color: var(--color-text-secondary, #888);
+  font-size: 11px;
+  width: 28px;
+  height: 20px;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.timing-editor__zoom-btn:hover {
+  border-color: var(--color-accent-green, #00e696);
+  color: var(--color-text-primary, #fff);
+}
+
+.timing-editor__zoom-level {
+  font-size: 10px;
+  color: var(--color-text-disabled, #555);
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
+}
+
 /* ── Word timing table ──────────────────────────────────────────────────── */
 
 .timing-editor__words-table {
@@ -785,4 +833,51 @@
 
 .timing-editor__timestamp-input--draggable:focus {
   cursor: text;
+}
+
+/* ── Word transition layout ────────────────────────────────────────────── */
+
+.timing-editor__word-transitions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+}
+
+.timing-editor__word-transition-group {
+  display: flex;
+  align-items: center;
+}
+
+.timing-editor__word-label {
+  padding: 4px 8px;
+  font-size: 0.875rem;
+  color: var(--color-text-primary, #fff);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.timing-editor__word-label:hover {
+  background: var(--color-bg-hover, #2a2a2a);
+}
+
+.timing-editor__transition-marker {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 2px;
+}
+
+.timing-editor__transition-marker .timing-editor__timestamp-input {
+  width: 5.5rem;
+  font-size: 0.65rem;
+  padding: 2px 4px;
+  text-align: center;
+}
+
+.timing-editor__transition-marker .timing-editor__split-btn {
+  padding: 1px 4px;
+  font-size: 0.75rem;
 }

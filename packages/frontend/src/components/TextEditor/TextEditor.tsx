@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react'
+import React, { useCallback, useRef, useState, useEffect, useLayoutEffect, useMemo } from 'react'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useSrtImport } from '../../hooks/useSrtImport.ts'
 import { SrtDiffView } from './SrtDiffView.tsx'
@@ -9,11 +9,80 @@ import './TextEditor.css'
 interface TextEditorProps {
   seekToTime: (timeSec: number) => void
   getCurrentTime?: (() => number) | null
+  hoveredPhraseIndex?: number | null
+  onEditPhrase?: (phraseIndex: number) => void
 }
 
 const CONFIDENCE_THRESHOLD = 0.7
 
-export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
+ * ContentEditable that React never reconciles children for.
+ * Content is set via innerHTML in a layout effect, skipped while focused.
+ * This prevents React from corrupting user edits on re-render.
+ */
+const PhraseContentEditable = React.memo(function PhraseContentEditable({
+  phraseIndex,
+  words,
+  isEmpty,
+  setLineRef,
+  onBlur,
+  onKeyDown,
+}: {
+  phraseIndex: number
+  words: Array<{ word: string; confidence: number }>
+  isEmpty: boolean
+  setLineRef: (idx: number, el: HTMLDivElement | null) => void
+  onBlur: (phraseIndex: number) => void
+  onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, phraseIndex: number) => void
+}) {
+  const elRef = useRef<HTMLDivElement | null>(null)
+  const focusedRef = useRef(false)
+
+  const html = useMemo(() =>
+    words.map((w, i) => {
+      const cls = w.confidence < CONFIDENCE_THRESHOLD ? ' class="text-editor__word--low-confidence"' : ''
+      const title = w.confidence < CONFIDENCE_THRESHOLD ? ` title="Confidence: ${Math.round(w.confidence * 100)}%"` : ''
+      const space = i < words.length - 1 ? ' ' : ''
+      return `<span${cls}${title}>${escapeHtml(w.word)}${space}</span>`
+    }).join(''),
+    [words]
+  )
+
+  // Sync store → DOM, but never while the user is editing
+  useLayoutEffect(() => {
+    const el = elRef.current
+    if (!el || focusedRef.current) return
+    el.innerHTML = html
+  }, [html])
+
+  const setRef = useCallback((el: HTMLDivElement | null) => {
+    elRef.current = el
+    setLineRef(phraseIndex, el)
+    // Set initial content synchronously on mount
+    if (el && !el.innerHTML) {
+      el.innerHTML = html
+    }
+  }, [phraseIndex, setLineRef, html])
+
+  return (
+    <div
+      ref={setRef}
+      className={`text-editor__line-content${isEmpty ? ' text-editor__line-content--empty' : ''}`}
+      contentEditable
+      suppressContentEditableWarning
+      onFocus={() => { focusedRef.current = true }}
+      onBlur={() => { focusedRef.current = false; onBlur(phraseIndex) }}
+      onKeyDown={(e) => onKeyDown(e, phraseIndex)}
+      data-phrase-index={phraseIndex}
+    />
+  )
+})
+
+export function TextEditor({ seekToTime, getCurrentTime, hoveredPhraseIndex, onEditPhrase }: TextEditorProps) {
   const session = useSubtitleStore((s) => s.session)
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
   const {
@@ -58,6 +127,25 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
   // Find/replace state
   const [findReplaceOpen, setFindReplaceOpen] = useState(false)
 
+  // Guard: skip deferred blur when a programmatic delete/split just happened
+  const suppressBlurRef = useRef(false)
+
+  // Speaker dropdown state (single-phrase reassignment)
+  const [speakerDropdownIndex, setSpeakerDropdownIndex] = useState<number | null>(null)
+  const speakerDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close speaker dropdown on outside click
+  useEffect(() => {
+    if (speakerDropdownIndex === null) return
+    const handleClick = (e: MouseEvent) => {
+      if (speakerDropdownRef.current && !speakerDropdownRef.current.contains(e.target as Node)) {
+        setSpeakerDropdownIndex(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [speakerDropdownIndex])
+
   // Active phrase tracking — follows video playback
   const [activePhraseIndex, setActivePhraseIndex] = useState<number | null>(null)
 
@@ -71,7 +159,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
         if (p.words.length === 0) continue
         const start = p.words[0].start
         const end = p.words[p.words.length - 1].end
-        if (t >= start && t <= end + 0.5) {
+        if (t >= start && t <= end) {
           found = i
           break
         }
@@ -180,34 +268,57 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
   }, [lastClickedIndex, handleSeek, clearSelection])
 
   const handleBlur = useCallback((phraseIndex: number) => {
-    // Read fresh state to avoid stale closure issues after deletions
-    const currentSession = useSubtitleStore.getState().session
-    if (!currentSession) return
-    const phrase = currentSession.phrases[phraseIndex]
-    if (!phrase) return // phrase was deleted — stale blur, skip
+    // If a programmatic operation (Enter, split, merge) just fired,
+    // skip entirely — it already handled the text
+    if (suppressBlurRef.current) {
+      suppressBlurRef.current = false
+      return
+    }
 
+    // Capture the DOM text and current store text NOW before anything shifts
     const el = lineRefs.current.get(phraseIndex)
     if (!el) return
+    const capturedText = el.innerText.trim()
+    const storeSnapshot = useSubtitleStore.getState().session?.phrases[phraseIndex]
+      ?.words.map((w) => w.word).join(' ') ?? null
 
-    const text = el.innerText.trim()
-    if (!text) return
+    // Defer the state update so click events on other rows land first
+    setTimeout(() => {
+      const currentSession = useSubtitleStore.getState().session
+      if (!currentSession) return
+      const phrase = currentSession.phrases[phraseIndex]
+      if (!phrase) return // phrase was deleted — stale blur, skip
 
-    // Split on whitespace to get individual word tokens
-    const newWords = text.split(/\s+/).filter(Boolean)
-    if (newWords.length === 0) return
+      // Verify this is still the same phrase (not shifted by a delete)
+      const currentStoreText = phrase.words.map((w) => w.word).join(' ')
+      if (storeSnapshot !== null && currentStoreText !== storeSnapshot) return
 
-    // Skip if text hasn't changed from the store (avoids spurious writes)
-    const storeText = phrase.words.map((w) => w.word).join(' ')
-    if (newWords.join(' ') === storeText) return
+      // If phrase is empty (user created it but never typed), clean it up
+      if (!capturedText) {
+        const isPlaceholder = phrase.words.every((w) => !w.word.trim())
+        if (isPlaceholder) {
+          deletePhrase(phraseIndex)
+        }
+        return
+      }
 
-    updatePhraseText(phraseIndex, newWords)
-  }, [updatePhraseText])
+      // Split on whitespace to get individual word tokens
+      const newWords = capturedText.split(/\s+/).filter(Boolean)
+      if (newWords.length === 0) return
+
+      // Skip if text hasn't changed from the store (avoids spurious writes)
+      if (newWords.join(' ') === currentStoreText) return
+
+      updatePhraseText(phraseIndex, newWords)
+    }, 0)
+  }, [updatePhraseText, deletePhrase])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>, phraseIndex: number) => {
     if (!session) return
 
     if (e.key === 'Enter') {
       e.preventDefault()
+      suppressBlurRef.current = true
 
       // Determine cursor position in the text
       const selection = window.getSelection()
@@ -272,6 +383,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
       // If line is empty, delete the entire phrase
       if (!text) {
         e.preventDefault()
+        suppressBlurRef.current = true
         deletePhrase(phraseIndex)
         // Focus the previous line (or next if this was the first)
         setTimeout(() => {
@@ -303,6 +415,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
 
       if (isAtStart && phraseIndex > 0) {
         e.preventDefault()
+        suppressBlurRef.current = true
         mergePhrase(phraseIndex - 1)
 
         // After merge, focus the previous line and place cursor at the end of the merged-in text
@@ -353,6 +466,7 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
     // Delete/Backspace — delete selected (not in contentEditable, 1+ selected)
     if ((e.key === 'Delete' || e.key === 'Backspace') && !inContentEditable && selectedPhraseIndices.size >= 1) {
       e.preventDefault()
+      suppressBlurRef.current = true
       if (selectedPhraseIndices.size > 3) {
         setConfirmDeleteCount(selectedPhraseIndices.size)
       } else {
@@ -627,11 +741,14 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
         const isSelected = selectedPhraseIndices.has(phraseIndex)
         const hasAnySelected = selectedPhraseIndices.size > 0
         const isActive = phraseIndex === activePhraseIndex
+        const isHovered = phraseIndex === hoveredPhraseIndex
+        const isEmpty = phrase.words.every((w) => !w.word.trim())
 
         return (
           <React.Fragment key={phraseIndex}>
           <div
-            className={`text-editor__line${isSelected ? ' text-editor__line--selected' : ''}${isActive ? ' text-editor__line--active' : ''}`}
+            className={`text-editor__line${isSelected ? ' text-editor__line--selected' : ''}${isActive ? ' text-editor__line--active' : ''}${isHovered ? ' text-editor__line--hovered' : ''}`}
+            onClick={() => onEditPhrase?.(phraseIndex)}
           >
             {/* Checkbox column */}
             <input
@@ -655,43 +772,71 @@ export function TextEditor({ seekToTime, getCurrentTime }: TextEditorProps) {
               {phraseIndex + 1}
             </button>
 
-            {/* Speaker indicator dot */}
+            {/* Speaker indicator dot — click to reassign */}
             {hasSpeakers && (
-              <span
-                className="text-editor__speaker-indicator"
-                data-speaker-index={speakerIdx}
-                title={
-                  phrase.dominantSpeaker
-                    ? speakerNames[phrase.dominantSpeaker] ?? phrase.dominantSpeaker
-                    : undefined
-                }
-              />
+              <div className="text-editor__speaker-wrapper">
+                <button
+                  type="button"
+                  className="text-editor__speaker-indicator"
+                  data-speaker-index={speakerIdx}
+                  title={
+                    phrase.dominantSpeaker
+                      ? `${speakerNames[phrase.dominantSpeaker] ?? phrase.dominantSpeaker} — click to change`
+                      : 'Assign speaker'
+                  }
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSpeakerDropdownIndex(speakerDropdownIndex === phraseIndex ? null : phraseIndex)
+                  }}
+                />
+                {speakerDropdownIndex === phraseIndex && (
+                  <div className="text-editor__speaker-dropdown" ref={speakerDropdownRef}>
+                    {Object.entries(speakerNames).map(([id, name]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        className={`text-editor__speaker-dropdown-item${phrase.dominantSpeaker === id ? ' text-editor__speaker-dropdown-item--active' : ''}`}
+                        data-speaker-index={parseInt(id.replace('SPEAKER_', ''), 10) % 8}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          reassignPhraseSpeaker(phraseIndex, id)
+                          setSpeakerDropdownIndex(null)
+                        }}
+                      >
+                        <span
+                          className="text-editor__speaker-dropdown-dot"
+                          data-speaker-index={parseInt(id.replace('SPEAKER_', ''), 10) % 8}
+                        />
+                        {name || id}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Editable phrase text with confidence underlines */}
-            <div
-              key={phraseText}
-              ref={(el) => setLineRef(phraseIndex, el)}
-              className="text-editor__line-content"
-              contentEditable
-              suppressContentEditableWarning
-              onBlur={() => handleBlur(phraseIndex)}
-              onKeyDown={(e) => handleKeyDown(e, phraseIndex)}
-              data-phrase-index={phraseIndex}
-            >
-              {phrase.words.map((word, wi) => {
-                const isLow = word.confidence < CONFIDENCE_THRESHOLD
-                return (
-                  <span
-                    key={wi}
-                    className={isLow ? 'text-editor__word--low-confidence' : undefined}
-                    title={isLow ? `Confidence: ${Math.round(word.confidence * 100)}%` : undefined}
-                  >
-                    {word.word}{wi < phrase.words.length - 1 ? ' ' : ''}
-                  </span>
-                )
-              })}
-            </div>
+            <PhraseContentEditable
+              phraseIndex={phraseIndex}
+              words={phrase.words}
+              isEmpty={isEmpty}
+              setLineRef={setLineRef}
+              onBlur={handleBlur}
+              onKeyDown={handleKeyDown}
+            />
+
+            {/* Edit phrase style button */}
+            {onEditPhrase && (
+              <button
+                type="button"
+                className="text-editor__style-btn"
+                onClick={(e) => { e.stopPropagation(); onEditPhrase(phraseIndex) }}
+                title={`Edit style for line ${phraseIndex + 1}`}
+                aria-label={`Edit phrase ${phraseIndex + 1} style`}
+              >
+                {'\u270E'}
+              </button>
+            )}
 
             {/* Delete phrase button */}
             <button

@@ -12,6 +12,7 @@ interface PhraseStylePanelProps {
 
 export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
   const phrase = useSubtitleStore((s) => s.session?.phrases[phraseIndex])
+  const globalStyle = useSubtitleStore((s) => s.style)
   const setPhraseStyle = useSubtitleStore((s) => s.setPhraseStyle)
   const clearPhraseStyle = useSubtitleStore((s) => s.clearPhraseStyle)
   const phraseAnimationPresetIds = useSubtitleStore((s) => s.phraseAnimationPresetIds)
@@ -86,7 +87,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 checked={hasOverride('fontFamily')}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setField('fontFamily', getFontFamily(FONT_NAMES[0]))
+                    setField('fontFamily', globalStyle.fontFamily)
                   } else {
                     toggleField('fontFamily', false)
                   }
@@ -121,7 +122,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 checked={hasOverride('fontSize')}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setField('fontSize', 48)
+                    setField('fontSize', globalStyle.fontSize)
                   } else {
                     toggleField('fontSize', false)
                   }
@@ -139,7 +140,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 min={16}
                 max={96}
                 step={2}
-                value={override.fontSize ?? 48}
+                value={override.fontSize ?? globalStyle.fontSize}
                 onChange={(e) => setField('fontSize', Number(e.target.value))}
               />
             )}
@@ -153,7 +154,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 checked={hasOverride('highlightColor')}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setField('highlightColor', '#FFFF00')
+                    setField('highlightColor', globalStyle.highlightColor)
                   } else {
                     toggleField('highlightColor', false)
                   }
@@ -164,14 +165,14 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
             {hasOverride('highlightColor') && (
               <div className="speaker-section__color-control">
                 <HexColorPicker
-                  color={override.highlightColor ?? '#FFFF00'}
+                  color={override.highlightColor ?? globalStyle.highlightColor}
                   onChange={(c) => setField('highlightColor', c)}
                 />
                 <div className="speaker-section__hex-row">
                   <span className="speaker-section__hex-prefix">#</span>
                   <HexColorInput
                     className="speaker-section__hex-input"
-                    color={override.highlightColor ?? '#FFFF00'}
+                    color={override.highlightColor ?? globalStyle.highlightColor}
                     onChange={(c) => setField('highlightColor', c)}
                     prefixed={false}
                   />
@@ -188,7 +189,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 checked={hasOverride('baseColor')}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setField('baseColor', '#FFFFFF')
+                    setField('baseColor', globalStyle.baseColor)
                   } else {
                     toggleField('baseColor', false)
                   }
@@ -199,14 +200,14 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
             {hasOverride('baseColor') && (
               <div className="speaker-section__color-control">
                 <HexColorPicker
-                  color={override.baseColor ?? '#FFFFFF'}
+                  color={override.baseColor ?? globalStyle.baseColor}
                   onChange={(c) => setField('baseColor', c)}
                 />
                 <div className="speaker-section__hex-row">
                   <span className="speaker-section__hex-prefix">#</span>
                   <HexColorInput
                     className="speaker-section__hex-input"
-                    color={override.baseColor ?? '#FFFFFF'}
+                    color={override.baseColor ?? globalStyle.baseColor}
                     onChange={(c) => setField('baseColor', c)}
                     prefixed={false}
                   />
@@ -223,7 +224,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 checked={hasOverride('strokeWidth')}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setField('strokeWidth', 2)
+                    setField('strokeWidth', globalStyle.strokeWidth)
                   } else {
                     toggleField('strokeWidth', false)
                   }
@@ -241,7 +242,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 min={0}
                 max={4}
                 step={0.5}
-                value={override.strokeWidth ?? 2}
+                value={override.strokeWidth ?? globalStyle.strokeWidth}
                 onChange={(e) => setField('strokeWidth', Number(e.target.value))}
               />
             )}
@@ -256,7 +257,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                   checked={hasOverride('strokeColor')}
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setField('strokeColor', '#000000')
+                      setField('strokeColor', globalStyle.strokeColor)
                     } else {
                       toggleField('strokeColor', false)
                     }
@@ -267,14 +268,14 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
               {hasOverride('strokeColor') && (
                 <div className="speaker-section__color-control">
                   <HexColorPicker
-                    color={override.strokeColor ?? '#000000'}
+                    color={override.strokeColor ?? globalStyle.strokeColor}
                     onChange={(c) => setField('strokeColor', c)}
                   />
                   <div className="speaker-section__hex-row">
                     <span className="speaker-section__hex-prefix">#</span>
                     <HexColorInput
                       className="speaker-section__hex-input"
-                      color={override.strokeColor ?? '#000000'}
+                      color={override.strokeColor ?? globalStyle.strokeColor}
                       onChange={(c) => setField('strokeColor', c)}
                       prefixed={false}
                     />
@@ -292,7 +293,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 checked={hasOverride('letterSpacing')}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setField('letterSpacing', 0)
+                    setField('letterSpacing', globalStyle.letterSpacing ?? 0)
                   } else {
                     toggleField('letterSpacing', false)
                   }
@@ -310,7 +311,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 min={-5}
                 max={20}
                 step={0.5}
-                value={override.letterSpacing ?? 0}
+                value={override.letterSpacing ?? (globalStyle.letterSpacing ?? 0)}
                 onChange={(e) => setField('letterSpacing', Number(e.target.value))}
               />
             )}
@@ -324,7 +325,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 checked={hasOverride('wordSpacing')}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setField('wordSpacing', 0)
+                    setField('wordSpacing', globalStyle.wordSpacing ?? 0)
                   } else {
                     toggleField('wordSpacing', false)
                   }
@@ -342,7 +343,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 min={-5}
                 max={30}
                 step={1}
-                value={override.wordSpacing ?? 0}
+                value={override.wordSpacing ?? (globalStyle.wordSpacing ?? 0)}
                 onChange={(e) => setField('wordSpacing', Number(e.target.value))}
               />
             )}
@@ -356,7 +357,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 checked={hasOverride('verticalPosition')}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setField('verticalPosition', 80)
+                    setField('verticalPosition', globalStyle.verticalPosition)
                   } else {
                     toggleField('verticalPosition', false)
                   }
@@ -374,7 +375,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 min={5}
                 max={95}
                 step={1}
-                value={override.verticalPosition ?? 80}
+                value={override.verticalPosition ?? globalStyle.verticalPosition}
                 onChange={(e) => setField('verticalPosition', Number(e.target.value))}
               />
             )}

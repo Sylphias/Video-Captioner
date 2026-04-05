@@ -63,16 +63,29 @@
   color: var(--color-accent-green);
 }
 
-/* ---- Speaker indicator dot ---- */
+/* ---- Speaker indicator dot (clickable) ---- */
 .text-editor__speaker-indicator {
   display: inline-block;
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  margin-top: 6px; /* align with text baseline */
+  margin-top: 6px;
+  padding: 0;
+  border: 1.5px solid transparent;
   background: var(--color-text-disabled);
-  transition: background var(--transition-fast);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.text-editor__speaker-indicator:hover {
+  transform: scale(1.3);
+  border-color: var(--color-text-secondary);
+}
+
+/* Speaker wrapper (positions dropdown) */
+.text-editor__speaker-wrapper {
+  position: relative;
+  flex-shrink: 0;
 }
 
 /* Speaker dot colors */
@@ -84,6 +97,64 @@
 .text-editor__speaker-indicator[data-speaker-index="5"] { background: var(--speaker-color-5); }
 .text-editor__speaker-indicator[data-speaker-index="6"] { background: var(--speaker-color-6); }
 .text-editor__speaker-indicator[data-speaker-index="7"] { background: var(--speaker-color-7); }
+
+/* Speaker reassignment dropdown */
+.text-editor__speaker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: -4px;
+  z-index: 20;
+  margin-top: 4px;
+  min-width: 140px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 4px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.text-editor__speaker-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.text-editor__speaker-dropdown-item:hover {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.text-editor__speaker-dropdown-item--active {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.text-editor__speaker-dropdown-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-text-disabled);
+}
+
+.text-editor__speaker-dropdown-dot[data-speaker-index="0"] { background: var(--speaker-color-0); }
+.text-editor__speaker-dropdown-dot[data-speaker-index="1"] { background: var(--speaker-color-1); }
+.text-editor__speaker-dropdown-dot[data-speaker-index="2"] { background: var(--speaker-color-2); }
+.text-editor__speaker-dropdown-dot[data-speaker-index="3"] { background: var(--speaker-color-3); }
+.text-editor__speaker-dropdown-dot[data-speaker-index="4"] { background: var(--speaker-color-4); }
+.text-editor__speaker-dropdown-dot[data-speaker-index="5"] { background: var(--speaker-color-5); }
+.text-editor__speaker-dropdown-dot[data-speaker-index="6"] { background: var(--speaker-color-6); }
+.text-editor__speaker-dropdown-dot[data-speaker-index="7"] { background: var(--speaker-color-7); }
 
 /* ---- Editable line content ---- */
 .text-editor__line-content {
@@ -106,6 +177,17 @@
 .text-editor__line-content:focus {
   border-bottom-color: var(--color-accent-green);
   background: color-mix(in srgb, var(--color-accent-green-muted) 40%, transparent);
+}
+
+/* Placeholder for empty phrases */
+.text-editor__line-content--empty::before {
+  content: 'Type subtitle text\2026';
+  color: var(--color-text-disabled);
+  pointer-events: none;
+}
+
+.text-editor__line-content--empty:focus::before {
+  content: '';
 }
 
 /* ---- Active line highlight (currently-playing phrase) ---- */
@@ -188,6 +270,35 @@
   color: var(--color-accent-green);
 }
 
+/* ---- Edit phrase style button ---- */
+.text-editor__style-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-top: 1px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-disabled);
+  font-size: 13px;
+  line-height: 24px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  border-radius: 4px;
+  transition: opacity var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.text-editor__line:hover .text-editor__style-btn {
+  opacity: 0.6;
+}
+
+.text-editor__style-btn:hover {
+  opacity: 1 !important;
+  color: var(--color-accent-green);
+  background: color-mix(in srgb, var(--color-accent-green) 12%, transparent);
+}
+
 /* ---- Delete phrase button (right side of row) ---- */
 .text-editor__delete-btn {
   flex-shrink: 0;
@@ -221,6 +332,11 @@
 .text-editor__line--selected {
   background: color-mix(in srgb, var(--color-accent-green-muted) 50%, transparent);
   border-radius: 4px;
+}
+
+/* ---- Hovered phrase (timeline hover) highlight ---- */
+.text-editor__line--hovered {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* ---- Active phrase (playing) highlight ---- */

@@ -217,9 +217,10 @@ interface SubtitleOverlayProps {
   showSpeakerBorders?: boolean  // show colored borders per-speaker (editor preview only)
   phraseLaneOverrides?: Record<number, number>  // phrase index → forced lane number
   laneCount?: number  // number of lanes to show guides for (editor preview only)
+  speakerHighlightDisabled?: Record<string, boolean>  // per-speaker highlight disable
 }
 
-export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset, showSpeakerBorders, phraseLaneOverrides, laneCount }: SubtitleOverlayProps) {
+export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset, showSpeakerBorders, phraseLaneOverrides, laneCount, speakerHighlightDisabled }: SubtitleOverlayProps) {
   const frame = useCurrentFrame()
   const { fps, width, height } = useVideoConfig()
 
@@ -291,12 +292,19 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
       })}
 
       {visiblePhrases.map((activePhrase, phraseIdx) => {
-        const activeWordIndex = findActiveWordIndex(activePhrase.words, currentTimeSec)
+        const lastWordEnd = activePhrase.words[activePhrase.words.length - 1].end
+        const isInLinger = currentTimeSec > lastWordEnd
+        const activeWordIndex = isInLinger ? -1 : findActiveWordIndex(activePhrase.words, currentTimeSec)
 
         const effectiveStyle = phraseStyles[phraseIdx]
 
-        // Highlight animation config (if any)
-        const hlConfig = (activePhrase.animationPreset ?? animationPreset)?.highlightAnimation
+        // Highlight animation config (if any) — disabled per-phrase or per-speaker
+        const isHighlightDisabled = isInLinger
+          || activePhrase.highlightDisabled
+          || (activePhrase.dominantSpeaker && speakerHighlightDisabled?.[activePhrase.dominantSpeaker])
+        const hlConfig = isHighlightDisabled
+          ? undefined
+          : (activePhrase.animationPreset ?? animationPreset)?.highlightAnimation
 
         // Determine the phrase's effective animation preset:
         // per-phrase resolved preset takes priority over global default
@@ -495,7 +503,7 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
                 ? computeHighlightKeyframeStyles(hlConfig.enterTracks, hlPct)
                 : {}
 
-              const wordColor = i === activeWordIndex ? effectiveStyle.highlightColor : effectiveStyle.baseColor
+              const wordColor = (!isHighlightDisabled && i === activeWordIndex) ? effectiveStyle.highlightColor : effectiveStyle.baseColor
 
               return (
                 <span

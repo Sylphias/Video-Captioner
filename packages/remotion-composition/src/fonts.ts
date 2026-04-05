@@ -23,6 +23,7 @@ import { loadFont as loadBarlowCondensed } from '@remotion/google-fonts/BarlowCo
 import { loadFont as loadOutfit } from '@remotion/google-fonts/Outfit'
 import { loadFont as loadStaatliches } from '@remotion/google-fonts/Staatliches'
 import { loadFont as loadLuckiestGuy } from '@remotion/google-fonts/LuckiestGuy'
+import { loadFont as loadLilitaOne } from '@remotion/google-fonts/LilitaOne'
 
 // Module-level font loading — side effects fire when this module is imported.
 // Remotion's loadFont() registers fonts with delayRender/continueRender internally.
@@ -44,6 +45,7 @@ const FONTS = {
   Teko: loadTeko('normal', { weights: ['300', '400', '500', '600', '700'], subsets: ['latin'] }),
   BarlowCondensed: loadBarlowCondensed('normal', { weights: ['300', '400', '500', '600', '700', '800', '900'], subsets: ['latin'] }),
   // Display / impact (single weight — inherently bold)
+  LilitaOne: loadLilitaOne('normal', { weights: ['400'], subsets: ['latin'] }),
   BebasNeue: loadBebasNeue('normal', { weights: ['400'], subsets: ['latin'] }),
   Anton: loadAnton('normal', { weights: ['400'], subsets: ['latin'] }),
   Bangers: loadBangers('normal', { weights: ['400'], subsets: ['latin'] }),

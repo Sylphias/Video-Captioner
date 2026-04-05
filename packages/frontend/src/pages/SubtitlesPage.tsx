@@ -16,6 +16,8 @@ import { useUndoStore } from '../store/undoMiddleware.ts'
 import { buildStateBlob, loadProjectBlob, type ProjectStateBlob } from '../lib/projectState.ts'
 import { useWaveform } from '../hooks/useWaveform.ts'
 import { AutoSaveIndicator, type SaveStatus } from '../components/AutoSaveIndicator.tsx'
+import { LaneSidePanel } from '../components/LaneSidePanel.tsx'
+import { StyleSidePanel, type RightPanelMode } from '../components/PhraseStyleSidePanel.tsx'
 import './SubtitlesPage.css'
 
 // Toast state for stage transition notifications
@@ -44,13 +46,17 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   const [getCurrentTime, setGetCurrentTime] = useState<(() => number) | null>(null)
   const [numSpeakers, setNumSpeakers] = useState<number | undefined>(undefined)
   const [topPercent, setTopPercent] = useState(45)
-  const [activeStage, setActiveStage] = useState<StageId>('timing')
+  const [activeStage, setActiveStage] = useState<StageId>('text')
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
+  const [showLaneGuides, setShowLaneGuides] = useState(true)
   const [stageToast, setStageToast] = useState<StageToast | null>(null)
   const [drawerMode, setDrawerMode] = useState<DrawerMode | null>(null)
+  const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode | null>(null)
   const [timeShift, setTimeShift] = useState(0)
   const timeShiftDragRef = useRef(false)
   const timeShiftBaselineRef = useRef<import('../store/subtitleStore.ts').SessionWord[] | null>(null)
+  const replaceVideoRef = useRef<HTMLInputElement>(null)
+  const [replacingVideo, setReplacingVideo] = useState(false)
 
   const handleTimeShiftMouseDown = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
     if (document.activeElement === e.currentTarget) return
@@ -125,6 +131,8 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   const updateWord = useSubtitleStore((s) => s.updateWord)
   const addPhraseAtTime = useSubtitleStore((s) => s.addPhraseAtTime)
   const deletePhrase = useSubtitleStore((s) => s.deletePhrase)
+  const shiftPhrase = useSubtitleStore((s) => s.shiftPhrase)
+  const reassignPhraseSpeaker = useSubtitleStore((s) => s.reassignPhraseSpeaker)
   const storeJobId = useSubtitleStore((s) => s.jobId)
   // Resolve jobId: prefer store (works for loaded projects), fall back to upload hook
   const resolvedJobId = storeJobId ?? uploadState.jobId ?? null
@@ -135,6 +143,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   // Mini timeline: track current time + active phrase for playhead
   const [miniTimelineTime, setMiniTimelineTime] = useState(0)
   const [miniTimelineActivePhrase, setMiniTimelineActivePhrase] = useState<number | null>(null)
+  const [hoveredPhraseIndex, setHoveredPhraseIndex] = useState<number | null>(null)
 
   useEffect(() => {
     if (!getCurrentTime || !session) return
@@ -154,9 +163,10 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
     return () => clearInterval(interval)
   }, [getCurrentTime, session])
 
-  const miniTimelineTotalDuration = session
-    ? Math.max(...session.phrases.filter(p => p.words.length > 0).map(p => p.words[p.words.length - 1].end), 0)
-    : 0
+  const miniTimelineTotalDuration = waveform?.duration
+    ?? (session
+      ? Math.max(...session.phrases.filter(p => p.words.length > 0).map(p => p.words[p.words.length - 1].end), 0)
+      : 0)
 
   // Hotkeys: Ctrl+1 add phrase at playhead, Ctrl+2 delete phrase at playhead
   useEffect(() => {
@@ -235,7 +245,19 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
     const session = useSubtitleStore.getState().session
     if (!session) return
 
-    // Binary search for the word active at timeSec
+    // Find the phrase active at timeSec
+    let phraseIdx = -1
+    for (let i = 0; i < session.phrases.length; i++) {
+      const p = session.phrases[i]
+      if (p.words.length === 0) continue
+      if (p.words[0].start <= timeSec && p.words[p.words.length - 1].end >= timeSec) {
+        phraseIdx = i
+        break
+      }
+    }
+    if (phraseIdx < 0) return
+
+    // Try word-level element (TimingEditor)
     const words = session.words
     let lo = 0, hi = words.length - 1, bestIdx = 0
     while (lo <= hi) {
@@ -247,16 +269,57 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
         hi = mid - 1
       }
     }
+    const wordEl = document.querySelector(`[data-word-index="${bestIdx}"]`)
+    if (wordEl) {
+      wordEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      wordEl.classList.add('word-cell--flash')
+      setTimeout(() => wordEl.classList.remove('word-cell--flash'), 1000)
+      return
+    }
 
-    // Scroll that word into view
-    const el = document.querySelector(`[data-word-index="${bestIdx}"]`)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      // Brief highlight flash
-      el.classList.add('word-cell--flash')
-      setTimeout(() => el.classList.remove('word-cell--flash'), 1000)
+    // Try phrase-level element (TextEditor)
+    const phraseEl = document.querySelector(`[data-phrase-index="${phraseIdx}"]`)
+    if (phraseEl) {
+      phraseEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [getCurrentTime])
+
+  const handleReplaceVideo = useCallback((file: File) => {
+    setReplacingVideo(true)
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    fetch('/api/upload', { method: 'POST', body: formData })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Upload failed (HTTP ${res.status})`)
+        return res.json() as Promise<{ jobId: string }>
+      })
+      .then(({ jobId: newJobId }) => {
+        // Wait for new job to be ready (poll status)
+        const poll = () => {
+          fetch(`/api/jobs/${newJobId}`)
+            .then((r) => r.json())
+            .then((job: import('@eigen/shared-types').Job) => {
+              if (job.status === 'ready') {
+                // Swap jobId + videoMetadata in store — keeps all subtitle data
+                useSubtitleStore.setState({ jobId: newJobId, videoMetadata: job.metadata })
+                // Also update the upload hook state so preview uses new video
+                hydrateUpload(newJobId, job)
+                setReplacingVideo(false)
+                resetRender()
+              } else if (job.status === 'failed') {
+                setReplacingVideo(false)
+              } else {
+                setTimeout(poll, 1000)
+              }
+            })
+            .catch(() => setReplacingVideo(false))
+        }
+        poll()
+      })
+      .catch(() => setReplacingVideo(false))
+  }, [hydrateUpload, resetRender])
 
   const handleUndo = useCallback(() => {
     const storeState = useSubtitleStore.getState()
@@ -348,17 +411,21 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
     useSubtitleStore.getState().reset()
   }
 
-  // Auto-transcribe as soon as upload completes
+  // Auto-transcribe as soon as upload completes (skip if session already exists, e.g. video replace)
   useEffect(() => {
     if (uploadState.status !== 'ready') return
     if (!uploadState.jobId) return
     if (transcribeState.status !== 'idle') return
+    if (useSubtitleStore.getState().session) return // already have subtitles — don't overwrite
     transcribe(uploadState.jobId, numSpeakers)
   }, [uploadState.status, uploadState.jobId, transcribeState.status, transcribe, numSpeakers])
 
   // Push job data into Zustand store when transcription completes so PreviewPanel can consume it
   useEffect(() => {
     if (transcribeState.status !== 'transcribed') return
+    // Skip if session already exists (e.g. replace video changed uploadState.jobId
+    // but we don't want to rebuild the session from the original transcript)
+    if (useSubtitleStore.getState().session) return
     const jobId = uploadState.jobId
     const transcript = transcribeState.transcript
     const metadata = uploadState.job?.metadata
@@ -415,6 +482,10 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
       return
     }
 
+    // Clear stale store data from any previously-opened project so auto-transcribe
+    // and PreviewPanel don't use the old project's session/video.
+    useSubtitleStore.getState().reset()
+
     let cancelled = false
     const loadProject = async () => {
       try {
@@ -463,36 +534,55 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
     return () => { cancelled = true }
   }, [projectId])
 
-  // D-04: Auto-save on store changes with 4-second debounce
+  // Shared save function
+  const [isDirty, setIsDirty] = useState(false)
+  const saveNow = useCallback(async () => {
+    if (!projectId) return
+    const blob = buildStateBlob()
+    if (!blob) return
+
+    setSaveStatus('saving')
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stateJson: JSON.stringify(blob) }),
+      })
+      setSaveStatus(res.ok ? 'saved' : 'error')
+      if (res.ok) setIsDirty(false)
+    } catch {
+      setSaveStatus('error')
+    }
+  }, [projectId])
+
+  // D-04: Auto-save on store changes with 4-second debounce + dirty tracking
   useEffect(() => {
     if (!projectId || !projectLoaded) return
 
     let timer: ReturnType<typeof setTimeout>
     const unsub = useSubtitleStore.subscribe(() => {
+      setIsDirty(true)
       clearTimeout(timer)
-      timer = setTimeout(async () => {
-        const blob = buildStateBlob()
-        if (!blob) return // session not loaded yet — skip save (Pitfall #2)
-
-        setSaveStatus('saving')
-        try {
-          const res = await fetch(`/api/projects/${projectId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ stateJson: JSON.stringify(blob) }),
-          })
-          setSaveStatus(res.ok ? 'saved' : 'error')
-        } catch {
-          setSaveStatus('error')
-        }
-      }, 4000)
+      timer = setTimeout(() => { void saveNow() }, 4000)
     })
 
     return () => {
       unsub()
       clearTimeout(timer)
     }
-  }, [projectId, projectLoaded])
+  }, [projectId, projectLoaded, saveNow])
+
+  // Ctrl+S hotkey for immediate save
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        void saveNow()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [saveNow])
 
   if (!projectLoaded) return null
 
@@ -594,18 +684,39 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   if ((transcribeState.status === 'transcribed' && transcribeState.transcript) || storeHasSession) {
     return (
       <div className="subtitles-page subtitles-page--preview" ref={containerRef}>
-        {/* Top: preview panel */}
+        {/* Top: side panel + preview panel */}
         <div
           className={`subtitles-page__top${previewCollapsed ? ' subtitles-page__top--collapsed' : ''}`}
           style={previewCollapsed ? undefined : { height: `${topPercent}%` }}
         >
-          <PreviewPanel
-            onSeekReady={(fn) => setSeekToTime(() => fn)}
-            onGetTimeReady={(fn) => setGetCurrentTime(() => fn)}
-            collapsed={previewCollapsed}
-            onToggleCollapse={() => setPreviewCollapsed((c) => !c)}
-            showSpeakerBorders={activeStage === 'timing'}
-          />
+          <div className="subtitles-page__top-row">
+            {!previewCollapsed && (
+              <LaneSidePanel
+                numSpeakers={numSpeakers}
+                setNumSpeakers={setNumSpeakers}
+                onDetectSpeakers={() => diarize(resolvedJobId!, numSpeakers)}
+                detectDisabled={diarizeState.status === 'diarizing'}
+                detectLabel={diarizeState.status === 'diarizing'
+                  ? `Detecting... ${diarizeState.progress}%`
+                  : 'Re-detect speakers'}
+                showLaneGuides={showLaneGuides}
+                onToggleLaneGuides={() => setShowLaneGuides((v) => !v)}
+              />
+            )}
+            <PreviewPanel
+              onSeekReady={(fn) => setSeekToTime(() => fn)}
+              onGetTimeReady={(fn) => setGetCurrentTime(() => fn)}
+              collapsed={previewCollapsed}
+              onToggleCollapse={() => setPreviewCollapsed((c) => !c)}
+              showSpeakerBorders={showLaneGuides}
+            />
+            {!previewCollapsed && rightPanelMode !== null && (
+              <StyleSidePanel
+                mode={rightPanelMode}
+                onClose={() => setRightPanelMode(null)}
+              />
+            )}
+          </div>
 
           {!previewCollapsed && (
             <div className="subtitles-page__top-controls">
@@ -635,6 +746,17 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
                   Redo
                 </button>
               </div>
+
+              {projectId && (
+                <button
+                  className={`subtitles-page__save-btn${isDirty ? ' subtitles-page__save-btn--dirty' : ''}`}
+                  onClick={() => void saveNow()}
+                  disabled={saveStatus === 'saving'}
+                  title="Save (Ctrl+S)"
+                >
+                  {saveStatus === 'saving' ? 'Saving...' : isDirty ? 'Save' : 'Saved'}
+                </button>
+              )}
 
               <div className="subtitles-page__time-shift">
                 <label className="subtitles-page__time-shift-label">Shift</label>
@@ -701,29 +823,38 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
                 Global Styling
               </button>
 
-              <div className="subtitles-page__speaker-controls">
-                <label className="subtitles-page__speakers-label">
-                  Speakers
-                  <input
-                    type="number"
-                    className="subtitles-page__speakers-input"
-                    min={1}
-                    max={20}
-                    placeholder="Auto"
-                    value={numSpeakers ?? ''}
-                    onChange={(e) => setNumSpeakers(e.target.value ? Number(e.target.value) : undefined)}
-                  />
-                </label>
-                <button
-                  className="subtitles-page__diarize-btn"
-                  onClick={() => diarize(resolvedJobId!, numSpeakers)}
-                  disabled={diarizeState.status === 'diarizing'}
-                >
-                  {diarizeState.status === 'diarizing'
-                    ? `Detecting... ${diarizeState.progress}%`
-                    : 'Re-detect speakers'}
-                </button>
-              </div>
+              <button
+                className="subtitles-page__toolbar-btn"
+                onClick={() => transcribe(resolvedJobId!, numSpeakers)}
+              >
+                Re-transcribe
+              </button>
+
+              <button
+                className="subtitles-page__toolbar-btn"
+                onClick={() => replaceVideoRef.current?.click()}
+                disabled={replacingVideo}
+              >
+                {replacingVideo ? 'Replacing...' : 'Replace Video'}
+              </button>
+              <input
+                ref={replaceVideoRef}
+                type="file"
+                accept="video/*"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleReplaceVideo(file)
+                  e.target.value = '' // reset so same file can be re-selected
+                }}
+              />
+
+              <button
+                className="subtitles-page__toolbar-btn subtitles-page__toolbar-btn--muted"
+                onClick={resetAll}
+              >
+                Upload new
+              </button>
 
               {renderState.status === 'rendering' && (
                 <div className="subtitles-page__render-progress">
@@ -750,9 +881,9 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
           </div>
         )}
 
-        {/* Bottom: stage tab bar + editor content */}
+        {/* Bottom: stage tab bar + mini timeline (outside scroll) + editor content */}
         <div
-          className="subtitles-page__editor-scroll"
+          className="subtitles-page__bottom"
           style={previewCollapsed ? undefined : { height: `${100 - topPercent}%` }}
         >
           {stageToast && (
@@ -766,7 +897,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
           )}
           <StageTabBar activeStage={activeStage} onStageChange={handleStageChange} />
 
-          {/* Mini timeline — lane-based overview (always visible above editor) */}
+          {/* Mini timeline — outside scroll container so wheel events work */}
           {activeStage === 'text' && session && miniTimelineTotalDuration > 0 && (
             <MiniTimeline
               phrases={session.phrases}
@@ -787,14 +918,21 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
                 globalIdx--
                 updateWord(globalIdx, { end: Math.max(0, newEnd) })
               }}
+              onShiftPhrase={shiftPhrase}
+              onReassignSpeaker={reassignPhraseSpeaker}
+              onHoverPhrase={setHoveredPhraseIndex}
+              onEditSpeaker={(speakerId) => setRightPanelMode({ type: 'speaker', speakerId })}
             />
           )}
 
+          <div className="subtitles-page__editor-scroll">
           <div className="subtitles-page__editor-section">
             {activeStage === 'text' && (
               <TextEditor
                 seekToTime={seekToTime ?? (() => {})}
                 getCurrentTime={getCurrentTime}
+                hoveredPhraseIndex={hoveredPhraseIndex}
+                onEditPhrase={(i) => setRightPanelMode({ type: 'phrase', phraseIndex: i })}
               />
             )}
 
@@ -804,11 +942,8 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
                 getCurrentTime={getCurrentTime}
                 jobId={resolvedJobId!}
                 diarizeState={diarizeState}
-                diarize={diarize}
-                numSpeakers={numSpeakers}
-                setNumSpeakers={setNumSpeakers}
-                onEditSpeaker={(speakerId) => setDrawerMode({ type: 'speaker', speakerId })}
-                onEditPhrase={(phraseIndex) => setDrawerMode({ type: 'phrase', phraseIndex })}
+                onEditSpeaker={(speakerId) => setRightPanelMode({ type: 'speaker', speakerId })}
+                onEditPhrase={(phraseIndex) => setRightPanelMode({ type: 'phrase', phraseIndex })}
               />
             )}
 
@@ -817,18 +952,9 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
             )}
 
           </div>
+          </div>{/* end editor-scroll */}
 
-          <button
-            className="subtitles-page__transcribe-btn subtitles-page__transcribe-btn--narrow"
-            onClick={() => transcribe(resolvedJobId!, numSpeakers)}
-          >
-            Re-transcribe
-          </button>
-
-          <button className="subtitles-page__reset-btn" onClick={resetAll}>
-            Upload another video
-          </button>
-        </div>
+        </div>{/* end bottom */}
 
         <StyleDrawer mode={drawerMode} onClose={() => setDrawerMode(null)} />
         {projectId && <AutoSaveIndicator status={saveStatus} />}

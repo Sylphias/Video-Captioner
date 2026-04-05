@@ -26,6 +26,7 @@ export interface SessionPhrase {
   dominantSpeaker?: string
   lingerDuration?: number  // per-phrase linger in seconds; overrides global style.lingerDuration when set
   styleOverride?: Record<string, unknown>  // phrase-level style override, applied on top of speaker styles
+  highlightDisabled?: boolean  // when true, suppress karaoke word highlighting
 }
 
 /**

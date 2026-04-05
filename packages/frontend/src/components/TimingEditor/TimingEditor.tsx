@@ -4,7 +4,6 @@ import { useWaveform } from '../../hooks/useWaveform.ts'
 import { WaveformCanvas } from './WaveformCanvas.tsx'
 import type { SessionPhrase, SessionWord } from '../../store/subtitleStore.ts'
 import type { DiarizeState } from '../../hooks/useDiarize.ts'
-import { LaneConfigPanel } from './LaneConfigPanel.tsx'
 import './TimingEditor.css'
 
 interface TimingEditorProps {
@@ -12,14 +11,13 @@ interface TimingEditorProps {
   getCurrentTime?: (() => number) | null
   jobId: string
   diarizeState: DiarizeState
-  diarize: (jobId: string, numSpeakers?: number) => void
-  numSpeakers: number | undefined
-  setNumSpeakers: (n: number | undefined) => void
   onEditSpeaker?: (speakerId: string) => void
   onEditPhrase?: (phraseIndex: number) => void
 }
 
-const PIXELS_PER_SECOND = 100
+const DEFAULT_PPS = 100
+const MIN_PPS = 20
+const MAX_PPS = 500
 const LANE_HEIGHT = 44
 const RULER_HEIGHT = 24
 
@@ -76,9 +74,6 @@ export function TimingEditor({
   getCurrentTime,
   jobId,
   diarizeState,
-  diarize,
-  numSpeakers,
-  setNumSpeakers,
   onEditSpeaker,
   onEditPhrase,
 }: TimingEditorProps) {
@@ -99,6 +94,7 @@ export function TimingEditor({
     addWord,
     shiftPhrase,
     setPhraseLane,
+    setPhraseHighlightDisabled,
   } = useSubtitleStore()
 
   const { waveform } = useWaveform(jobId)
@@ -111,11 +107,62 @@ export function TimingEditor({
   const [mergingLane, setMergingLane] = useState<string | null>(null)
   const [mergeTarget, setMergeTarget] = useState<string>('')
 
+  // Escape to deselect
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setSelectedPhraseIndex(null)
+        setEditingPhraseIndex(null)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   // Phrase timing drag state
   const [shiftDrag, setShiftDrag] = useState<{ phraseIndex: number; offsetPx: number } | null>(null)
   const shiftDragRef = useRef<{ startX: number; phraseIndex: number } | null>(null)
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Zoom state: pixels per second
+  const [pps, setPps] = useState(DEFAULT_PPS)
+
+  // Ctrl+Wheel zoom + regular scroll to pan horizontally
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    function handleWheel(e: WheelEvent) {
+      if (e.ctrlKey || e.metaKey) {
+        // Zoom toward cursor position
+        e.preventDefault()
+        e.stopPropagation()
+
+        const rect = el!.getBoundingClientRect()
+        const cursorX = e.clientX - rect.left + el!.scrollLeft
+        const cursorTimeSec = cursorX / ppsRef.current
+
+        const factor = e.deltaY > 0 ? 0.85 : 1.18
+        const newPps = Math.min(MAX_PPS, Math.max(MIN_PPS, ppsRef.current * factor))
+        setPps(newPps)
+
+        // Keep the time under the cursor at the same screen position
+        requestAnimationFrame(() => {
+          const newCursorX = cursorTimeSec * newPps
+          el!.scrollLeft = newCursorX - (e.clientX - rect.left)
+        })
+      } else {
+        // Vertical scroll → horizontal pan
+        e.preventDefault()
+        el!.scrollLeft += e.deltaY
+      }
+    }
+    el.addEventListener('wheel', handleWheel, { passive: false })
+    return () => el.removeEventListener('wheel', handleWheel)
+  }, [])
+
+  const ppsRef = useRef(pps)
+  ppsRef.current = pps
 
   // Playhead: poll current video time via rAF
   const [playheadX, setPlayheadX] = useState<number>(0)
@@ -125,7 +172,7 @@ export function TimingEditor({
     let raf = 0
     const tick = () => {
       const t = getCurrentTime()
-      setPlayheadX(t * PIXELS_PER_SECOND)
+      setPlayheadX(t * ppsRef.current)
       setPlayheadTime(t)
       raf = requestAnimationFrame(tick)
     }
@@ -139,7 +186,7 @@ export function TimingEditor({
     return Math.ceil(session.words[session.words.length - 1].end) + 2
   })()
 
-  const timelineWidth = Math.ceil(totalDuration * PIXELS_PER_SECOND)
+  const timelineWidth = Math.ceil(totalDuration * pps)
 
   const phrases = session?.phrases ?? []
   const phraseLaneOverrides = useSubtitleStore((s) => s.phraseLaneOverrides)
@@ -151,12 +198,18 @@ export function TimingEditor({
   const allSpeakerIds = Object.keys(speakerNames)
 
   const handlePhraseClick = useCallback((phraseIndex: number) => {
-    setSelectedPhraseIndex((prev) => prev === phraseIndex ? null : phraseIndex)
-    const phrase = phrases[phraseIndex]
-    if (phrase && phrase.words.length > 0) {
-      seekToTime(phrase.words[0].start)
+    const deselecting = selectedPhraseIndex === phraseIndex
+    setSelectedPhraseIndex(deselecting ? null : phraseIndex)
+    if (deselecting) {
+      onEditPhrase?.(phraseIndex) // close side panel on deselect will be handled by parent
+    } else {
+      onEditPhrase?.(phraseIndex)
+      const phrase = phrases[phraseIndex]
+      if (phrase && phrase.words.length > 0) {
+        seekToTime(phrase.words[0].start)
+      }
     }
-  }, [phrases, seekToTime])
+  }, [phrases, seekToTime, selectedPhraseIndex, onEditPhrase])
 
   const handlePhraseDoubleClick = useCallback((e: React.MouseEvent, phraseIndex: number) => {
     e.stopPropagation()
@@ -192,11 +245,11 @@ export function TimingEditor({
     if (e.target !== e.currentTarget) return // only fire on background, not on phrase blocks
     const rect = e.currentTarget.getBoundingClientRect()
     const clickX = e.clientX - rect.left + e.currentTarget.scrollLeft
-    const timeSec = clickX / PIXELS_PER_SECOND
+    const timeSec = clickX / pps
     if (timeSec >= 0) {
       addPhraseAtTime(timeSec, speakerId)
     }
-  }, [addPhraseAtTime])
+  }, [addPhraseAtTime, pps])
 
   // Delete a phrase block
   const handleDeletePhrase = useCallback((e: React.MouseEvent, phraseIndex: number) => {
@@ -254,7 +307,7 @@ export function TimingEditor({
 
       setShiftDrag((prev) => {
         if (prev && Math.abs(prev.offsetPx) > 2) {
-          const deltaSec = prev.offsetPx / PIXELS_PER_SECOND
+          const deltaSec = prev.offsetPx / ppsRef.current
           setTimeout(() => shiftPhrase(phraseIndex, deltaSec), 0)
         }
         return null
@@ -347,9 +400,9 @@ export function TimingEditor({
   const handleTimelineClick = useCallback((e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const clickX = e.clientX - rect.left
-    const timeSec = clickX / PIXELS_PER_SECOND
+    const timeSec = clickX / pps
     seekToTime(Math.max(0, timeSec))
-  }, [seekToTime])
+  }, [seekToTime, pps])
 
   // Build time ruler tick marks: minor ticks every second, labels every 5s
   const rulerTicks = (() => {
@@ -384,36 +437,6 @@ export function TimingEditor({
         </div>
       )}
 
-      {/* Re-diarize controls */}
-      {diarizeState.status !== 'diarizing' && (
-        <div className="timing-editor__diarize-controls">
-          <label className="timing-editor__speakers-label">
-            Speakers
-            <input
-              type="number"
-              className="timing-editor__speakers-input"
-              min={1}
-              max={20}
-              placeholder="Auto"
-              value={numSpeakers ?? ''}
-              onChange={(e) => setNumSpeakers(e.target.value ? Number(e.target.value) : undefined)}
-            />
-          </label>
-          <button
-            className="timing-editor__diarize-btn"
-            onClick={() => diarize(jobId, numSpeakers)}
-          >
-            {diarizeState.status === 'done' ? 'Re-detect speakers' : 'Detect speakers'}
-          </button>
-          {diarizeState.status === 'failed' && diarizeState.error && (
-            <span className="timing-editor__diarize-error">{diarizeState.error}</span>
-          )}
-        </div>
-      )}
-
-      {/* Lane configuration panel */}
-      <LaneConfigPanel />
-
       {/* Horizontally scrollable timeline with speaker lanes */}
       <div className="timing-editor__timeline-scroll" ref={scrollContainerRef}>
         {/* Playhead line */}
@@ -430,7 +453,7 @@ export function TimingEditor({
             <div
               key={time}
               className={`timing-editor__ruler-tick${major ? ' timing-editor__ruler-tick--major' : ''}`}
-              style={{ left: time * PIXELS_PER_SECOND }}
+              style={{ left: time * pps }}
             >
               {major && (
                 <span className="timing-editor__ruler-label">{formatTime(time)}</span>
@@ -445,7 +468,7 @@ export function TimingEditor({
             <WaveformCanvas
               samples={waveform.samples}
               duration={waveform.duration}
-              pixelsPerSecond={PIXELS_PER_SECOND}
+              pixelsPerSecond={pps}
               height={48}
             />
           </div>
@@ -592,9 +615,9 @@ export function TimingEditor({
                     const firstWord = phrase.words[0]
                     const lastWord = phrase.words[phrase.words.length - 1]
                     const lingerSec = phrase.lingerDuration ?? globalLingerDuration
-                    const left = firstWord.start * PIXELS_PER_SECOND
-                    const wordsWidth = (lastWord.end - firstWord.start) * PIXELS_PER_SECOND
-                    const lingerWidth = lingerSec * PIXELS_PER_SECOND
+                    const left = firstWord.start * pps
+                    const wordsWidth = (lastWord.end - firstWord.start) * pps
+                    const lingerWidth = lingerSec * pps
                     const width = Math.max(4, wordsWidth + lingerWidth)
 
                     const isSelected = selectedPhraseIndex === phraseIndex
@@ -610,7 +633,7 @@ export function TimingEditor({
                       <div
                         key={phraseIndex}
                         className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}${isDragging ? ' timing-editor__phrase-block--dragging' : ''}${isEditing ? ' timing-editor__phrase-block--editing' : ''}`}
-                        style={{ left: visualLeft, width, background: blockBg }}
+                        style={{ left: visualLeft, width, background: blockBg, zIndex: isSelected ? 10 : undefined }}
                         onClick={(e) => {
                           e.stopPropagation()
                           if (!isDragging && !isEditing) handlePhraseClick(phraseIndex)
@@ -635,7 +658,7 @@ export function TimingEditor({
                           <span
                             key={wi}
                             className="timing-editor__word-end-marker"
-                            style={{ left: (w.end - firstWord.start) * PIXELS_PER_SECOND }}
+                            style={{ left: (w.end - firstWord.start) * pps }}
                           />
                         ))}
                         {isEditing ? (
@@ -690,6 +713,29 @@ export function TimingEditor({
         </div>
       </div>
 
+      {/* Zoom controls */}
+      <div className="timing-editor__zoom-bar">
+        <span className="timing-editor__zoom-hint">Ctrl+Scroll to zoom</span>
+        <div className="timing-editor__zoom-group">
+          <button
+            className="timing-editor__zoom-btn"
+            onClick={() => setPps((p) => Math.max(MIN_PPS, p * 0.75))}
+            title="Zoom out"
+          >-</button>
+          <button
+            className="timing-editor__zoom-btn"
+            onClick={() => setPps(DEFAULT_PPS)}
+            title="Reset zoom"
+          >Fit</button>
+          <button
+            className="timing-editor__zoom-btn"
+            onClick={() => setPps((p) => Math.min(MAX_PPS, p * 1.33))}
+            title="Zoom in"
+          >+</button>
+          <span className="timing-editor__zoom-level">{Math.round(pps / DEFAULT_PPS * 100)}%</span>
+        </div>
+      </div>
+
       {/* Detail panel for selected phrase */}
       {selectedPhrase !== null && selectedPhraseIndex !== null && (
         <PhraseDetailPanel
@@ -709,9 +755,6 @@ export function TimingEditor({
           onSplitPhrase={(splitBeforeWordIndex) => {
             splitPhrase(selectedPhraseIndex, splitBeforeWordIndex)
           }}
-          onMergePhrase={() => {
-            mergePhrase(selectedPhraseIndex)
-          }}
           onAddWord={() => {
             addWord(selectedPhraseIndex)
           }}
@@ -723,6 +766,9 @@ export function TimingEditor({
             reassignPhraseSpeaker(selectedPhraseIndex, speakerId)
           }}
           onSeekTo={(timeSec) => seekToTime(timeSec)}
+          onHighlightDisabledChange={(disabled) => {
+            setPhraseHighlightDisabled(selectedPhraseIndex, disabled)
+          }}
         />
       )}
     </div>
@@ -774,12 +820,12 @@ interface PhraseDetailPanelProps {
   allSpeakerIds: string[]
   onUpdateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
   onSplitPhrase: (splitBeforeWordIndex: number) => void
-  onMergePhrase: () => void
   onAddWord: () => void
   globalLingerDuration: number
   onLingerChange: (lingerSec: number) => void
   onReassignSpeaker: (speakerId: string) => void
   onSeekTo: (timeSec: number) => void
+  onHighlightDisabledChange: (disabled: boolean) => void
 }
 
 function PhraseDetailPanel({
@@ -790,12 +836,12 @@ function PhraseDetailPanel({
   allSpeakerIds,
   onUpdateWord,
   onSplitPhrase,
-  onMergePhrase,
   onAddWord,
   globalLingerDuration,
   onLingerChange,
   onReassignSpeaker,
   onSeekTo,
+  onHighlightDisabledChange,
 }: PhraseDetailPanelProps) {
   const lingerValue = phrase.lingerDuration ?? globalLingerDuration
   const speakerLabel = phrase.dominantSpeaker
@@ -813,17 +859,6 @@ function PhraseDetailPanel({
           )}
         </span>
 
-        {/* Merge button */}
-        {phraseIndex < totalPhrases - 1 && (
-          <button
-            type="button"
-            className="timing-editor__merge-btn"
-            onClick={onMergePhrase}
-            title="Merge with next phrase"
-          >
-            Merge with next
-          </button>
-        )}
       </div>
 
       {/* Move to speaker dropdown */}
@@ -863,125 +898,91 @@ function PhraseDetailPanel({
         />
       </div>
 
-      {/* Word-level timestamp editing */}
-      <div className="timing-editor__words-table">
-        <div className="timing-editor__words-header">
-          <span>Split</span>
-          <span>Word</span>
-          <span>Start (s)</span>
-          <span>End (s)</span>
-        </div>
-
-        {phrase.words.map((word, wordIndex) => (
-          <WordTimingRow
-            key={wordIndex}
-            word={word}
-            wordIndex={wordIndex}
-            onUpdateWord={onUpdateWord}
-            onSplitBefore={() => onSplitPhrase(wordIndex)}
-            onSeekTo={onSeekTo}
+      {/* Per-phrase highlight disable */}
+      <div className="timing-editor__linger-row">
+        <label className="timing-editor__linger-label" style={{ cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={phrase.highlightDisabled ?? false}
+            onChange={(e) => onHighlightDisabledChange(e.target.checked)}
+            style={{ marginRight: 6, accentColor: 'var(--color-accent-green)' }}
           />
-        ))}
+          Disable highlighting
+        </label>
+      </div>
 
-        <button
-          type="button"
-          className="timing-editor__add-word-btn"
-          onClick={onAddWord}
-          title="Add a word after the last word in this phrase"
-        >
-          + Add word
-        </button>
+      {/* Word transitions: draggable markers between adjacent words */}
+      <div className="timing-editor__word-transitions">
+        {phrase.words.map((word, wordIndex) => (
+          <div key={wordIndex} className="timing-editor__word-transition-group">
+            {/* The word label */}
+            <span
+              className="timing-editor__word-label"
+              onClick={() => onSeekTo(word.start)}
+              title={`${word.word} (${word.start.toFixed(2)}s – ${word.end.toFixed(2)}s)`}
+            >
+              {word.word}
+            </span>
+
+            {/* Transition marker between this word and the next */}
+            {wordIndex < phrase.words.length - 1 && (
+              <WordTransitionMarker
+                wordIndex={wordIndex}
+                transitionTime={word.end}
+                onUpdateTransition={(newTime) => {
+                  onUpdateWord(wordIndex, { end: newTime })
+                  onUpdateWord(wordIndex + 1, { start: newTime })
+                }}
+              />
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
 }
 
-// ── Word Timing Row ─────────────────────────────────────────────────────────
+// ── Word Transition Marker ──────────────────────────────────────────────────
 
-interface WordTimingRowProps {
-  word: SessionWord
+interface WordTransitionMarkerProps {
   wordIndex: number
-  onUpdateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
-  onSplitBefore: () => void
-  onSeekTo: (timeSec: number) => void
+  transitionTime: number
+  onUpdateTransition: (newTime: number) => void
 }
 
-function WordTimingRow({
-  word,
+function WordTransitionMarker({
   wordIndex,
-  onUpdateWord,
-  onSplitBefore,
-  onSeekTo,
-}: WordTimingRowProps) {
-  // Local state for controlled inputs (allows typing without committing on each keystroke)
-  const [wordDraft, setWordDraft] = useState(word.word)
-  const [startDraft, setStartDraft] = useState(word.start.toFixed(3))
-  const [endDraft, setEndDraft] = useState(word.end.toFixed(3))
-
-  // Sync drafts when word props change (e.g. after an undo)
-  useEffect(() => {
-    setWordDraft(word.word)
-  }, [word.word])
+  transitionTime,
+  onUpdateTransition,
+}: WordTransitionMarkerProps) {
+  const [draft, setDraft] = useState(transitionTime.toFixed(3))
+  const dragRef = useRef<{ startX: number; startVal: number } | null>(null)
 
   useEffect(() => {
-    setStartDraft(word.start.toFixed(3))
-  }, [word.start])
+    setDraft(transitionTime.toFixed(3))
+  }, [transitionTime])
 
-  useEffect(() => {
-    setEndDraft(word.end.toFixed(3))
-  }, [word.end])
-
-  const commitWord = useCallback(() => {
-    const trimmed = wordDraft.trim()
-    if (trimmed && trimmed !== word.word) {
-      onUpdateWord(wordIndex, { word: trimmed })
+  const commit = useCallback(() => {
+    const val = parseFloat(draft)
+    if (!isNaN(val) && val !== transitionTime) {
+      onUpdateTransition(val)
     } else {
-      setWordDraft(word.word)
+      setDraft(transitionTime.toFixed(3))
     }
-  }, [wordDraft, wordIndex, onUpdateWord, word.word])
+  }, [draft, transitionTime, onUpdateTransition])
 
-  const commitStart = useCallback(() => {
-    const val = parseFloat(startDraft)
-    if (!isNaN(val)) {
-      onUpdateWord(wordIndex, { start: val })
-    } else {
-      setStartDraft(word.start.toFixed(3))
-    }
-  }, [startDraft, wordIndex, onUpdateWord, word.start])
-
-  const commitEnd = useCallback(() => {
-    const val = parseFloat(endDraft)
-    if (!isNaN(val)) {
-      onUpdateWord(wordIndex, { end: val })
-    } else {
-      setEndDraft(word.end.toFixed(3))
-    }
-  }, [endDraft, wordIndex, onUpdateWord, word.end])
-
-  // Drag-to-adjust: horizontal scrub on timestamp inputs
-  // 100px of mouse movement = 1 second of change
-  const dragRef = useRef<{ startX: number; startVal: number; field: 'start' | 'end' } | null>(null)
-
-  const handleDragStart = useCallback((e: React.MouseEvent, field: 'start' | 'end') => {
-    // Only initiate drag on middle area of input (not spinner buttons)
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
-    const startVal = field === 'start' ? word.start : word.end
-    dragRef.current = { startX: e.clientX, startVal, field }
+    e.preventDefault()
+    dragRef.current = { startX: e.clientX, startVal: transitionTime }
 
     const handleMove = (me: MouseEvent) => {
       if (!dragRef.current) return
       const dx = me.clientX - dragRef.current.startX
-      // 100px = 1 second; hold shift for fine mode (100px = 0.1s)
       const sensitivity = me.shiftKey ? 0.001 : 0.01
       const newVal = Math.max(0, dragRef.current.startVal + dx * sensitivity)
-      const formatted = newVal.toFixed(3)
-      if (dragRef.current.field === 'start') {
-        setStartDraft(formatted)
-        onUpdateWord(wordIndex, { start: newVal })
-      } else {
-        setEndDraft(formatted)
-        onUpdateWord(wordIndex, { end: newVal })
-      }
+      setDraft(newVal.toFixed(3))
+      onUpdateTransition(newVal)
     }
 
     const handleUp = () => {
@@ -994,63 +995,22 @@ function WordTimingRow({
     document.body.style.cursor = 'ew-resize'
     window.addEventListener('mousemove', handleMove)
     window.addEventListener('mouseup', handleUp)
-  }, [word.start, word.end, wordIndex, onUpdateWord])
+  }, [transitionTime, onUpdateTransition])
 
   return (
-    <div className="timing-editor__word-row">
-      {/* Split button: shown before each word (except the first) */}
-      {wordIndex > 0 ? (
-        <button
-          type="button"
-          className="timing-editor__split-btn"
-          onClick={onSplitBefore}
-          title={`Split phrase before "${word.word}"`}
-        >
-          |
-        </button>
-      ) : (
-        <span className="timing-editor__split-placeholder" />
-      )}
-
-      {/* Word text (editable, click seek icon to seek) */}
-      <input
-        type="text"
-        className="timing-editor__word-text-input"
-        value={wordDraft}
-        onChange={(e) => setWordDraft(e.target.value)}
-        onBlur={commitWord}
-        onKeyDown={(e) => { if (e.key === 'Enter') commitWord() }}
-        aria-label={`Word text "${word.word}"`}
-      />
-
-      {/* Start timestamp input — drag horizontally to scrub */}
+    <div className="timing-editor__transition-marker">
       <input
         type="number"
         className="timing-editor__timestamp-input timing-editor__timestamp-input--draggable"
-        value={startDraft}
+        value={draft}
         step={0.001}
-        onChange={(e) => setStartDraft(e.target.value)}
-        onBlur={commitStart}
-        onKeyDown={(e) => { if (e.key === 'Enter') commitStart() }}
-        onMouseDown={(e) => handleDragStart(e, 'start')}
-        aria-label={`Start time for "${word.word}"`}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') commit() }}
+        onMouseDown={handleDragStart}
+        aria-label={`Transition time after word ${wordIndex + 1}`}
         title="Drag to scrub, Shift+drag for fine adjust"
       />
-
-      {/* End timestamp input — drag horizontally to scrub */}
-      <input
-        type="number"
-        className="timing-editor__timestamp-input timing-editor__timestamp-input--draggable"
-        value={endDraft}
-        step={0.001}
-        onChange={(e) => setEndDraft(e.target.value)}
-        onBlur={commitEnd}
-        onKeyDown={(e) => { if (e.key === 'Enter') commitEnd() }}
-        onMouseDown={(e) => handleDragStart(e, 'end')}
-        aria-label={`End time for "${word.word}"`}
-        title="Drag to scrub, Shift+drag for fine adjust"
-      />
-
     </div>
   )
 }

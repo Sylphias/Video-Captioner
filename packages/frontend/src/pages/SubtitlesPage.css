@@ -23,8 +23,17 @@
 .subtitles-page__top {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 0.5rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Side panel + preview: preview stays centered, panel overlays on left */
+.subtitles-page__top-row {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  flex: 1;
   min-height: 0;
   overflow: hidden;
 }
@@ -39,18 +48,6 @@
   padding-bottom: 0.5rem;
 }
 
-/* flex row wrapper: LaneControlsPanel + PreviewPanel */
-.subtitles-page__preview-with-lanes {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: center;
-  gap: 0.5rem;
-  width: 100%;
-  min-height: 0;
-  flex: 1;
-  overflow: hidden;
-}
 
 .subtitles-page__top-controls {
   display: flex;
@@ -90,15 +87,25 @@
   background: var(--color-text-secondary);
 }
 
+/* Bottom section: tab bar + mini timeline (non-scrollable) + scrollable editor */
+.subtitles-page__bottom {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  position: relative; /* anchor for .subtitles-page__stage-toast */
+}
+
 .subtitles-page__editor-scroll {
   min-height: 0;
+  flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  padding-top: 0.5rem;
-  position: relative; /* anchor for .subtitles-page__stage-toast */
+  width: 100%;
 }
 
 /* ---- Progress card ---- */
@@ -270,14 +277,15 @@
   color: var(--color-text-primary);
 }
 
-/* ---- Mini timeline section (above text editor) ---- */
-.subtitles-page__editor-scroll > .mini-timeline {
+/* ---- Mini timeline section (above text editor, outside scroll) ---- */
+.subtitles-page__bottom > .mini-timeline {
   width: 100%;
   align-self: stretch;
   margin: 0 0 var(--spacing-sm) 0;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 /* ---- Editor section ---- */
@@ -533,6 +541,30 @@
   color: var(--color-text-primary);
 }
 
+.subtitles-page__toolbar-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.subtitles-page__toolbar-btn:hover {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+.subtitles-page__toolbar-btn--muted {
+  opacity: 0.6;
+}
+
+.subtitles-page__toolbar-btn--muted:hover {
+  opacity: 1;
+}
+
 /* ---- Undo / Redo controls ---- */
 .subtitles-page__undo-controls {
   display: flex;
@@ -559,6 +591,40 @@
 .subtitles-page__undo-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* ---- Save button ---- */
+.subtitles-page__save-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-disabled);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  cursor: default;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.subtitles-page__save-btn--dirty {
+  color: var(--color-accent-green);
+  border-color: var(--color-accent-green);
+  cursor: pointer;
+  animation: save-pulse 2s ease-in-out infinite;
+}
+
+.subtitles-page__save-btn--dirty:hover {
+  background: color-mix(in srgb, var(--color-accent-green) 15%, transparent);
+}
+
+.subtitles-page__save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  animation: none;
+}
+
+@keyframes save-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 /* ---- Stage transition toast ---- */

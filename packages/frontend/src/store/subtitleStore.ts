@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Transcript, VideoMetadata } from '@eigen/shared-types'
-import type { StyleProps, SpeakerStyleOverride } from '@eigen/remotion-composition'
+import { getFontFamily, type StyleProps, type SpeakerStyleOverride } from '@eigen/remotion-composition'
 import {
   type SessionWord,
   type SessionPhrase,
@@ -33,6 +33,8 @@ interface SubtitleStore {
   laneCount: number                                   // number of available lanes (min 1)
   laneLocks: Record<number, boolean>                   // per-lane lock state (locked lanes don't move when others are dragged)
   phraseLaneOverrides: Record<number, number>         // phrase index → forced lane number
+  additionalSpeakerCount: number                       // extra custom speaker rows (0–10)
+  speakerHighlightDisabled: Record<string, boolean>    // per-speaker highlight disable
   // Actions
   setJob: (jobId: string, transcript: Transcript, videoMetadata: VideoMetadata) => void
   updateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
@@ -73,13 +75,16 @@ interface SubtitleStore {
   movePhraseUp: (phraseIndex: number) => void
   movePhraseDown: (phraseIndex: number) => void
   replaceAllPhraseTexts: (replacements: Array<{ phraseIndex: number; newWords: string[] }>) => void
+  setAdditionalSpeakerCount: (count: number) => void
+  setPhraseHighlightDisabled: (phraseIndex: number, disabled: boolean) => void
+  setSpeakerHighlightDisabled: (speakerId: string, disabled: boolean) => void
 }
 
 const DEFAULT_STYLE: StyleProps = {
   highlightColor: '#FFFF00',
   baseColor: '#FFFFFF',
   fontSize: 90,
-  fontFamily: 'Inter',
+  fontFamily: getFontFamily('LilitaOne'),
   fontWeight: 700,
   strokeColor: '#000000',
   strokeWidth: 2,
@@ -109,6 +114,8 @@ function captureSnapshot(state: {
   phraseAnimationPresetIds: Record<number, string>
   laneCount: number
   phraseLaneOverrides: Record<number, number>
+  additionalSpeakerCount: number
+  speakerHighlightDisabled: Record<string, boolean>
 }): StateSnapshot {
   return {
     session: state.session
@@ -127,6 +134,8 @@ function captureSnapshot(state: {
     phraseAnimationPresetIds: { ...state.phraseAnimationPresetIds },
     laneCount: state.laneCount,
     phraseLaneOverrides: { ...state.phraseLaneOverrides },
+    additionalSpeakerCount: state.additionalSpeakerCount,
+    speakerHighlightDisabled: { ...state.speakerHighlightDisabled },
   }
 }
 
@@ -145,6 +154,8 @@ function pushUndo(state: {
   phraseAnimationPresetIds: Record<number, string>
   laneCount: number
   phraseLaneOverrides: Record<number, number>
+  additionalSpeakerCount: number
+  speakerHighlightDisabled: Record<string, boolean>
 }): void {
   useUndoStore.getState().pushSnapshot(captureSnapshot(state))
 }
@@ -177,6 +188,8 @@ export function restoreSnapshot(snapshot: StateSnapshot): void {
       phraseAnimationPresetIds: snapshot.phraseAnimationPresetIds ?? {},
       laneCount: snapshot.laneCount ?? 2,
       phraseLaneOverrides: snapshot.phraseLaneOverrides ?? {},
+      additionalSpeakerCount: snapshot.additionalSpeakerCount ?? 0,
+      speakerHighlightDisabled: snapshot.speakerHighlightDisabled ?? {},
     }
   })
 }
@@ -196,6 +209,8 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   laneCount: 2,
   laneLocks: {},
   phraseLaneOverrides: {},
+  additionalSpeakerCount: 0,
+  speakerHighlightDisabled: {},
 
   setJob: (jobId, transcript, videoMetadata) => {
     const words: SessionWord[] = transcript.words.map((w) => ({ ...w }))
@@ -233,41 +248,41 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       // Apply the patch to the target word
       words[wordIndex] = { ...word, ...patch }
 
-      // Cascade: push neighbors to prevent overlap
+      // Cascade: push neighbors to prevent overlap (same speaker only)
+      // Different speakers can overlap (simultaneous speech)
       if ('end' in patch && wordIndex < words.length - 1) {
         const next = words[wordIndex + 1]
-        if (patch.end! > next.start) {
+        if (patch.end! > next.start && next.speaker === word.speaker) {
           words[wordIndex + 1] = { ...next, start: patch.end! }
         }
       }
       if ('start' in patch && wordIndex > 0) {
         const prev = words[wordIndex - 1]
-        if (patch.start! < prev.end) {
+        if (patch.start! < prev.end && prev.speaker === word.speaker) {
           words[wordIndex - 1] = { ...prev, end: patch.start! }
         }
       }
 
-      // Only recompute phrase boundaries when timestamps change.
-      // Text-only edits update the word in-place in existing phrases to avoid
-      // clobbering manual splits (Pitfall #2 in research).
-      const rebuildPhrases = 'start' in patch || 'end' in patch
-
-      let phrases: SessionPhrase[]
-      if (rebuildPhrases) {
-        phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
-      } else {
-        // Text edit: update the word text within the existing phrase structure
-        // by finding it by its position match (start/end are unchanged)
-        const updatedWord = words[wordIndex]
-        phrases = state.session.phrases.map((p) => ({
-          ...p,
-          words: p.words.map((pw) =>
-            pw.start === updatedWord.start && pw.end === updatedWord.end
-              ? { ...pw, word: updatedWord.word }
-              : pw
-          ),
-        }))
-      }
+      // Update the word in-place within its existing phrase structure.
+      // Never call buildSessionPhrases here — it runs auto-grouping which
+      // reshuffles phrase boundaries based on gaps/punctuation.
+      // Find which phrase contains this word by global offset and update it.
+      let remaining = wordIndex
+      const phrases = state.session.phrases.map((p) => {
+        if (remaining < 0 || remaining >= p.words.length) {
+          remaining -= p.words.length
+          return p
+        }
+        // This phrase contains the updated word
+        const updatedWords = p.words.map((pw, wi) => {
+          if (wi === remaining) return words[wordIndex]
+          // Also update cascaded neighbor within the same phrase
+          const globalIdx = wordIndex - remaining + wi
+          return words[globalIdx]
+        })
+        remaining = -1 // mark as found
+        return { ...p, words: updatedWords }
+      })
 
       return { session: { ...state.session, words, phrases } }
     })
@@ -352,7 +367,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       }
 
       const newWord: SessionWord = {
-        word: '...',
+        word: '',
         start: lastWord.end,
         end: Math.min(lastWord.end + DEFAULT_WORD_DURATION, nextWordStart),
         confidence: 1,
@@ -428,7 +443,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       const prevSpeaker = prevPhrase?.dominantSpeaker ?? prevPhrase?.words[0]?.speaker
 
       const newWord: SessionWord = {
-        word: '...',
+        word: '',
         start: newStart,
         end: newEnd,
         confidence: 1,
@@ -533,11 +548,10 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       const manualSplitWordIndices = new Set<number>()
       for (const idx of state.session.manualSplitWordIndices) {
         if (idx >= globalOffset && idx < globalOffset + oldWordCount) {
-          // This split is inside the edited phrase — remove it (phrase structure may change)
+          // This split is inside the edited phrase — remove it
           continue
         }
         if (idx >= globalOffset + oldWordCount) {
-          // This split is after the edited phrase — shift by delta
           manualSplitWordIndices.add(idx + delta)
         } else {
           manualSplitWordIndices.add(idx)
@@ -549,7 +563,16 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         manualSplitWordIndices.add(globalOffset)
       }
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
+      // Update only the target phrase in-place — don't rebuild all phrases
+      // (rebuilding runs auto-grouping which can reshuffle phrase boundaries)
+      const updatedPhrase: SessionPhrase = {
+        ...phrase,
+        words: updatedPhraseWords,
+        dominantSpeaker: computeDominantSpeaker(updatedPhraseWords),
+      }
+      const phrases = [...state.session.phrases]
+      phrases[phraseIndex] = updatedPhrase
+
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -782,7 +805,16 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     set((state) => {
       if (!state.session) return state
       const phrase = state.session.phrases[phraseIndex]
-      if (!phrase || phrase.words.length === 0) return state
+      if (!phrase) return state
+
+      // Empty phrase (no words): just remove it from the phrases array
+      if (phrase.words.length === 0) {
+        pushUndo(state)
+        const phrases = [...state.session.phrases]
+        phrases.splice(phraseIndex, 1)
+        return { session: { ...state.session, phrases } }
+      }
+
       // Don't allow deleting the last phrase if it would leave no words
       if (state.session.words.length <= phrase.words.length) return state
 
@@ -810,7 +842,11 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         }
       }
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
+      // Remove phrase in-place — don't rebuild all phrases via buildSessionPhrases
+      // (rebuilding runs auto-grouping which can reshuffle phrase boundaries
+      // and race with deferred blur updates from the text editor)
+      const phrases = [...state.session.phrases]
+      phrases.splice(phraseIndex, 1)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -823,7 +859,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
 
       const DURATION = 0.5
       const newWord: SessionWord = {
-        word: '...',
+        word: '',
         start: timeSec,
         end: timeSec + DURATION,
         confidence: 1,
@@ -869,47 +905,99 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       const phrase = state.session.phrases[phraseIndex]
       if (!phrase || phrase.words.length === 0) return state
 
-      // Compute global word offset
-      let globalOffset = 0
-      for (let i = 0; i < phraseIndex; i++) {
-        globalOffset += state.session.phrases[i].words.length
-      }
-      const wordCount = phrase.words.length
-
       // Clamp delta: phrase start can't go below 0
       const phraseStart = phrase.words[0].start
-      const clampedDelta = Math.max(-phraseStart, deltaSec)
-
-      // Clamp: can't overlap with previous phrase's last word
-      let minStart = 0
-      if (globalOffset > 0) {
-        minStart = state.session.words[globalOffset - 1].end
-      }
-      const finalDelta = Math.max(minStart - phraseStart, clampedDelta)
-
-      // Clamp: can't overlap with next phrase's first word
-      const lastIdx = globalOffset + wordCount - 1
-      if (lastIdx < state.session.words.length - 1) {
-        const nextStart = state.session.words[lastIdx + 1].start
-        const phraseEnd = phrase.words[wordCount - 1].end
-        const maxDelta = nextStart - phraseEnd
-        if (finalDelta > maxDelta) return state // would overlap
-      }
+      const finalDelta = Math.max(-phraseStart, deltaSec)
 
       if (Math.abs(finalDelta) < 0.001) return state
 
       pushUndo(state)
 
-      // Shift all words in this phrase
-      const words = state.session.words.map((w, i) =>
-        i >= globalOffset && i < globalOffset + wordCount
-          ? { ...w, start: w.start + finalDelta, end: w.end + finalDelta }
-          : w
-      )
+      // Extract phrase word groups with their manual-split flags and speaker
+      const groups: { words: SessionWord[]; isManualSplit: boolean; isMoved: boolean; speaker?: string }[] = []
+      for (let pi = 0; pi < state.session.phrases.length; pi++) {
+        const p = state.session.phrases[pi]
+        groups.push({ words: p.words.map(w => ({ ...w })), isManualSplit: p.isManualSplit, isMoved: pi === phraseIndex, speaker: p.dominantSpeaker })
+      }
 
-      // Rebuild phrases (timestamps changed)
-      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
-      return { session: { ...state.session, words, phrases } }
+      // Shift the moved phrase's words
+      const movedGroup = groups[phraseIndex]
+      for (const w of movedGroup.words) {
+        w.start += finalDelta
+        w.end += finalDelta
+      }
+
+      // Sort phrase groups by their first word's start time (chronological reorder)
+      groups.sort((a, b) => {
+        if (a.words.length === 0) return 1
+        if (b.words.length === 0) return -1
+        return a.words[0].start - b.words[0].start
+      })
+
+      // Snap moved phrase if it overlaps a neighbor
+      const movedIdx = groups.indexOf(movedGroup)
+      const movedDuration = movedGroup.words[movedGroup.words.length - 1].end - movedGroup.words[0].start
+
+      // Check overlap with previous same-speaker phrase — snap to its end
+      // Different speakers can overlap (simultaneous speech)
+      if (movedIdx > 0) {
+        for (let pi = movedIdx - 1; pi >= 0; pi--) {
+          const prev = groups[pi]
+          if (prev.words.length === 0) continue
+          if (prev.speaker !== movedGroup.speaker) continue
+          const prevEnd = prev.words[prev.words.length - 1].end
+          const movedStart = movedGroup.words[0].start
+          if (movedStart < prevEnd) {
+            const snap = prevEnd - movedStart
+            for (const w of movedGroup.words) {
+              w.start += snap
+              w.end += snap
+            }
+          }
+          break
+        }
+      }
+
+      // Check overlap with next same-speaker phrase — snap to its front
+      if (movedIdx < groups.length - 1) {
+        for (let pi = movedIdx + 1; pi < groups.length; pi++) {
+          const next = groups[pi]
+          if (next.words.length === 0) continue
+          if (next.speaker !== movedGroup.speaker) continue
+          const nextStart = next.words[0].start
+          const movedEnd = movedGroup.words[movedGroup.words.length - 1].end
+          if (movedEnd > nextStart) {
+            const snapStart = Math.max(0, nextStart - movedDuration)
+            const shift = snapStart - movedGroup.words[0].start
+            for (const w of movedGroup.words) {
+              w.start += shift
+              w.end += shift
+            }
+          }
+          break
+        }
+      }
+
+      // Flatten back into words array and rebuild phrases directly from groups
+      // (don't use buildSessionPhrases — auto-grouping reshuffles boundaries)
+      const words: SessionWord[] = []
+      const manualSplitWordIndices = new Set<number>()
+      const phrases: SessionPhrase[] = []
+      for (const group of groups) {
+        if (group.isManualSplit && words.length > 0) {
+          manualSplitWordIndices.add(words.length)
+        }
+        words.push(...group.words)
+        if (group.words.length > 0) {
+          phrases.push({
+            words: group.words,
+            isManualSplit: group.isManualSplit,
+            dominantSpeaker: group.speaker,
+          })
+        }
+      }
+
+      return { session: { ...state.session, words, phrases, manualSplitWordIndices } }
     })
   },
 
@@ -1163,7 +1251,11 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         }
       }
 
-      const newPhrases = buildSessionPhrases(newWords, newManualSplitWordIndices, state.maxWordsPerPhrase)
+      // Remove phrases in-place (reverse order to preserve indices)
+      const newPhrases = [...state.session.phrases]
+      for (let i = sorted.length - 1; i >= 0; i--) {
+        newPhrases.splice(sorted[i], 1)
+      }
       return {
         session: {
           ...state.session,
@@ -1366,6 +1458,77 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
 
       const rebuiltPhrases = buildSessionPhrases(words as SessionWord[], manualSplitWordIndices, state.maxWordsPerPhrase)
       return { session: { words: words as SessionWord[], phrases: rebuiltPhrases, manualSplitWordIndices } }
+    })
+  },
+
+  setAdditionalSpeakerCount: (count) => {
+    set((state) => {
+      const clamped = Math.max(0, Math.min(10, count))
+      const prev = state.additionalSpeakerCount
+
+      if (clamped === prev) return state
+      pushUndo(state)
+
+      const speakerNames = { ...state.speakerNames }
+
+      if (clamped > prev) {
+        // Add new custom speaker slots
+        for (let i = prev + 1; i <= clamped; i++) {
+          const id = `CUSTOM_${i}`
+          if (!speakerNames[id]) {
+            speakerNames[id] = `FX ${i}`
+          }
+        }
+      } else {
+        // Remove custom speaker slots from the top
+        for (let i = prev; i > clamped; i--) {
+          const id = `CUSTOM_${i}`
+          // Reassign orphaned phrases to first remaining speaker
+          const firstSpeaker = Object.keys(speakerNames).find(k => k !== id) ?? ''
+          if (state.session && firstSpeaker) {
+            for (const phrase of state.session.phrases) {
+              if (phrase.dominantSpeaker === id) {
+                for (const w of phrase.words) {
+                  if (w.speaker === id) w.speaker = firstSpeaker
+                }
+                phrase.dominantSpeaker = firstSpeaker
+              }
+            }
+          }
+          delete speakerNames[id]
+        }
+      }
+
+      return { additionalSpeakerCount: clamped, speakerNames }
+    })
+  },
+
+  setPhraseHighlightDisabled: (phraseIndex, disabled) => {
+    set((state) => {
+      if (!state.session) return state
+      const phrase = state.session.phrases[phraseIndex]
+      if (!phrase) return state
+
+      pushUndo(state)
+
+      const phrases = state.session.phrases.map((p, i) =>
+        i === phraseIndex ? { ...p, highlightDisabled: disabled || undefined } : p
+      )
+
+      return { session: { ...state.session, phrases } }
+    })
+  },
+
+  setSpeakerHighlightDisabled: (speakerId, disabled) => {
+    set((state) => {
+      pushUndo(state)
+      const speakerHighlightDisabled = { ...state.speakerHighlightDisabled }
+      if (disabled) {
+        speakerHighlightDisabled[speakerId] = true
+      } else {
+        delete speakerHighlightDisabled[speakerId]
+      }
+      return { speakerHighlightDisabled }
     })
   },
 }))
