@@ -252,6 +252,10 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 9.
 | 9. Speaker Lane Layout | 3/3 | ◆ Verifying | - |
 | 9.1 Transcription Upgrade | 1/2 | In Progress|  |
 | 10. SRT Import & Text Correction | 2/2 | Complete    | 2026-03-28 |
+| 11. Text Editor Enhancements | 3/3 | ✓ Complete | 2026-03-28 |
+| 12. UI/UX Layout Improvements | 0/0 | Pending | - |
+| 13. Project Persistence | 4/4 | ✓ Complete | 2026-04-02 |
+| 14. Editor Stability & Features | 0/0 | In Progress | - |
 
 ### Phase 11: Text Editor Enhancements
 
@@ -280,10 +284,32 @@ Plans:
 **Goal:** Users can save and load video editing sessions as named projects, with a landing page showing a card grid of existing projects, auto-save, and full project lifecycle management (rename, delete, duplicate, re-transcribe)
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15, D-16, D-17
 **Depends on:** Phase 12
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 
 Plans:
-- [ ] 13-01-PLAN.md — Backend SQLite project store, CRUD API routes, thumbnail endpoint
-- [ ] 13-02-PLAN.md — Frontend state serialization (buildStateBlob, loadProjectBlob)
-- [ ] 13-03-PLAN.md — Nav restructure (Projects | Animation Builder), ProjectsPage card grid, SubtitlesPage project-scoping
-- [ ] 13-04-PLAN.md — Project lifecycle (context menu, delete, rename, duplicate, re-transcribe), auto-save with indicator
+- [x] 13-01-PLAN.md — Backend SQLite project store, CRUD API routes, thumbnail endpoint
+- [x] 13-02-PLAN.md — Frontend state serialization (buildStateBlob, loadProjectBlob)
+- [x] 13-03-PLAN.md — Nav restructure (Projects | Animation Builder), ProjectsPage card grid, SubtitlesPage project-scoping
+- [x] 13-04-PLAN.md — Project lifecycle (context menu, delete, rename, duplicate, re-transcribe), auto-save with indicator
+
+### Phase 14: Editor Stability & New Features
+
+**Goal:** Fix critical text editor bugs (contentEditable blur cascades, phrase boundary corruption), improve timeline interaction (drag-to-reorder with snap, cross-lane reassignment), and add new features: additional speaker rows, per-phrase highlight disable, MiniTimeline zoom
+**Depends on:** Phase 13
+**Plans:** 0 plans (executed inline during session)
+
+Completed work:
+- [x] Fix contentEditable blur cascade — PhraseContentEditable renders empty div, sets innerHTML via useLayoutEffect, skipped while focused
+- [x] Fix phrase boundary corruption — updateWord, updatePhraseText, shiftPhrase no longer call buildSessionPhrases
+- [x] Fix delete double-fire — store snapshot guard prevents stale phraseIndex from overwriting wrong row
+- [x] Fix updateWord cascade — only pushes same-speaker neighbors (different speakers can overlap)
+- [x] Speaker reassignment dropdown on text editor speaker dot
+- [x] Empty phrase CSS placeholder instead of literal "..."
+- [x] MiniTimeline phrase drag-to-reorder with same-speaker snap (before/after)
+- [x] MiniTimeline cross-lane drag for speaker reassignment
+- [x] MiniTimeline waveform moved above lanes, seek only from waveform
+- [x] Timeline hover highlights corresponding text editor row
+- [x] Rename "Timeline View" tab to "Word Timing"
+- [x] Additional speaker rows — CUSTOM_N speakers, "Extra Rows" input, empty lanes visible
+- [x] Per-phrase/per-speaker highlight disable — checkbox in phrase detail panel, SubtitleOverlay rendering
+- [x] MiniTimeline zoom — Ctrl+Scroll zoom, scroll pan, −/Fit/+ buttons, auto-follow playhead
