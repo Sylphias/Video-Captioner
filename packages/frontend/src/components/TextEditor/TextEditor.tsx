@@ -52,10 +52,16 @@ const PhraseContentEditable = React.memo(function PhraseContentEditable({
     [words]
   )
 
-  // Sync store → DOM, but never while the user is editing
+  // Sync store → DOM whenever html changes.
+  // During normal typing the store isn't updated, so `words` is referentially stable and
+  // `html` doesn't change — this effect doesn't run and the user's cursor is preserved.
+  // It only fires when external code (split/merge/delete/find-replace) mutates the words,
+  // in which case the DOM MUST reflect the new state even if the line is still focused —
+  // otherwise the stale DOM gets committed back to the store on the next blur.
   useLayoutEffect(() => {
     const el = elRef.current
-    if (!el || focusedRef.current) return
+    if (!el) return
+    if (el.innerHTML === html) return
     el.innerHTML = html
   }, [html])
 
@@ -341,10 +347,13 @@ export function TextEditor({ seekToTime, getCurrentTime, hoveredPhraseIndex, onE
       const phrase = session.phrases[phraseIndex]
       if (!phrase) return
 
-      // First save any pending text edit on the current line
+      // Commit any pending DOM edit on the current line before splitting.
+      // Compare full text — count-only was missing edits like capitalization changes,
+      // which then got silently dropped when splitPhrase read the unmodified store words.
       const currentText = el.innerText.trim()
       const currentWords = currentText.split(/\s+/).filter(Boolean)
-      if (currentWords.length !== phrase.words.map((w) => w.word).join(' ').split(/\s+/).length) {
+      const storeText = phrase.words.map((w) => w.word).join(' ')
+      if (currentWords.length > 0 && currentWords.join(' ') !== storeText) {
         updatePhraseText(phraseIndex, currentWords)
       }
 
