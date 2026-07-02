@@ -1,0 +1,89 @@
+/* ---- Global Style Side Panel (right side, full-height flow) ---- */
+
+.global-style-panel {
+  position: relative;
+  flex-shrink: 0;
+  width: 240px;
+  height: 100%;
+  z-index: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+.global-style-panel--collapsed {
+  width: 28px;
+}
+
+/* ---- Toggle / header button ---- */
+.global-style-panel__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--color-surface-secondary);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  width: 100%;
+  text-align: left;
+}
+
+.global-style-panel__toggle:hover {
+  color: var(--color-text-primary);
+}
+
+.global-style-panel--collapsed .global-style-panel__toggle {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  padding: 10px 6px;
+  justify-content: flex-start;
+  gap: 6px;
+  height: 100%;
+  border-bottom: none;
+  border-right: 1px solid var(--color-border);
+}
+
+.global-style-panel__toggle-arrow {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+/* ---- Scrollable content ---- */
+.global-style-panel__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.global-style-panel--collapsed .global-style-panel__content {
+  display: none;
+}
+
+/* Compact overrides for the style panels inside the side panel */
+.global-style-panel__content .speaker-style-panel {
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.global-style-panel__content .speaker-style-panel__row {
+  gap: 4px;
+}
+
+.global-style-panel__content .speaker-style-panel__label {
+  font-size: 0.7rem;
+}

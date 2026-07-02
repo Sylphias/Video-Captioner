@@ -1,14 +1,13 @@
 /* ---- Collapsible Lane Side Panel ---- */
 
 .lane-side-panel {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  z-index: 10;
+  position: relative;
+  flex-shrink: 0;
+  width: 220px;
+  height: 100%;
+  z-index: auto;
   display: flex;
   flex-direction: column;
-  width: 200px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -18,7 +17,6 @@
 
 .lane-side-panel--collapsed {
   width: 28px;
-  bottom: auto;
 }
 
 /* ---- Toggle button ---- */
