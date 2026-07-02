@@ -85,7 +85,7 @@ const DEFAULT_STYLE: StyleProps = {
   baseColor: '#FFFFFF',
   fontSize: 90,
   fontFamily: getFontFamily('LilitaOne'),
-  fontWeight: 900,
+  fontWeight: 400,
   strokeColor: '#000000',
   strokeWidth: 7.5,
   shadowColor: '#000000',
@@ -95,7 +95,7 @@ const DEFAULT_STYLE: StyleProps = {
   letterSpacing: 0,
   wordSpacing: 0,
   verticalPosition: 80,
-  lingerDuration: 1.0,
+  lingerDuration: 0.4,
   laneGap: 8,
 }
 
