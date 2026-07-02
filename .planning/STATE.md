@@ -258,6 +258,7 @@ Recent decisions affecting current work:
 ### Roadmap Evolution
 
 - Phase 04.1 inserted after Phase 4: Multi-Speaker Diarization and Speaker Lanes (URGENT) — auto-detect speakers via pyannote.audio, propagate speaker labels through types/grouping/store/composition, add speaker lanes to editor UI with manual override
+- Phase 15 added (2026-07-02): Desktop App Port — package app as desktop application (shell tech likely Electron, settled in discuss-phase); depends on Phase 12 (UI refresh first, user decision 2026-07-02); includes remaining small webapp workflow fixes
 
 ### Pending Todos
 
