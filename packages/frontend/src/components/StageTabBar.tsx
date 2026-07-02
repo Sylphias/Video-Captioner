@@ -1,3 +1,5 @@
+import './StageTabBar.css'
+
 export type StageId = 'timing' | 'text' | 'animation'
 
 interface Stage {
