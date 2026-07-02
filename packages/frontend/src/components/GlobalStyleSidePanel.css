@@ -19,21 +19,34 @@
   width: 28px;
 }
 
-/* ---- Toggle / header button ---- */
+/* ---- Header row: toggle button + optional phrase nav ---- */
+.global-style-panel__header {
+  display: flex;
+  align-items: stretch;
+  background: var(--color-surface-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.global-style-panel--collapsed .global-style-panel__header {
+  height: 100%;
+  border-bottom: none;
+  border-right: 1px solid var(--color-border);
+}
+
 .global-style-panel__toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 6px 10px;
-  background: var(--color-surface-secondary);
+  background: none;
   border: none;
-  border-bottom: 1px solid var(--color-border);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
   transition: color var(--transition-fast);
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: left;
 }
 
@@ -48,13 +61,50 @@
   justify-content: flex-start;
   gap: 6px;
   height: 100%;
-  border-bottom: none;
-  border-right: 1px solid var(--color-border);
 }
 
 .global-style-panel__toggle-arrow {
   font-size: 10px;
   transition: transform 0.2s ease;
+}
+
+/* ---- Phrase prev/next navigation ---- */
+.global-style-panel__phrase-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px 6px 0;
+  flex-shrink: 0;
+}
+
+.global-style-panel--collapsed .global-style-panel__phrase-nav {
+  display: none;
+}
+
+.global-style-panel__phrase-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.global-style-panel__phrase-nav-btn:hover:not(:disabled) {
+  border-color: var(--color-accent-green);
+  color: var(--color-text-primary);
+}
+
+.global-style-panel__phrase-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ---- Scrollable content ---- */

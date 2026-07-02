@@ -17,6 +17,7 @@ import { useWaveform } from '../hooks/useWaveform.ts'
 import { AutoSaveIndicator, type SaveStatus } from '../components/AutoSaveIndicator.tsx'
 import { LaneSidePanel } from '../components/LaneSidePanel.tsx'
 import { GlobalStyleSidePanel, type RightPanelMode } from '../components/GlobalStyleSidePanel.tsx'
+import { findAdjacentSameSpeakerPhrase } from '../lib/grouping.ts'
 import './SubtitlesPage.css'
 
 // Toast state for stage transition notifications
@@ -51,6 +52,9 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   const [stageToast, setStageToast] = useState<StageToast | null>(null)
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>({ type: 'global' })
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
+  // Signals TimingEditor to sync its selection + center its viewport when the phrase
+  // panel's prev/next nav buttons are used while Word Timing is the active stage.
+  const [phraseFocusSignal, setPhraseFocusSignal] = useState<{ phraseIndex: number } | null>(null)
   const [timeShift, setTimeShift] = useState(0)
   const timeShiftDragRef = useRef(false)
   const timeShiftBaselineRef = useRef<import('../store/subtitleStore.ts').SessionWord[] | null>(null)
@@ -321,6 +325,25 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
       restoreSnapshot(target)
     }
   }, [])
+
+  // Jump the phrase override panel to the previous/next phrase of the SAME speaker
+  // (by chronological order), consistent with existing phrase-click seek behavior.
+  const handleNavigatePhrase = useCallback((phraseIndex: number, direction: 1 | -1) => {
+    const currentSession = useSubtitleStore.getState().session
+    if (!currentSession) return
+    const target = findAdjacentSameSpeakerPhrase(currentSession.phrases, phraseIndex, direction)
+    if (target === null) return
+
+    setRightPanelMode({ type: 'phrase', phraseIndex: target })
+
+    const phrase = currentSession.phrases[target]
+    if (phrase && phrase.words.length > 0) {
+      seekToTime?.(phrase.words[0].start)
+    }
+
+    // Let TimingEditor (Word Timing stage) sync its selection + center its viewport
+    setPhraseFocusSignal({ phraseIndex: target })
+  }, [seekToTime])
 
   // Stage transition handler with confirmation toast on Text -> other stage.
   //
@@ -893,6 +916,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
                 diarizeState={diarizeState}
                 onEditSpeaker={(speakerId) => setRightPanelMode({ type: 'speaker', speakerId })}
                 onEditPhrase={(phraseIndex) => setRightPanelMode({ type: 'phrase', phraseIndex })}
+                focusSignal={phraseFocusSignal}
               />
             )}
 
@@ -911,6 +935,21 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
           onBack={() => setRightPanelMode({ type: 'global' })}
           collapsed={rightPanelCollapsed}
           onToggleCollapse={() => setRightPanelCollapsed((c) => !c)}
+          onNavigatePhrase={
+            rightPanelMode.type === 'phrase'
+              ? (direction) => handleNavigatePhrase(rightPanelMode.phraseIndex, direction)
+              : undefined
+          }
+          hasPrevPhrase={
+            rightPanelMode.type === 'phrase' && session
+              ? findAdjacentSameSpeakerPhrase(session.phrases, rightPanelMode.phraseIndex, -1) !== null
+              : false
+          }
+          hasNextPhrase={
+            rightPanelMode.type === 'phrase' && session
+              ? findAdjacentSameSpeakerPhrase(session.phrases, rightPanelMode.phraseIndex, 1) !== null
+              : false
+          }
         />
         {projectId && <AutoSaveIndicator status={saveStatus} />}
       </div>

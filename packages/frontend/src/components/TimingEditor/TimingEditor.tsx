@@ -13,6 +13,9 @@ interface TimingEditorProps {
   diarizeState: DiarizeState
   onEditSpeaker?: (speakerId: string) => void
   onEditPhrase?: (phraseIndex: number) => void
+  /** Set by the parent (e.g. phrase panel prev/next nav) to select + center a phrase
+   * without requiring a direct click inside TimingEditor's own timeline. */
+  focusSignal?: { phraseIndex: number } | null
 }
 
 const DEFAULT_PPS = 100
@@ -76,6 +79,7 @@ export function TimingEditor({
   diarizeState,
   onEditSpeaker,
   onEditPhrase,
+  focusSignal,
 }: TimingEditorProps) {
   const session = useSubtitleStore((s) => s.session)
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
@@ -196,6 +200,29 @@ export function TimingEditor({
 
   const selectedPhrase = selectedPhraseIndex !== null ? phrases[selectedPhraseIndex] : null
   const allSpeakerIds = Object.keys(speakerNames)
+
+  // Center the horizontal scroll viewport on a given time — reused for both the
+  // initial mount-to-Word-Timing-stage focus and programmatic phrase navigation
+  // (mirrors the auto-follow-playhead scroll math from MiniTimeline's zoom feature).
+  const centerViewportOnTime = useCallback((timeSec: number) => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    el.scrollLeft = Math.max(0, timeSec * ppsRef.current - el.clientWidth / 2)
+  }, [])
+
+  // External phrase focus (prev/next nav buttons in the phrase override panel):
+  // select the phrase, seek, and center the viewport — consistent with a direct click.
+  useEffect(() => {
+    if (!focusSignal) return
+    const { phraseIndex } = focusSignal
+    setSelectedPhraseIndex(phraseIndex)
+    const phrase = phrases[phraseIndex]
+    if (phrase && phrase.words.length > 0) {
+      const start = phrase.words[0].start
+      seekToTime(start)
+      requestAnimationFrame(() => centerViewportOnTime(start))
+    }
+  }, [focusSignal, phrases, seekToTime, centerViewportOnTime])
 
   const handlePhraseClick = useCallback((phraseIndex: number) => {
     const deselecting = selectedPhraseIndex === phraseIndex

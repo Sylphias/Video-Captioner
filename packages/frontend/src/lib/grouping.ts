@@ -133,3 +133,28 @@ export function buildSessionPhrases(
 
   return result
 }
+
+/**
+ * Find the index of the nearest phrase of the same dominant speaker as
+ * `phrases[fromIndex]`, walking in `direction` (-1 = previous, +1 = next).
+ * Phrases are assumed to be in chronological order (as built by
+ * buildSessionPhrases), so index-adjacent phrases are time-adjacent.
+ * Returns null when there is no such phrase (start/end of the speaker's
+ * phrase list, or an out-of-range/empty source phrase).
+ */
+export function findAdjacentSameSpeakerPhrase(
+  phrases: SessionPhrase[],
+  fromIndex: number,
+  direction: 1 | -1
+): number | null {
+  const source = phrases[fromIndex]
+  if (!source) return null
+  const speaker = source.dominantSpeaker
+
+  for (let i = fromIndex + direction; i >= 0 && i < phrases.length; i += direction) {
+    const candidate = phrases[i]
+    if (candidate.words.length === 0) continue
+    if (candidate.dominantSpeaker === speaker) return i
+  }
+  return null
+}
