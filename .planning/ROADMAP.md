@@ -293,7 +293,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 9.
 | 9.1 Transcription Upgrade | 1/2 | In Progress|  |
 | 10. SRT Import & Text Correction | 2/2 | Complete    | 2026-03-28 |
 | 11. Text Editor Enhancements | 3/3 | ✓ Complete | 2026-03-28 |
-| 12. UI/UX Layout Improvements | 0/0 | Pending | - |
+| 12. UI/UX Layout Improvements | 0/3 | Planned | - |
 | 13. Project Persistence | 4/4 | ✓ Complete | 2026-04-02 |
 | 14. Editor Stability & Features | 0/0 | In Progress | - |
 
@@ -312,14 +312,16 @@ Plans:
 
 ### Phase 12: UI/UX Layout Improvements
 
-**Goal:** Reposition Re-transcribe/Re-upload buttons, make style drawer behave like Animation page (inline, not overlay), and make Global Styling a permanent fixture on the left panel
-**Requirements**: TBD
+**Goal:** Reposition Re-transcribe/Re-upload buttons, make style drawer behave like Animation page (inline, not overlay), and make Global Styling a permanent fixture on the right panel
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15
 **Depends on:** Phase 11
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
 
-- [ ] TBD (run /gsd:plan-phase 12 to break down)
+- [ ] 12-01-PLAN.md — Three-column full-height layout: permanent lane + global style side panels, StyleDrawer overlay removed
+- [ ] 12-02-PLAN.md — Stage tab styling polish and compact Upload SRT button
+- [ ] 12-03-PLAN.md — Toolbar reorganization into grouped button bar + end-of-phase human verification
 
 ### Phase 13: Project persistence and landing page — save/load video projects, project list UI, nav restructure
 
