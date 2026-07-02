@@ -6,14 +6,14 @@ current_phase: 12
 current_phase_name: ui-ux-layout-improvements
 status: executing
 stopped_at: "Phase 12 plan-phase: research complete, UI gate pending — user chose to continue without UI-SPEC next"
-last_updated: "2026-07-02T13:04:11.517Z"
+last_updated: "2026-07-02T13:29:04.370Z"
 last_activity: 2026-07-02
 last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 17
   completed_phases: 14
   total_plans: 47
-  completed_plans: 47
+  completed_plans: 48
   percent: 82
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 12 (ui-ux-layout-improvements) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-02 — Phase 12 execution started
 
@@ -71,6 +71,7 @@ Progress: [████████████████░░░░] 82% (8 
 | Phase 11-text-editor-enhancements P03 | 4 | 2 tasks | 7 files |
 | Phase 13-project-persistence-and-landing-page P02 | 8 | 1 tasks | 1 files |
 | Phase 12-ui-ux-layout-improvements P01 | 15min | 2 tasks | 5 files |
+| Phase 12-ui-ux-layout-improvements P02 | 6min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -260,6 +261,8 @@ Recent decisions affecting current work:
 - [Phase 13-project-persistence-and-landing-page]: loadProjectBlob uses spread syntax for optional fields — setState only sets keys present in blob, avoids errors on older store versions
 - [Phase 12]: [12-01]: Consolidated StyleSidePanel + StyleDrawer into one GlobalStyleSidePanel component (single-slot right panel per D-09) rather than keeping two panel components
 - [Phase 12]: [12-01]: Full-height flow side panels (position: relative, flex-shrink: 0, height: 100%) replace position:absolute overlay panels as the pattern for LaneSidePanel and GlobalStyleSidePanel
+- [Phase ?]: [12-02]: Kept underline-tab pattern (no pill/box conversion) per CONTEXT.md constraint; muted/highlighted contrast improved via padding + active font-weight 600 rather than color token change
+- [Phase ?]: [12-02]: srt-import-btn height now padding-driven (fixed 32px removed) to exactly match subtitles-page__goto-btn sizing
 
 ### Roadmap Evolution
 
@@ -291,7 +294,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-02T12:58:37.736Z
+Last session: 2026-07-02T13:11:58.698Z
 Stopped at: Phase 12 plan-phase: research complete, UI gate pending — user chose to continue without UI-SPEC next
 
 Next planned work:

@@ -293,7 +293,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 9.
 | 9.1 Transcription Upgrade | 1/2 | In Progress|  |
 | 10. SRT Import & Text Correction | 2/2 | Complete    | 2026-03-28 |
 | 11. Text Editor Enhancements | 3/3 | ✓ Complete | 2026-03-28 |
-| 12. UI/UX Layout Improvements | 1/3 | In Progress|  |
+| 12. UI/UX Layout Improvements | 2/3 | In Progress|  |
 | 13. Project Persistence | 4/4 | ✓ Complete | 2026-04-02 |
 | 14. Editor Stability & Features | 0/0 | In Progress | - |
 
@@ -315,13 +315,13 @@ Plans:
 **Goal:** Reposition Re-transcribe/Re-upload buttons, make style drawer behave like Animation page (inline, not overlay), and make Global Styling a permanent fixture on the right panel
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14, D-15
 **Depends on:** Phase 11
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 12-01-PLAN.md — Three-column full-height layout: permanent lane + global style side panels, StyleDrawer overlay removed
-- [ ] 12-02-PLAN.md — Stage tab styling polish and compact Upload SRT button
+- [x] 12-02-PLAN.md — Stage tab styling polish and compact Upload SRT button
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
