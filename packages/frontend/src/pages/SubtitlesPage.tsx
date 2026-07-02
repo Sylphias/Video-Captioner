@@ -238,51 +238,6 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
     document.addEventListener('mouseup', onUp)
   }, [topPercent])
 
-  const handleGoToSubtitle = useCallback(() => {
-    if (!getCurrentTime) return
-    const timeSec = getCurrentTime()
-    const session = useSubtitleStore.getState().session
-    if (!session) return
-
-    // Find the phrase active at timeSec
-    let phraseIdx = -1
-    for (let i = 0; i < session.phrases.length; i++) {
-      const p = session.phrases[i]
-      if (p.words.length === 0) continue
-      if (p.words[0].start <= timeSec && p.words[p.words.length - 1].end >= timeSec) {
-        phraseIdx = i
-        break
-      }
-    }
-    if (phraseIdx < 0) return
-
-    // Try word-level element (TimingEditor)
-    const words = session.words
-    let lo = 0, hi = words.length - 1, bestIdx = 0
-    while (lo <= hi) {
-      const mid = (lo + hi) >>> 1
-      if (words[mid].start <= timeSec) {
-        bestIdx = mid
-        lo = mid + 1
-      } else {
-        hi = mid - 1
-      }
-    }
-    const wordEl = document.querySelector(`[data-word-index="${bestIdx}"]`)
-    if (wordEl) {
-      wordEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      wordEl.classList.add('word-cell--flash')
-      setTimeout(() => wordEl.classList.remove('word-cell--flash'), 1000)
-      return
-    }
-
-    // Try phrase-level element (TextEditor)
-    const phraseEl = document.querySelector(`[data-phrase-index="${phraseIdx}"]`)
-    if (phraseEl) {
-      phraseEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  }, [getCurrentTime])
-
   const handleReplaceVideo = useCallback((file: File) => {
     setReplacingVideo(true)
 
@@ -715,13 +670,6 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
           {!previewCollapsed && (
             <div className="subtitles-page__top-controls">
               <div className="subtitles-page__toolbar-group">
-                <button
-                  className="subtitles-page__goto-btn"
-                  onClick={handleGoToSubtitle}
-                >
-                  Go to subtitle
-                </button>
-
                 {/* Undo / Redo buttons */}
                 <div className="subtitles-page__undo-controls">
                   <button
