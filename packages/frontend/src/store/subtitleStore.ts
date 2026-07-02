@@ -301,8 +301,19 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       // Push undo snapshot before mutating
       pushUndo(state)
 
-      const left: SessionPhrase = { words: target.words.slice(0, splitBeforeWordIndex), isManualSplit: false }
-      const right: SessionPhrase = { words: target.words.slice(splitBeforeWordIndex), isManualSplit: true }
+      // Both halves inherit the source phrase's speaker and phrase-level metadata
+      // (dominantSpeaker drives lane placement in MiniTimeline/TimingEditor) — a
+      // split never changes who is speaking or the phrase's style/linger overrides.
+      const left: SessionPhrase = {
+        ...target,
+        words: target.words.slice(0, splitBeforeWordIndex),
+        isManualSplit: false,
+      }
+      const right: SessionPhrase = {
+        ...target,
+        words: target.words.slice(splitBeforeWordIndex),
+        isManualSplit: true,
+      }
       phrases.splice(phraseIndex, 1, left, right)
 
       // Compute the global word index of the split point
