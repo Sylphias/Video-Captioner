@@ -10,13 +10,24 @@
 }
 
 /* ---- Preview layout (transcribed state) ---- */
+/* Three-column full-height row: LaneSidePanel | __center | GlobalStyleSidePanel */
 .subtitles-page--preview {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   width: 100%;
   margin: 0 auto;
   padding: 1rem 1.5rem;
   height: 100%;
+  overflow: hidden;
+  gap: var(--spacing-sm);
+}
+
+/* Center column: carries the topPercent height split (preview + toolbar) and the editor */
+.subtitles-page__center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -28,9 +39,8 @@
   overflow: hidden;
 }
 
-/* Side panel + preview: preview stays centered, panel overlays on left */
+/* Preview panel row — centered in the flow, no longer a positioning context for overlay panels */
 .subtitles-page__top-row {
-  position: relative;
   display: flex;
   justify-content: center;
   flex: 1;
@@ -523,22 +533,6 @@
   width: 100%;
   padding: 0 var(--spacing-md);
   flex-shrink: 0;
-}
-
-.subtitles-page__styling-btn {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  padding: var(--spacing-xs) var(--spacing-md);
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
-}
-
-.subtitles-page__styling-btn:hover {
-  border-color: var(--color-accent-green);
-  color: var(--color-text-primary);
 }
 
 .subtitles-page__toolbar-btn {

@@ -6,7 +6,6 @@ import { useRender } from '../hooks/useRender.ts'
 import { UploadZone } from '../components/UploadZone.tsx'
 import { PreviewPanel } from '../components/PreviewPanel.tsx'
 import { StageTabBar, type StageId } from '../components/StageTabBar.tsx'
-import { StyleDrawer, type DrawerMode } from '../components/StyleDrawer/StyleDrawer.tsx'
 import { TextEditor } from '../components/TextEditor/TextEditor.tsx'
 import { MiniTimeline } from '../components/TextEditor/MiniTimeline.tsx'
 import { TimingEditor } from '../components/TimingEditor/TimingEditor.tsx'
@@ -17,7 +16,7 @@ import { buildStateBlob, loadProjectBlob, type ProjectStateBlob } from '../lib/p
 import { useWaveform } from '../hooks/useWaveform.ts'
 import { AutoSaveIndicator, type SaveStatus } from '../components/AutoSaveIndicator.tsx'
 import { LaneSidePanel } from '../components/LaneSidePanel.tsx'
-import { StyleSidePanel, type RightPanelMode } from '../components/PhraseStyleSidePanel.tsx'
+import { GlobalStyleSidePanel, type RightPanelMode } from '../components/GlobalStyleSidePanel.tsx'
 import './SubtitlesPage.css'
 
 // Toast state for stage transition notifications
@@ -50,8 +49,8 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
   const [showLaneGuides, setShowLaneGuides] = useState(true)
   const [stageToast, setStageToast] = useState<StageToast | null>(null)
-  const [drawerMode, setDrawerMode] = useState<DrawerMode | null>(null)
-  const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode | null>(null)
+  const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>({ type: 'global' })
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
   const [timeShift, setTimeShift] = useState(0)
   const timeShiftDragRef = useRef(false)
   const timeShiftBaselineRef = useRef<import('../store/subtitleStore.ts').SessionWord[] | null>(null)
@@ -684,25 +683,26 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   if ((transcribeState.status === 'transcribed' && transcribeState.transcript) || storeHasSession) {
     return (
       <div className="subtitles-page subtitles-page--preview" ref={containerRef}>
-        {/* Top: side panel + preview panel */}
+        {/* Left: lane panel — permanent, full-height, visible on all stages */}
+        <LaneSidePanel
+          numSpeakers={numSpeakers}
+          setNumSpeakers={setNumSpeakers}
+          onDetectSpeakers={() => diarize(resolvedJobId!, numSpeakers)}
+          detectDisabled={diarizeState.status === 'diarizing'}
+          detectLabel={diarizeState.status === 'diarizing'
+            ? `Detecting... ${diarizeState.progress}%`
+            : 'Re-detect speakers'}
+          showLaneGuides={showLaneGuides}
+          onToggleLaneGuides={() => setShowLaneGuides((v) => !v)}
+        />
+
+        <div className="subtitles-page__center">
+        {/* Top: preview panel */}
         <div
           className={`subtitles-page__top${previewCollapsed ? ' subtitles-page__top--collapsed' : ''}`}
           style={previewCollapsed ? undefined : { height: `${topPercent}%` }}
         >
           <div className="subtitles-page__top-row">
-            {!previewCollapsed && (
-              <LaneSidePanel
-                numSpeakers={numSpeakers}
-                setNumSpeakers={setNumSpeakers}
-                onDetectSpeakers={() => diarize(resolvedJobId!, numSpeakers)}
-                detectDisabled={diarizeState.status === 'diarizing'}
-                detectLabel={diarizeState.status === 'diarizing'
-                  ? `Detecting... ${diarizeState.progress}%`
-                  : 'Re-detect speakers'}
-                showLaneGuides={showLaneGuides}
-                onToggleLaneGuides={() => setShowLaneGuides((v) => !v)}
-              />
-            )}
             <PreviewPanel
               onSeekReady={(fn) => setSeekToTime(() => fn)}
               onGetTimeReady={(fn) => setGetCurrentTime(() => fn)}
@@ -710,12 +710,6 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
               onToggleCollapse={() => setPreviewCollapsed((c) => !c)}
               showSpeakerBorders={showLaneGuides}
             />
-            {!previewCollapsed && rightPanelMode !== null && (
-              <StyleSidePanel
-                mode={rightPanelMode}
-                onClose={() => setRightPanelMode(null)}
-              />
-            )}
           </div>
 
           {!previewCollapsed && (
@@ -814,14 +808,6 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
                   </a>
                 )}
               </div>
-
-              <button
-                className="subtitles-page__styling-btn"
-                type="button"
-                onClick={() => setDrawerMode({ type: 'global' })}
-              >
-                Global Styling
-              </button>
 
               <button
                 className="subtitles-page__toolbar-btn"
@@ -955,8 +941,14 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
           </div>{/* end editor-scroll */}
 
         </div>{/* end bottom */}
+        </div>{/* end center */}
 
-        <StyleDrawer mode={drawerMode} onClose={() => setDrawerMode(null)} />
+        <GlobalStyleSidePanel
+          mode={rightPanelMode}
+          onBack={() => setRightPanelMode({ type: 'global' })}
+          collapsed={rightPanelCollapsed}
+          onToggleCollapse={() => setRightPanelCollapsed((c) => !c)}
+        />
         {projectId && <AutoSaveIndicator status={saveStatus} />}
       </div>
     )
