@@ -210,6 +210,18 @@ export function TimingEditor({
     el.scrollLeft = Math.max(0, timeSec * ppsRef.current - el.clientWidth / 2)
   }, [])
 
+  // Auto-focus the playhead when entering Word Timing mode: TimingEditor is
+  // conditionally mounted per-stage, so this fires once each time the user
+  // switches to Word Timing, centering the viewport instead of leaving it at
+  // the t=0 default (which otherwise requires manual scrolling to find the
+  // playhead, e.g. after transcribing/scrubbing while on another stage).
+  useEffect(() => {
+    if (!getCurrentTime) return
+    const t = getCurrentTime()
+    requestAnimationFrame(() => centerViewportOnTime(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount only; playhead movement during playback should not re-center
+  }, [])
+
   // External phrase focus (prev/next nav buttons in the phrase override panel):
   // select the phrase, seek, and center the viewport — consistent with a direct click.
   useEffect(() => {
