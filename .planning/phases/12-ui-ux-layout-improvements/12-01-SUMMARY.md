@@ -141,3 +141,7 @@ None - no external service configuration required.
 ---
 *Phase: 12-ui-ux-layout-improvements*
 *Completed: 2026-07-02*
+
+## Self-Check: PASSED
+
+All created/modified files verified present, all four deleted files confirmed absent, both task commit hashes (`bed12bf`, `1bbca22`) verified present in git log.
