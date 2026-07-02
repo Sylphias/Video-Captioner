@@ -714,133 +714,147 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
 
           {!previewCollapsed && (
             <div className="subtitles-page__top-controls">
-              <button
-                className="subtitles-page__goto-btn"
-                onClick={handleGoToSubtitle}
-              >
-                Go to subtitle
-              </button>
+              <div className="subtitles-page__toolbar-group">
+                <button
+                  className="subtitles-page__goto-btn"
+                  onClick={handleGoToSubtitle}
+                >
+                  Go to subtitle
+                </button>
 
-              {/* Undo / Redo buttons */}
-              <div className="subtitles-page__undo-controls">
-                <button
-                  className="subtitles-page__undo-btn"
-                  onClick={handleUndo}
-                  disabled={!canUndo}
-                  title="Undo (Cmd+Z)"
-                >
-                  Undo
-                </button>
-                <button
-                  className="subtitles-page__undo-btn"
-                  onClick={handleRedo}
-                  disabled={!canRedo}
-                  title="Redo (Cmd+Shift+Z)"
-                >
-                  Redo
-                </button>
+                {/* Undo / Redo buttons */}
+                <div className="subtitles-page__undo-controls">
+                  <button
+                    className="subtitles-page__undo-btn"
+                    onClick={handleUndo}
+                    disabled={!canUndo}
+                    title="Undo (Cmd+Z)"
+                  >
+                    Undo
+                  </button>
+                  <button
+                    className="subtitles-page__undo-btn"
+                    onClick={handleRedo}
+                    disabled={!canRedo}
+                    title="Redo (Cmd+Shift+Z)"
+                  >
+                    Redo
+                  </button>
+                </div>
               </div>
 
               {projectId && (
-                <button
-                  className={`subtitles-page__save-btn${isDirty ? ' subtitles-page__save-btn--dirty' : ''}`}
-                  onClick={() => void saveNow()}
-                  disabled={saveStatus === 'saving'}
-                  title="Save (Ctrl+S)"
-                >
-                  {saveStatus === 'saving' ? 'Saving...' : isDirty ? 'Save' : 'Saved'}
-                </button>
+                <div className="subtitles-page__toolbar-group">
+                  <button
+                    className={`subtitles-page__save-btn${isDirty ? ' subtitles-page__save-btn--dirty' : ''}`}
+                    onClick={() => void saveNow()}
+                    disabled={saveStatus === 'saving'}
+                    title="Save (Ctrl+S)"
+                  >
+                    {saveStatus === 'saving' ? 'Saving...' : isDirty ? 'Save' : 'Saved'}
+                  </button>
+                </div>
               )}
 
-              <div className="subtitles-page__time-shift">
-                <label className="subtitles-page__time-shift-label">Shift</label>
-                <input
-                  type="number"
-                  className="subtitles-page__time-shift-input"
-                  step={0.1}
-                  value={timeShift}
-                  onChange={(e) => setTimeShift(e.target.valueAsNumber || 0)}
-                  onMouseDown={handleTimeShiftMouseDown}
-                  title="Drag sideways to scrub, Shift+drag for fine adjust"
-                />
-                <span className="subtitles-page__time-shift-unit">s</span>
-                <button
-                  className="subtitles-page__time-shift-btn"
-                  onClick={() => {
-                    if (timeShift !== 0) {
-                      useSubtitleStore.getState().shiftAllWords(timeShift)
-                      setTimeShift(0)
-                    }
-                  }}
-                >
-                  Apply
-                </button>
-                <button
-                  className="subtitles-page__time-shift-btn"
-                  onClick={() => setTimeShift(0)}
-                >
-                  Reset
-                </button>
-              </div>
-
-              <div className="subtitles-page__render-controls">
-                <button
-                  className="subtitles-page__render-btn"
-                  onClick={() => render(resolvedJobId!)}
-                  disabled={renderState.status === 'rendering'}
-                >
-                  {renderState.status === 'rendering'
-                    ? `Rendering... ${renderState.progress}%`
-                    : renderState.status === 'rendered'
-                      ? 'Re-render MP4'
-                      : renderState.status === 'failed'
-                        ? 'Retry render'
-                        : 'Render MP4'}
-                </button>
-
-                {renderState.status === 'rendered' && (
-                  <a
-                    className="subtitles-page__download-btn"
-                    href={`/api/jobs/${resolvedJobId}/download`}
-                    download
+              <div className="subtitles-page__toolbar-group">
+                <div className="subtitles-page__time-shift">
+                  <label className="subtitles-page__time-shift-label">Shift</label>
+                  <input
+                    type="number"
+                    className="subtitles-page__time-shift-input"
+                    step={0.1}
+                    value={timeShift}
+                    onChange={(e) => setTimeShift(e.target.valueAsNumber || 0)}
+                    onMouseDown={handleTimeShiftMouseDown}
+                    title="Drag sideways to scrub, Shift+drag for fine adjust"
+                  />
+                  <span className="subtitles-page__time-shift-unit">s</span>
+                  <button
+                    className="subtitles-page__time-shift-btn"
+                    onClick={() => {
+                      if (timeShift !== 0) {
+                        useSubtitleStore.getState().shiftAllWords(timeShift)
+                        setTimeShift(0)
+                      }
+                    }}
                   >
-                    Download MP4
-                  </a>
-                )}
+                    Apply
+                  </button>
+                  <button
+                    className="subtitles-page__time-shift-btn"
+                    onClick={() => setTimeShift(0)}
+                  >
+                    Reset
+                  </button>
+                </div>
               </div>
 
-              <button
-                className="subtitles-page__toolbar-btn"
-                onClick={() => transcribe(resolvedJobId!, numSpeakers)}
-              >
-                Re-transcribe
-              </button>
+              <div className="subtitles-page__toolbar-separator" />
 
-              <button
-                className="subtitles-page__toolbar-btn"
-                onClick={() => replaceVideoRef.current?.click()}
-                disabled={replacingVideo}
-              >
-                {replacingVideo ? 'Replacing...' : 'Replace Video'}
-              </button>
-              <input
-                ref={replaceVideoRef}
-                type="file"
-                accept="video/*"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) handleReplaceVideo(file)
-                  e.target.value = '' // reset so same file can be re-selected
-                }}
-              />
+              <div className="subtitles-page__toolbar-group">
+                <div className="subtitles-page__render-controls">
+                  <button
+                    className="subtitles-page__render-btn"
+                    onClick={() => render(resolvedJobId!)}
+                    disabled={renderState.status === 'rendering'}
+                  >
+                    {renderState.status === 'rendering'
+                      ? `Rendering... ${renderState.progress}%`
+                      : renderState.status === 'rendered'
+                        ? 'Re-render MP4'
+                        : renderState.status === 'failed'
+                          ? 'Retry render'
+                          : 'Render MP4'}
+                  </button>
 
-              <button
-                className="subtitles-page__toolbar-btn subtitles-page__toolbar-btn--muted"
-                onClick={resetAll}
-              >
-                Upload new
-              </button>
+                  {renderState.status === 'rendered' && (
+                    <a
+                      className="subtitles-page__download-btn"
+                      href={`/api/jobs/${resolvedJobId}/download`}
+                      download
+                    >
+                      Download MP4
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              <div className="subtitles-page__toolbar-separator" />
+
+              <div className="subtitles-page__toolbar-group">
+                <button
+                  className="subtitles-page__toolbar-btn"
+                  onClick={() => transcribe(resolvedJobId!, numSpeakers)}
+                >
+                  Re-transcribe
+                </button>
+
+                <button
+                  className="subtitles-page__toolbar-btn"
+                  onClick={() => replaceVideoRef.current?.click()}
+                  disabled={replacingVideo}
+                >
+                  {replacingVideo ? 'Replacing...' : 'Replace Video'}
+                </button>
+                <input
+                  ref={replaceVideoRef}
+                  type="file"
+                  accept="video/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleReplaceVideo(file)
+                    e.target.value = '' // reset so same file can be re-selected
+                  }}
+                />
+
+                <button
+                  className="subtitles-page__toolbar-btn subtitles-page__toolbar-btn--muted"
+                  onClick={resetAll}
+                >
+                  Upload new
+                </button>
+              </div>
 
               {renderState.status === 'rendering' && (
                 <div className="subtitles-page__render-progress">
