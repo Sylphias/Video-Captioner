@@ -58,6 +58,7 @@ interface SubtitleStore {
   deletePhrase: (phraseIndex: number) => void
   addPhraseAtTime: (timeSec: number, speakerId: string) => void
   shiftPhrase: (phraseIndex: number, deltaSec: number) => void
+  setPhraseTiming: (phraseIndex: number, startSec: number, endSec: number) => void
   shiftAllWords: (deltaSec: number) => void
   applyWordShift: (baselineWords: SessionWord[], deltaSec: number) => void
   setPhraseStyle: (phraseIndex: number, override: PhraseStyleOverride) => void
@@ -998,6 +999,81 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       }
 
       return { session: { ...state.session, words, phrases, manualSplitWordIndices } }
+    })
+  },
+
+  /**
+   * Set a phrase's overall start/end bounds directly (edge-drag handles and
+   * numeric start/end inputs in the phrase override panel). Rescales the
+   * phrase's interior word timestamps proportionally to fit the new bounds
+   * (same relative-position approach as applyWordShift), and clamps against
+   * same-speaker neighbor phrases only — different speakers may overlap
+   * intentionally. In-place mutation of the existing phrase; never rebuilds
+   * via buildSessionPhrases.
+   */
+  setPhraseTiming: (phraseIndex, startSec, endSec) => {
+    set((state) => {
+      if (!state.session) return state
+      const phrases = state.session.phrases
+      const phrase = phrases[phraseIndex]
+      if (!phrase || phrase.words.length === 0) return state
+
+      const MIN_DURATION = 0.05
+
+      let newStart = Math.max(0, startSec)
+      let newEnd = Math.max(newStart + MIN_DURATION, endSec)
+
+      // Clamp against the nearest same-speaker neighbor phrases (phrases array
+      // is kept in chronological order, so index-adjacent phrases are time-adjacent).
+      for (let pi = phraseIndex - 1; pi >= 0; pi--) {
+        const prev = phrases[pi]
+        if (prev.words.length === 0) continue
+        if (prev.dominantSpeaker !== phrase.dominantSpeaker) continue
+        newStart = Math.max(newStart, prev.words[prev.words.length - 1].end)
+        break
+      }
+      for (let pi = phraseIndex + 1; pi < phrases.length; pi++) {
+        const next = phrases[pi]
+        if (next.words.length === 0) continue
+        if (next.dominantSpeaker !== phrase.dominantSpeaker) continue
+        newEnd = Math.min(newEnd, next.words[0].start)
+        break
+      }
+
+      // If clamping against neighbors squeezed the range below the minimum
+      // duration, there's no valid room to apply this change — bail out.
+      if (newEnd - newStart < MIN_DURATION) return state
+
+      pushUndo(state)
+
+      const oldStart = phrase.words[0].start
+      const oldEnd = phrase.words[phrase.words.length - 1].end
+      const oldDuration = oldEnd - oldStart
+      const newDuration = newEnd - newStart
+      const scale = oldDuration > 0 ? newDuration / oldDuration : 1
+
+      const updatedPhraseWords = phrase.words.map((w) => ({
+        ...w,
+        start: oldDuration > 0 ? newStart + (w.start - oldStart) * scale : newStart,
+        end: oldDuration > 0 ? newStart + (w.end - oldStart) * scale : newEnd,
+      }))
+      // Avoid float drift — pin the exact boundary values.
+      updatedPhraseWords[0].start = newStart
+      updatedPhraseWords[updatedPhraseWords.length - 1].end = newEnd
+
+      let globalIdx = 0
+      for (let pi = 0; pi < phraseIndex; pi++) globalIdx += phrases[pi].words.length
+
+      const words = [...state.session.words]
+      for (let i = 0; i < updatedPhraseWords.length; i++) {
+        words[globalIdx + i] = updatedPhraseWords[i]
+      }
+
+      const newPhrases = phrases.map((p, pi) =>
+        pi === phraseIndex ? { ...p, words: updatedPhraseWords } : p
+      )
+
+      return { session: { ...state.session, words, phrases: newPhrases } }
     })
   },
 

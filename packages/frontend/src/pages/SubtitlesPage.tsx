@@ -127,10 +127,10 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
 
   const speakerNames = useSubtitleStore((s) => s.speakerNames)
   const session = useSubtitleStore((s) => s.session)
-  const updateWord = useSubtitleStore((s) => s.updateWord)
   const addPhraseAtTime = useSubtitleStore((s) => s.addPhraseAtTime)
   const deletePhrase = useSubtitleStore((s) => s.deletePhrase)
   const shiftPhrase = useSubtitleStore((s) => s.shiftPhrase)
+  const setPhraseTiming = useSubtitleStore((s) => s.setPhraseTiming)
   const reassignPhraseSpeaker = useSubtitleStore((s) => s.reassignPhraseSpeaker)
   const storeJobId = useSubtitleStore((s) => s.jobId)
   // Resolve jobId: prefer store (works for loaded projects), fall back to upload hook
@@ -856,15 +856,16 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
               waveform={waveform}
               onSeek={seekToTime ?? (() => {})}
               onAdjustStart={(phraseIndex, newStart) => {
-                let globalIdx = 0
-                for (let i = 0; i < phraseIndex; i++) globalIdx += session.phrases[i].words.length
-                updateWord(globalIdx, { start: Math.max(0, newStart) })
+                const phrase = session.phrases[phraseIndex]
+                if (!phrase || phrase.words.length === 0) return
+                const currentEnd = phrase.words[phrase.words.length - 1].end
+                setPhraseTiming(phraseIndex, Math.max(0, newStart), currentEnd)
               }}
               onAdjustEnd={(phraseIndex, newEnd) => {
-                let globalIdx = 0
-                for (let i = 0; i <= phraseIndex; i++) globalIdx += session.phrases[i].words.length
-                globalIdx--
-                updateWord(globalIdx, { end: Math.max(0, newEnd) })
+                const phrase = session.phrases[phraseIndex]
+                if (!phrase || phrase.words.length === 0) return
+                const currentStart = phrase.words[0].start
+                setPhraseTiming(phraseIndex, currentStart, Math.max(0, newEnd))
               }}
               onShiftPhrase={shiftPhrase}
               onReassignSpeaker={reassignPhraseSpeaker}

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { HexColorPicker, HexColorInput } from 'react-colorful'
 import { FONT_NAMES, getFontFamily } from '@eigen/remotion-composition'
 import { useSubtitleStore, type PhraseStyleOverride } from '../../store/subtitleStore.ts'
@@ -15,12 +16,47 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
   const globalStyle = useSubtitleStore((s) => s.style)
   const setPhraseStyle = useSubtitleStore((s) => s.setPhraseStyle)
   const clearPhraseStyle = useSubtitleStore((s) => s.clearPhraseStyle)
+  const setPhraseTiming = useSubtitleStore((s) => s.setPhraseTiming)
   const phraseAnimationPresetIds = useSubtitleStore((s) => s.phraseAnimationPresetIds)
   const setPhraseAnimationPresetId = useSubtitleStore((s) => s.setPhraseAnimationPresetId)
   const activePresetId = useSubtitleStore((s) => s.activeAnimationPresetId)
   const { presets } = useAnimationPresets()
 
+  // Timing inputs: local text state so typing isn't fought by the store's
+  // rescaled/clamped value re-rendering on every keystroke — committed on
+  // blur/Enter, same "type then commit" pattern as the Time Shift toolbar control.
+  const phraseStart = phrase && phrase.words.length > 0 ? phrase.words[0].start : 0
+  const phraseEnd = phrase && phrase.words.length > 0 ? phrase.words[phrase.words.length - 1].end : 0
+  const [startText, setStartText] = useState(phraseStart.toFixed(2))
+  const [endText, setEndText] = useState(phraseEnd.toFixed(2))
+  const startFocusedRef = useRef(false)
+  const endFocusedRef = useRef(false)
+
+  useEffect(() => {
+    if (!startFocusedRef.current) setStartText(phraseStart.toFixed(2))
+  }, [phraseStart])
+  useEffect(() => {
+    if (!endFocusedRef.current) setEndText(phraseEnd.toFixed(2))
+  }, [phraseEnd])
+
   if (!phrase) return null
+
+  const commitStart = () => {
+    const val = parseFloat(startText)
+    if (!isNaN(val)) {
+      setPhraseTiming(phraseIndex, Math.max(0, val), phraseEnd)
+    } else {
+      setStartText(phraseStart.toFixed(2))
+    }
+  }
+  const commitEnd = () => {
+    const val = parseFloat(endText)
+    if (!isNaN(val)) {
+      setPhraseTiming(phraseIndex, phraseStart, Math.max(0, val))
+    } else {
+      setEndText(phraseEnd.toFixed(2))
+    }
+  }
 
   const override = (phrase.styleOverride ?? {}) as PhraseStyleOverride
   const phraseText = phrase.words.map((w) => w.word).join(' ')
@@ -52,6 +88,44 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
       <p className="speaker-style-panel__heading" style={{ fontStyle: 'italic', opacity: 0.8 }}>
         &ldquo;{phraseText}&rdquo;
       </p>
+
+      {/* Phrase start/end timing */}
+      <div className="speaker-section">
+        <div className="speaker-section__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+          <div className="speaker-section__control-row">
+            <label className="speaker-section__field-label">Timing</label>
+            <div className="phrase-timing-row">
+              <label className="phrase-timing-field">
+                <span>Start</span>
+                <input
+                  type="number"
+                  step={0.01}
+                  min={0}
+                  value={startText}
+                  onFocus={() => { startFocusedRef.current = true }}
+                  onChange={(e) => setStartText(e.target.value)}
+                  onBlur={() => { startFocusedRef.current = false; commitStart() }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                />
+              </label>
+              <label className="phrase-timing-field">
+                <span>End</span>
+                <input
+                  type="number"
+                  step={0.01}
+                  min={0}
+                  value={endText}
+                  onFocus={() => { endFocusedRef.current = true }}
+                  onChange={(e) => setEndText(e.target.value)}
+                  onBlur={() => { endFocusedRef.current = false; commitEnd() }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                />
+              </label>
+              <span className="phrase-timing-unit">sec</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="speaker-section">
         <div className="speaker-section__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
