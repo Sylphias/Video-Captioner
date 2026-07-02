@@ -6,7 +6,7 @@ interface Stage {
 }
 
 const STAGES: Stage[] = [
-  { id: 'text', label: 'Text Edit View' },
+  { id: 'text', label: 'Text Edit' },
   { id: 'timing', label: 'Word Timing' },
   { id: 'animation', label: 'Animation' },
 ]
