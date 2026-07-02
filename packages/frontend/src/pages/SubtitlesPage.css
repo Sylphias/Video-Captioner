@@ -62,9 +62,24 @@
 .subtitles-page__top-controls {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   width: 100%;
   flex-shrink: 0;
+}
+
+/* ---- Toolbar grouping (D-01/D-02/D-03) ---- */
+.subtitles-page__toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.subtitles-page__toolbar-separator {
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  flex-shrink: 0;
+  align-self: center;
 }
 
 /* ---- Resize handle ---- */
