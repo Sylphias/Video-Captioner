@@ -559,8 +559,42 @@
 .timing-editor__detail-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+/* ── Prev/next same-speaker phrase navigation (detail panel header) ─────── */
+
+.timing-editor__detail-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.timing-editor__detail-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: 1px solid var(--color-border, #333);
+  border-radius: 4px;
+  color: var(--color-text-secondary, #888);
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.timing-editor__detail-nav-btn:hover:not(:disabled) {
+  border-color: var(--color-accent-green, #00e696);
+  color: var(--color-text-primary, #fff);
+}
+
+.timing-editor__detail-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .timing-editor__detail-title {

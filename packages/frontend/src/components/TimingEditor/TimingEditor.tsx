@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useWaveform } from '../../hooks/useWaveform.ts'
+import { findAdjacentSameSpeakerPhrase } from '../../lib/grouping.ts'
 import { WaveformCanvas } from './WaveformCanvas.tsx'
 import type { SessionPhrase, SessionWord } from '../../store/subtitleStore.ts'
 import type { DiarizeState } from '../../hooks/useDiarize.ts'
@@ -235,6 +236,23 @@ export function TimingEditor({
       requestAnimationFrame(() => centerViewportOnTime(start))
     }
   }, [focusSignal, phrases, seekToTime, centerViewportOnTime])
+
+  // Prev/next same-speaker phrase navigation (buttons live in the phrase detail
+  // panel header). Behaves like clicking the target phrase: select it, sync the
+  // right-hand style panel, seek, and center the viewport.
+  const handleNavigatePhrase = useCallback((direction: 1 | -1) => {
+    if (selectedPhraseIndex === null) return
+    const target = findAdjacentSameSpeakerPhrase(phrases, selectedPhraseIndex, direction)
+    if (target === null) return
+    setSelectedPhraseIndex(target)
+    onEditPhrase?.(target)
+    const phrase = phrases[target]
+    if (phrase && phrase.words.length > 0) {
+      const start = phrase.words[0].start
+      seekToTime(start)
+      requestAnimationFrame(() => centerViewportOnTime(start))
+    }
+  }, [selectedPhraseIndex, phrases, onEditPhrase, seekToTime, centerViewportOnTime])
 
   const handlePhraseClick = useCallback((phraseIndex: number) => {
     const deselecting = selectedPhraseIndex === phraseIndex
@@ -783,6 +801,9 @@ export function TimingEditor({
           totalPhrases={phrases.length}
           speakerNames={speakerNames}
           allSpeakerIds={allSpeakerIds}
+          hasPrevPhrase={findAdjacentSameSpeakerPhrase(phrases, selectedPhraseIndex, -1) !== null}
+          hasNextPhrase={findAdjacentSameSpeakerPhrase(phrases, selectedPhraseIndex, 1) !== null}
+          onNavigatePhrase={handleNavigatePhrase}
           onUpdateWord={(wordIndex, patch) => {
             // Compute global word index for this phrase
             let globalOffset = 0
@@ -857,6 +878,9 @@ interface PhraseDetailPanelProps {
   totalPhrases: number
   speakerNames: Record<string, string>
   allSpeakerIds: string[]
+  hasPrevPhrase: boolean
+  hasNextPhrase: boolean
+  onNavigatePhrase: (direction: 1 | -1) => void
   onUpdateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
   onSplitPhrase: (splitBeforeWordIndex: number) => void
   onAddWord: () => void
@@ -873,6 +897,9 @@ function PhraseDetailPanel({
   totalPhrases,
   speakerNames,
   allSpeakerIds,
+  hasPrevPhrase,
+  hasNextPhrase,
+  onNavigatePhrase,
   onUpdateWord,
   onSplitPhrase,
   onAddWord,
@@ -897,7 +924,26 @@ function PhraseDetailPanel({
             <span className="timing-editor__detail-speaker"> — {speakerLabel}</span>
           )}
         </span>
-
+        <div className="timing-editor__detail-nav">
+          <button
+            type="button"
+            className="timing-editor__detail-nav-btn"
+            onClick={() => onNavigatePhrase(-1)}
+            disabled={!hasPrevPhrase}
+            title="Previous phrase (same speaker)"
+          >
+            ←
+          </button>
+          <button
+            type="button"
+            className="timing-editor__detail-nav-btn"
+            onClick={() => onNavigatePhrase(1)}
+            disabled={!hasNextPhrase}
+            title="Next phrase (same speaker)"
+          >
+            →
+          </button>
+        </div>
       </div>
 
       {/* Move to speaker dropdown */}

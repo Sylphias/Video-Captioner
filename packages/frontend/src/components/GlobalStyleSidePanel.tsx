@@ -13,10 +13,6 @@ interface GlobalStyleSidePanelProps {
   onBack: () => void
   collapsed: boolean
   onToggleCollapse: () => void
-  /** Prev/next same-speaker phrase navigation — only relevant when mode.type === 'phrase' */
-  onNavigatePhrase?: (direction: 1 | -1) => void
-  hasPrevPhrase?: boolean
-  hasNextPhrase?: boolean
 }
 
 export function GlobalStyleSidePanel({
@@ -24,9 +20,6 @@ export function GlobalStyleSidePanel({
   onBack,
   collapsed,
   onToggleCollapse,
-  onNavigatePhrase,
-  hasPrevPhrase,
-  hasNextPhrase,
 }: GlobalStyleSidePanelProps) {
   const isGlobal = mode.type === 'global'
   const isPhrase = mode.type === 'phrase'
@@ -46,29 +39,6 @@ export function GlobalStyleSidePanel({
             {isGlobal ? (collapsed ? '▶' : '◀') : '×'}
           </span>
         </button>
-
-        {isPhrase && onNavigatePhrase && (
-          <div className="global-style-panel__phrase-nav">
-            <button
-              type="button"
-              className="global-style-panel__phrase-nav-btn"
-              onClick={() => onNavigatePhrase(-1)}
-              disabled={!hasPrevPhrase}
-              title="Previous phrase (same speaker)"
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              className="global-style-panel__phrase-nav-btn"
-              onClick={() => onNavigatePhrase(1)}
-              disabled={!hasNextPhrase}
-              title="Next phrase (same speaker)"
-            >
-              →
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="global-style-panel__content" key={contentKey}>
