@@ -222,13 +222,15 @@
 /* ---- Top action buttons ---- */
 .text-editor__top-actions {
   display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
+  margin-left: 44px;
   margin-bottom: var(--spacing-sm);
 }
 
-.text-editor__find-btn {
+.text-editor__action-btn {
   background: transparent;
-  border: 1px dashed var(--color-border);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
@@ -237,7 +239,7 @@
   transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.text-editor__find-btn:hover {
+.text-editor__action-btn:hover {
   border-color: var(--color-accent-green);
   color: var(--color-text-primary);
 }
@@ -400,24 +402,4 @@
 .text-editor__delete-confirm-btn--destructive:hover {
   border-color: var(--color-error);
   color: var(--color-error);
-}
-
-/* ---- SRT Import Button ---- */
-.srt-import-btn {
-  align-self: flex-start;
-  margin-left: 44px;
-  margin-bottom: var(--spacing-sm);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  padding: var(--spacing-xs) var(--spacing-md);
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
-}
-
-.srt-import-btn:hover {
-  border-color: var(--color-accent-green);
-  color: var(--color-text-primary);
 }

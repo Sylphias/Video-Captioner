@@ -632,14 +632,14 @@ export function TextEditor({ seekToTime, getCurrentTime, hoveredPhraseIndex, onE
         <div className="text-editor__top-actions">
           <button
             type="button"
-            className="srt-import-btn"
+            className="text-editor__action-btn"
             onClick={() => fileInputRef.current?.click()}
           >
             Import SRT
           </button>
           <button
             type="button"
-            className="text-editor__find-btn"
+            className="text-editor__action-btn"
             onClick={() => setFindReplaceOpen(prev => !prev)}
             title="Find and Replace (Ctrl+H)"
           >
