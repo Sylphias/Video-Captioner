@@ -100,6 +100,7 @@ export function TimingEditor({
     shiftPhrase,
     setPhraseLane,
     setPhraseHighlightDisabled,
+    setPhraseTiming,
   } = useSubtitleStore()
 
   const { waveform } = useWaveform(jobId)
@@ -829,6 +830,9 @@ export function TimingEditor({
           onHighlightDisabledChange={(disabled) => {
             setPhraseHighlightDisabled(selectedPhraseIndex, disabled)
           }}
+          onSetPhraseTiming={(startSec, endSec) => {
+            setPhraseTiming(selectedPhraseIndex, startSec, endSec)
+          }}
         />
       )}
     </div>
@@ -889,6 +893,7 @@ interface PhraseDetailPanelProps {
   onReassignSpeaker: (speakerId: string) => void
   onSeekTo: (timeSec: number) => void
   onHighlightDisabledChange: (disabled: boolean) => void
+  onSetPhraseTiming: (startSec: number, endSec: number) => void
 }
 
 function PhraseDetailPanel({
@@ -908,8 +913,11 @@ function PhraseDetailPanel({
   onReassignSpeaker,
   onSeekTo,
   onHighlightDisabledChange,
+  onSetPhraseTiming,
 }: PhraseDetailPanelProps) {
   const lingerValue = phrase.lingerDuration ?? globalLingerDuration
+  const phraseStart = phrase.words.length > 0 ? phrase.words[0].start : 0
+  const phraseEnd = phrase.words.length > 0 ? phrase.words[phrase.words.length - 1].end : 0
   const speakerLabel = phrase.dominantSpeaker
     ? (speakerNames[phrase.dominantSpeaker] ?? phrase.dominantSpeaker)
     : null
@@ -996,8 +1004,16 @@ function PhraseDetailPanel({
         </label>
       </div>
 
-      {/* Word transitions: draggable markers between adjacent words */}
+      {/* Word transitions: draggable markers between adjacent words,
+          bookended by the phrase start/end inputs at the row's two ends */}
       <div className="timing-editor__word-transitions">
+        {phrase.words.length > 0 && (
+          <PhraseEdgeTimeInput
+            label="Phrase start time"
+            value={phraseStart}
+            onCommit={(newStart) => onSetPhraseTiming(Math.max(0, newStart), phraseEnd)}
+          />
+        )}
         {phrase.words.map((word, wordIndex) => (
           <div key={wordIndex} className="timing-editor__word-transition-group">
             {/* The word label */}
@@ -1022,7 +1038,58 @@ function PhraseDetailPanel({
             )}
           </div>
         ))}
+        {phrase.words.length > 0 && (
+          <PhraseEdgeTimeInput
+            label="Phrase end time"
+            value={phraseEnd}
+            onCommit={(newEnd) => onSetPhraseTiming(phraseStart, Math.max(0, newEnd))}
+          />
+        )}
       </div>
+    </div>
+  )
+}
+
+// ── Phrase Edge Time Input (start/end bounds at the word row's ends) ────────
+
+interface PhraseEdgeTimeInputProps {
+  label: string
+  value: number
+  onCommit: (newValue: number) => void
+}
+
+function PhraseEdgeTimeInput({ label, value, onCommit }: PhraseEdgeTimeInputProps) {
+  const [draft, setDraft] = useState(value.toFixed(3))
+
+  useEffect(() => {
+    setDraft(value.toFixed(3))
+  }, [value])
+
+  const commit = useCallback(() => {
+    const val = parseFloat(draft)
+    if (!isNaN(val) && val !== value) {
+      onCommit(val)
+    }
+    // Reset draft to the current store value; if the commit changed the store,
+    // the value-sync effect above overwrites this with the fresh value. If the
+    // store clamped or rejected the change, this snaps back to reality.
+    setDraft(value.toFixed(3))
+  }, [draft, value, onCommit])
+
+  return (
+    <div className="timing-editor__transition-marker timing-editor__transition-marker--phrase-edge">
+      <input
+        type="number"
+        className="timing-editor__timestamp-input"
+        value={draft}
+        step={0.001}
+        min={0}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+        aria-label={label}
+        title={label}
+      />
     </div>
   )
 }

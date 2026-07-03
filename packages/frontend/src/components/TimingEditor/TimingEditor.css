@@ -915,3 +915,9 @@
   padding: 1px 4px;
   font-size: 0.75rem;
 }
+
+/* Phrase start/end bound inputs at the word row's two ends — same shape as the
+   per-word-boundary inputs, tinted green to read as phrase bounds. */
+.timing-editor__transition-marker--phrase-edge .timing-editor__timestamp-input {
+  color: var(--color-accent-green, #00e696);
+}
