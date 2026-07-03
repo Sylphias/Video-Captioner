@@ -3,7 +3,7 @@ import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useWaveform } from '../../hooks/useWaveform.ts'
 import { findAdjacentSameSpeakerPhrase } from '../../lib/grouping.ts'
 import { WaveformCanvas } from './WaveformCanvas.tsx'
-import type { SessionPhrase, SessionWord } from '../../store/subtitleStore.ts'
+import type { SessionPhrase } from '../../store/subtitleStore.ts'
 import type { DiarizeState } from '../../hooks/useDiarize.ts'
 import './TimingEditor.css'
 
@@ -91,7 +91,7 @@ export function TimingEditor({
   const {
     splitPhrase,
     mergePhrase,
-    updateWord,
+    setWordTransition,
     updatePhraseText,
     setPhraseLinger,
     renameSpeaker,
@@ -919,13 +919,13 @@ export function TimingEditor({
           hasPrevPhrase={findAdjacentSameSpeakerPhrase(phrases, selectedPhraseIndex, -1) !== null}
           hasNextPhrase={findAdjacentSameSpeakerPhrase(phrases, selectedPhraseIndex, 1) !== null}
           onNavigatePhrase={handleNavigatePhrase}
-          onUpdateWord={(wordIndex, patch) => {
+          onSetWordTransition={(wordIndex, newTime) => {
             // Compute global word index for this phrase
             let globalOffset = 0
             for (let i = 0; i < selectedPhraseIndex; i++) {
               globalOffset += phrases[i].words.length
             }
-            updateWord(globalOffset + wordIndex, patch)
+            setWordTransition(globalOffset + wordIndex, newTime)
           }}
           onSplitPhrase={(splitBeforeWordIndex) => {
             splitPhrase(selectedPhraseIndex, splitBeforeWordIndex)
@@ -999,7 +999,8 @@ interface PhraseDetailPanelProps {
   hasPrevPhrase: boolean
   hasNextPhrase: boolean
   onNavigatePhrase: (direction: 1 | -1) => void
-  onUpdateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
+  /** Move the shared boundary between phrase-local word `wordIndex` and the next word. */
+  onSetWordTransition: (wordIndex: number, newTime: number) => void
   onSplitPhrase: (splitBeforeWordIndex: number) => void
   onAddWord: () => void
   globalLingerDuration: number
@@ -1019,7 +1020,7 @@ function PhraseDetailPanel({
   hasPrevPhrase,
   hasNextPhrase,
   onNavigatePhrase,
-  onUpdateWord,
+  onSetWordTransition,
   onSplitPhrase,
   onAddWord,
   globalLingerDuration,
@@ -1122,11 +1123,14 @@ function PhraseDetailPanel({
           bookended by the phrase start/end inputs at the row's two ends */}
       <div className="timing-editor__word-transitions">
         {phrase.words.length > 0 && (
-          <PhraseEdgeTimeInput
-            label="Phrase start time"
-            value={phraseStart}
-            onCommit={(newStart) => onSetPhraseTiming(Math.max(0, newStart), phraseEnd)}
-          />
+          <div className="timing-editor__transition-marker timing-editor__transition-marker--phrase-edge">
+            <ScrubbableTimeInput
+              value={phraseStart}
+              onCommit={(newStart) => onSetPhraseTiming(Math.max(0, newStart), phraseEnd)}
+              ariaLabel="Phrase start time"
+              title="Phrase start — drag to scrub, Shift+drag for fine adjust"
+            />
+          </div>
         )}
         {phrase.words.map((word, wordIndex) => (
           <div key={wordIndex} className="timing-editor__word-transition-group">
@@ -1141,143 +1145,161 @@ function PhraseDetailPanel({
 
             {/* Transition marker between this word and the next */}
             {wordIndex < phrase.words.length - 1 && (
-              <WordTransitionMarker
-                wordIndex={wordIndex}
-                transitionTime={word.end}
-                onUpdateTransition={(newTime) => {
-                  onUpdateWord(wordIndex, { end: newTime })
-                  onUpdateWord(wordIndex + 1, { start: newTime })
-                }}
-              />
+              <div className="timing-editor__transition-marker">
+                <ScrubbableTimeInput
+                  value={word.end}
+                  onCommit={(newTime) => onSetWordTransition(wordIndex, newTime)}
+                  ariaLabel={`Transition time after word ${wordIndex + 1}`}
+                />
+              </div>
             )}
           </div>
         ))}
         {phrase.words.length > 0 && (
-          <PhraseEdgeTimeInput
-            label="Phrase end time"
-            value={phraseEnd}
-            onCommit={(newEnd) => onSetPhraseTiming(phraseStart, Math.max(0, newEnd))}
-          />
+          <div className="timing-editor__transition-marker timing-editor__transition-marker--phrase-edge">
+            <ScrubbableTimeInput
+              value={phraseEnd}
+              onCommit={(newEnd) => onSetPhraseTiming(phraseStart, Math.max(0, newEnd))}
+              ariaLabel="Phrase end time"
+              title="Phrase end — drag to scrub, Shift+drag for fine adjust"
+            />
+          </div>
         )}
       </div>
     </div>
   )
 }
 
-// ── Phrase Edge Time Input (start/end bounds at the word row's ends) ────────
+// ── Scrubbable Time Input (shared: word boundaries + phrase start/end) ──────
 
-interface PhraseEdgeTimeInputProps {
-  label: string
+interface ScrubbableTimeInputProps {
   value: number
   onCommit: (newValue: number) => void
+  ariaLabel: string
+  title?: string
 }
 
-function PhraseEdgeTimeInput({ label, value, onCommit }: PhraseEdgeTimeInputProps) {
+/**
+ * Numeric time input with DAW-style horizontal drag-to-scrub, shared by the
+ * per-word boundary inputs and the phrase start/end inputs. A plain click
+ * (within the 3px dead zone) focuses for typing; dragging scrubs the displayed
+ * draft live (~0.01s/px, Shift = 0.001s/px) and commits the store write exactly
+ * once on mouseup — one undo entry per gesture. Enter/blur commit typed values;
+ * Escape cancels (reverts the draft, no commit) for both typing and scrubbing.
+ */
+function ScrubbableTimeInput({ value, onCommit, ariaLabel, title }: ScrubbableTimeInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState(value.toFixed(3))
+  const cancelRef = useRef(false)
+  const activeCleanupRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     setDraft(value.toFixed(3))
   }, [value])
 
-  const commit = useCallback(() => {
+  // Detach document listeners if the input unmounts mid-drag (e.g. the phrase
+  // detail panel closes underneath us).
+  useEffect(() => () => { activeCleanupRef.current?.() }, [])
+
+  const commitTyped = useCallback(() => {
+    if (cancelRef.current) {
+      // Escape pressed: revert without committing.
+      cancelRef.current = false
+      setDraft(value.toFixed(3))
+      return
+    }
     const val = parseFloat(draft)
     if (!isNaN(val) && val !== value) {
-      onCommit(val)
+      onCommit(Math.max(0, val))
     }
-    // Reset draft to the current store value; if the commit changed the store,
-    // the value-sync effect above overwrites this with the fresh value. If the
-    // store clamped or rejected the change, this snaps back to reality.
+    // Snap back to the store value; if the commit changed the store, the
+    // value-sync effect overwrites this with the fresh value. If the store
+    // clamped or rejected the change, this snaps back to reality.
     setDraft(value.toFixed(3))
   }, [draft, value, onCommit])
 
-  return (
-    <div className="timing-editor__transition-marker timing-editor__transition-marker--phrase-edge">
-      <input
-        type="number"
-        className="timing-editor__timestamp-input"
-        value={draft}
-        step={0.001}
-        min={0}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-        aria-label={label}
-        title={label}
-      />
-    </div>
-  )
-}
-
-// ── Word Transition Marker ──────────────────────────────────────────────────
-
-interface WordTransitionMarkerProps {
-  wordIndex: number
-  transitionTime: number
-  onUpdateTransition: (newTime: number) => void
-}
-
-function WordTransitionMarker({
-  wordIndex,
-  transitionTime,
-  onUpdateTransition,
-}: WordTransitionMarkerProps) {
-  const [draft, setDraft] = useState(transitionTime.toFixed(3))
-  const dragRef = useRef<{ startX: number; startVal: number } | null>(null)
-
-  useEffect(() => {
-    setDraft(transitionTime.toFixed(3))
-  }, [transitionTime])
-
-  const commit = useCallback(() => {
-    const val = parseFloat(draft)
-    if (!isNaN(val) && val !== transitionTime) {
-      onUpdateTransition(val)
-    } else {
-      setDraft(transitionTime.toFixed(3))
-    }
-  }, [draft, transitionTime, onUpdateTransition])
-
-  const handleDragStart = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
-    e.preventDefault()
-    dragRef.current = { startX: e.clientX, startVal: transitionTime }
+    // Already focused → the user is editing text; let the browser place the caret.
+    if (document.activeElement === inputRef.current) return
+    e.preventDefault() // no text selection; focus is granted on clean click at mouseup
 
-    const handleMove = (me: MouseEvent) => {
-      if (!dragRef.current) return
-      const dx = me.clientX - dragRef.current.startX
+    const startX = e.clientX
+    let moved = false
+    let scrubVal = value
+
+    const onMove = (me: MouseEvent) => {
+      const dx = me.clientX - startX
+      if (!moved) {
+        if (Math.abs(dx) < 3) return // dead zone — plain click still focuses for typing
+        moved = true
+        document.body.style.cursor = 'ew-resize'
+      }
       const sensitivity = me.shiftKey ? 0.001 : 0.01
-      const newVal = Math.max(0, dragRef.current.startVal + dx * sensitivity)
-      setDraft(newVal.toFixed(3))
-      onUpdateTransition(newVal)
+      scrubVal = Math.max(0, value + dx * sensitivity)
+      setDraft(scrubVal.toFixed(3))
     }
 
-    const handleUp = () => {
-      dragRef.current = null
+    const cleanup = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.removeEventListener('keydown', onKey, true)
       document.body.style.cursor = ''
-      window.removeEventListener('mousemove', handleMove)
-      window.removeEventListener('mouseup', handleUp)
+      activeCleanupRef.current = null
     }
 
-    document.body.style.cursor = 'ew-resize'
-    window.addEventListener('mousemove', handleMove)
-    window.addEventListener('mouseup', handleUp)
-  }, [transitionTime, onUpdateTransition])
+    const onUp = () => {
+      cleanup()
+      if (moved) {
+        // Single store commit per scrub gesture → one undo entry.
+        onCommit(scrubVal)
+        setDraft(value.toFixed(3)) // value-sync effect takes over if the store changed
+      } else {
+        // Clean click: enter typing mode.
+        inputRef.current?.focus()
+        inputRef.current?.select()
+      }
+    }
+
+    const onKey = (ke: KeyboardEvent) => {
+      if (ke.key !== 'Escape') return
+      // Cancel the scrub without committing; swallow the event so the global
+      // Escape handler doesn't also deselect the phrase mid-gesture.
+      ke.preventDefault()
+      ke.stopImmediatePropagation()
+      cleanup()
+      setDraft(value.toFixed(3))
+    }
+
+    activeCleanupRef.current = cleanup
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    document.addEventListener('keydown', onKey, true) // capture: runs before the global Escape deselect
+  }, [value, onCommit])
 
   return (
-    <div className="timing-editor__transition-marker">
-      <input
-        type="number"
-        className="timing-editor__timestamp-input timing-editor__timestamp-input--draggable"
-        value={draft}
-        step={0.001}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => { if (e.key === 'Enter') commit() }}
-        onMouseDown={handleDragStart}
-        aria-label={`Transition time after word ${wordIndex + 1}`}
-        title="Drag to scrub, Shift+drag for fine adjust"
-      />
-    </div>
+    <input
+      ref={inputRef}
+      type="number"
+      className="timing-editor__timestamp-input timing-editor__timestamp-input--draggable"
+      value={draft}
+      step={0.001}
+      min={0}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commitTyped}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          (e.target as HTMLInputElement).blur() // blur → commitTyped
+        } else if (e.key === 'Escape') {
+          e.stopPropagation() // don't let the global handler deselect the phrase
+          cancelRef.current = true
+          ;(e.target as HTMLInputElement).blur() // blur → revert via cancelRef
+        }
+      }}
+      onMouseDown={handleMouseDown}
+      aria-label={ariaLabel}
+      title={title ?? 'Drag to scrub, Shift+drag for fine adjust'}
+    />
   )
 }
 

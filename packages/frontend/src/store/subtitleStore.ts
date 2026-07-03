@@ -38,6 +38,7 @@ interface SubtitleStore {
   // Actions
   setJob: (jobId: string, transcript: Transcript, videoMetadata: VideoMetadata) => void
   updateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
+  setWordTransition: (wordIndex: number, newTime: number) => void
   splitPhrase: (phraseIndex: number, splitBeforeWordIndex: number) => void
   mergePhrase: (phraseIndex: number) => void
   addWord: (phraseIndex: number) => void
@@ -286,6 +287,48 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       })
 
       return { session: { ...state.session, words, phrases } }
+    })
+  },
+
+  /**
+   * Set the shared boundary between word `wordIndex` and word `wordIndex + 1`
+   * in ONE mutation: words[i].end = words[i+1].start = newTime. Unlike two
+   * back-to-back updateWord calls, this pushes exactly one undo snapshot per
+   * commit (one Ctrl+Z reverts the whole boundary move). Clamped so neither
+   * word collapses to zero/negative duration. In-place update of the existing
+   * phrase structure — never rebuilds via buildSessionPhrases.
+   */
+  setWordTransition: (wordIndex, newTime) => {
+    set((state) => {
+      if (!state.session) return state
+      const words = state.session.words
+      const word = words[wordIndex]
+      const next = words[wordIndex + 1]
+      if (!word || !next) return state
+
+      const EPS = 0.001
+      if (next.end - EPS <= word.start + EPS) return state // no valid room
+      const clamped = Math.min(Math.max(newTime, word.start + EPS), next.end - EPS)
+      if (!Number.isFinite(clamped)) return state
+      if (clamped === word.end && clamped === next.start) return state
+
+      pushUndo(state)
+
+      const newWords = [...words]
+      newWords[wordIndex] = { ...word, end: clamped }
+      newWords[wordIndex + 1] = { ...next, start: clamped }
+
+      // Rebuild only the phrase(s) containing the two touched words, in place.
+      let offset = 0
+      const phrases = state.session.phrases.map((p) => {
+        const startIdx = offset
+        const endIdx = offset + p.words.length // exclusive
+        offset = endIdx
+        if (wordIndex + 1 < startIdx || wordIndex >= endIdx) return p
+        return { ...p, words: p.words.map((_pw, wi) => newWords[startIdx + wi]) }
+      })
+
+      return { session: { ...state.session, words: newWords, phrases } }
     })
   },
 
