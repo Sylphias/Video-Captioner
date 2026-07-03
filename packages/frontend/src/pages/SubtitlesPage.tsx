@@ -15,7 +15,7 @@ import { useUndoStore } from '../store/undoMiddleware.ts'
 import { buildStateBlob, loadProjectBlob, type ProjectStateBlob } from '../lib/projectState.ts'
 import { useWaveform } from '../hooks/useWaveform.ts'
 import { AutoSaveIndicator, type SaveStatus } from '../components/AutoSaveIndicator.tsx'
-import { MaxCharsPerLineInput } from '../components/MaxCharsPerLineInput.tsx'
+import { TranscriptionOptionsDialog } from '../components/TranscriptionOptionsDialog.tsx'
 import { LaneSidePanel } from '../components/LaneSidePanel.tsx'
 import { GlobalStyleSidePanel, type RightPanelMode } from '../components/GlobalStyleSidePanel.tsx'
 import './SubtitlesPage.css'
@@ -57,6 +57,13 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   const timeShiftBaselineRef = useRef<import('../store/subtitleStore.ts').SessionWord[] | null>(null)
   const replaceVideoRef = useRef<HTMLInputElement>(null)
   const [replacingVideo, setReplacingVideo] = useState(false)
+  // Toolbar Re-transcribe: dialog visibility + "explicit re-transcribe" flag.
+  // The flag lets the setJob effect distinguish a fresh transcript the user
+  // explicitly requested (must rebuild phrases) from other cases where a
+  // session already exists (restored project blob, replace-video) that must
+  // NOT be clobbered.
+  const [retranscribeDialogOpen, setRetranscribeDialogOpen] = useState(false)
+  const retranscribeRequestedRef = useRef(false)
 
   const handleTimeShiftMouseDown = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
     if (document.activeElement === e.currentTarget) return
@@ -377,15 +384,32 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
 
   // Push job data into Zustand store when transcription completes so PreviewPanel can consume it
   useEffect(() => {
+    if (transcribeState.status === 'failed') {
+      // A failed run consumes any pending explicit re-transcribe request so a
+      // stale flag can't clobber the session on a later unrelated transcription.
+      retranscribeRequestedRef.current = false
+      return
+    }
     if (transcribeState.status !== 'transcribed') return
-    // Skip if session already exists (e.g. replace video changed uploadState.jobId
-    // but we don't want to rebuild the session from the original transcript)
-    if (useSubtitleStore.getState().session) return
-    const jobId = uploadState.jobId
+    // Skip if a session already exists — protects restored project blobs and
+    // the replace-video flow (new uploadState.jobId, but we keep the edited
+    // session) from being clobbered by a stale/incidental effect run.
+    // EXCEPTION: an explicit toolbar Re-transcribe must rebuild phrases from
+    // the fresh transcript (initial construction, not an in-place edit).
+    const explicitRetranscribe = retranscribeRequestedRef.current
+    const store = useSubtitleStore.getState()
+    if (store.session && !explicitRetranscribe) return
+    // jobId: prefer the store's (matches resolvedJobId that transcribe() was
+    // called with — covers restored projects where uploadState is empty).
+    // Metadata: the store copy is authoritative once a session exists
+    // (setJob/replace-video/blob restore all keep it fresh); fall back to the
+    // upload hook for the fresh-upload flow where the store is still empty.
+    const jobId = store.jobId ?? uploadState.jobId
     const transcript = transcribeState.transcript
-    const metadata = uploadState.job?.metadata
+    const metadata = store.videoMetadata ?? uploadState.job?.metadata
     if (!jobId || !transcript || !metadata) return
-    useSubtitleStore.getState().setJob(jobId, transcript, metadata)
+    retranscribeRequestedRef.current = false // consume — rebuild once per request
+    store.setJob(jobId, transcript, metadata)
 
     // Capture original phrase texts for the Text->Timing transition confirmation toast.
     // We snapshot this here (after setJob) so originalPhraseTextsRef always reflects the
@@ -771,10 +795,9 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
               <div className="subtitles-page__toolbar-separator" />
 
               <div className="subtitles-page__toolbar-group">
-                <MaxCharsPerLineInput />
                 <button
                   className="subtitles-page__toolbar-btn"
-                  onClick={() => transcribe(resolvedJobId!, numSpeakers)}
+                  onClick={() => setRetranscribeDialogOpen(true)}
                 >
                   Re-transcribe
                 </button>
@@ -915,6 +938,22 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
           onToggleCollapse={() => setRightPanelCollapsed((c) => !c)}
         />
         {projectId && <AutoSaveIndicator status={saveStatus} />}
+
+        {retranscribeDialogOpen && (
+          <TranscriptionOptionsDialog
+            title="Re-transcribe video"
+            confirmLabel="Re-transcribe"
+            onConfirm={() => {
+              setRetranscribeDialogOpen(false)
+              // Mark this as an explicit re-transcribe so the setJob effect
+              // rebuilds phrases from the fresh transcript even though a
+              // session already exists.
+              retranscribeRequestedRef.current = true
+              transcribe(resolvedJobId!, numSpeakers)
+            }}
+            onCancel={() => setRetranscribeDialogOpen(false)}
+          />
+        )}
       </div>
     )
   }
