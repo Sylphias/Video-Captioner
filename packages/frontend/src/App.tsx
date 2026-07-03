@@ -30,9 +30,17 @@ export default function App() {
     setActiveTab(tab)
   }
 
+  // App title → projects landing page. Same (guard-free) pattern as clicking
+  // the Projects tab while editing: auto-save covers unsaved work, so no
+  // confirm dialog exists anywhere for navigating away from the editor.
+  const handleTitleClick = () => {
+    setActiveProjectId(null)
+    setActiveTab('projects')
+  }
+
   return (
     <div className="app">
-      <Header tabs={TABS} activeTab={activeTab} onTabChange={handleTabChange} />
+      <Header tabs={TABS} activeTab={activeTab} onTabChange={handleTabChange} onTitleClick={handleTitleClick} />
       <main className="app__main">
         {activeTab === 'projects' && !activeProjectId && (
           <ProjectsPage onOpenProject={handleOpenProject} />
