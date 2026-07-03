@@ -39,25 +39,6 @@
   margin: 0 0 var(--spacing-lg);
 }
 
-/* Heading + transcription options on one row (grid view) */
-.projects-page__heading-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--spacing-lg);
-}
-
-.projects-page__heading-row .projects-page__heading {
-  margin-bottom: var(--spacing-lg);
-}
-
-/* Transcription options under the upload zone (empty state) */
-.projects-page__transcribe-options {
-  display: flex;
-  justify-content: center;
-  margin-top: var(--spacing-sm);
-}
-
 .projects-page__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));

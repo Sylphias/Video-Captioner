@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ProjectRecord } from '@eigen/shared-types'
 import { UploadZone } from '../components/UploadZone.tsx'
-import { MaxCharsPerLineInput } from '../components/MaxCharsPerLineInput.tsx'
+import { TranscriptionOptionsDialog } from '../components/TranscriptionOptionsDialog.tsx'
 import { ProjectCard } from '../components/ProjectCard.tsx'
 import { ProjectContextMenu } from '../components/ProjectContextMenu.tsx'
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog.tsx'
@@ -24,6 +24,12 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
   // Rename state
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renamingValue, setRenamingValue] = useState('')
+  // Transcription options dialog — shown before an upload starts (both upload
+  // paths) and before a context-menu re-transcribe. Escape/Cancel aborts the
+  // pending action entirely; confirm persists the prefs then proceeds.
+  const [transcribeDialog, setTranscribeDialog] = useState<
+    { kind: 'upload'; file: File } | { kind: 'retranscribe'; projectId: string } | null
+  >(null)
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -61,9 +67,11 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
     void createAndOpen()
   }, [uploadState.status, uploadState.jobId, uploadState.job, resetUpload, onOpenProject])
 
+  // Uploads go through the transcription-options dialog first — the actual
+  // upload only starts once the user confirms words/chars per line.
   const handleFileDrop = useCallback((file: File) => {
-    upload(file)
-  }, [upload])
+    setTranscribeDialog({ kind: 'upload', file })
+  }, [])
 
   // Context menu handler
   const handleContextMenu = useCallback((e: React.MouseEvent, project: ProjectRecord) => {
@@ -118,11 +126,16 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
     }
   }, [contextMenu, fetchProjects])
 
-  // Re-transcribe flow
-  const handleRetranscribe = useCallback(async () => {
+  // Re-transcribe flow: context menu opens the options dialog; the state
+  // clear (which triggers a rebuild on next open) only runs after confirm.
+  const handleRetranscribeRequest = useCallback(() => {
     if (!contextMenu) return
+    setTranscribeDialog({ kind: 'retranscribe', projectId: contextMenu.projectId })
+  }, [contextMenu])
+
+  const performRetranscribe = useCallback(async (projectId: string) => {
     try {
-      await fetch(`/api/projects/${contextMenu.projectId}`, {
+      await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stateJson: null }),
@@ -131,7 +144,28 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
     } catch {
       // ignore errors
     }
-  }, [contextMenu, fetchProjects])
+  }, [fetchProjects])
+
+  const handleDialogConfirm = useCallback(() => {
+    // Prefs are already persisted by the dialog; setJob reads them when the
+    // fresh transcript's phrases are built.
+    if (!transcribeDialog) return
+    if (transcribeDialog.kind === 'upload') {
+      upload(transcribeDialog.file)
+    } else {
+      void performRetranscribe(transcribeDialog.projectId)
+    }
+    setTranscribeDialog(null)
+  }, [transcribeDialog, upload, performRetranscribe])
+
+  const transcribeDialogEl = transcribeDialog && (
+    <TranscriptionOptionsDialog
+      title={transcribeDialog.kind === 'upload' ? 'Transcription options' : 'Re-transcribe project'}
+      confirmLabel={transcribeDialog.kind === 'upload' ? 'Upload & Transcribe' : 'Re-transcribe'}
+      onConfirm={handleDialogConfirm}
+      onCancel={() => setTranscribeDialog(null)}
+    />
+  )
 
   // Delete flow
   const handleDeleteRequest = useCallback(() => {
@@ -165,9 +199,7 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
           Upload a video file and Eigen will transcribe and caption it automatically.
         </p>
         <UploadZone onFile={handleFileDrop} />
-        <div className="projects-page__transcribe-options">
-          <MaxCharsPerLineInput />
-        </div>
+        {transcribeDialogEl}
       </div>
     )
   }
@@ -182,6 +214,7 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
           {uploadState.status === 'normalizing' && 'Normalizing video...'}
           {uploadState.status === 'failed' && `Error: ${uploadState.error}`}
         </p>
+        {transcribeDialogEl}
       </div>
     )
   }
@@ -189,10 +222,7 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
   // D-01: Card grid with projects + D-02: create-new card at end
   return (
     <div className="projects-page">
-      <div className="projects-page__heading-row">
-        <h2 className="projects-page__heading">Your Projects</h2>
-        <MaxCharsPerLineInput />
-      </div>
+      <h2 className="projects-page__heading">Your Projects</h2>
       <div className="projects-page__grid">
         {projects.map((p) => (
           <ProjectCard
@@ -232,7 +262,7 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
           y={contextMenu.y}
           onRename={handleRenameStart}
           onDuplicate={() => { void handleDuplicate() }}
-          onRetranscribe={() => { void handleRetranscribe() }}
+          onRetranscribe={handleRetranscribeRequest}
           onDelete={handleDeleteRequest}
           onClose={() => setContextMenu(null)}
         />
@@ -245,6 +275,8 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
           onCancel={() => setDeleteTarget(null)}
         />
       )}
+
+      {transcribeDialogEl}
     </div>
   )
 }
