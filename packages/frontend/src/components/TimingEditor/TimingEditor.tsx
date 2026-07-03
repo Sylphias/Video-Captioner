@@ -258,6 +258,31 @@ export function TimingEditor({
     }
   }, [selectedPhraseIndex, phrases, onEditPhrase, seekToTime, centerViewportOnTime])
 
+  // ←/→ hotkeys for prev/next same-speaker phrase navigation. Scoped to Word
+  // Timing mode by construction (TimingEditor is only mounted on that stage)
+  // and bound only while a phrase is selected. Never fires while the user is
+  // typing in an input/textarea/select/contentEditable, and leaves modified
+  // combos (Alt+←/→ browser nav, etc.) untouched.
+  useEffect(() => {
+    if (selectedPhraseIndex === null) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
+      const target = e.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) return
+      e.preventDefault()
+      handleNavigatePhrase(e.key === 'ArrowLeft' ? -1 : 1)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedPhraseIndex, handleNavigatePhrase])
+
   const handlePhraseClick = useCallback((phraseIndex: number) => {
     const deselecting = selectedPhraseIndex === phraseIndex
     setSelectedPhraseIndex(deselecting ? null : phraseIndex)
