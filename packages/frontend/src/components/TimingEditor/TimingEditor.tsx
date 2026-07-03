@@ -24,6 +24,9 @@ const MIN_PPS = 20
 const MAX_PPS = 500
 const LANE_HEIGHT = 44
 const RULER_HEIGHT = 24
+// Mirrors the MIN_DURATION clamp inside subtitleStore.setPhraseTiming so the
+// edge-drag live preview matches what the store will accept on commit.
+const MIN_PHRASE_DURATION = 0.05
 
 interface SpeakerLane {
   speakerId: string
@@ -380,10 +383,84 @@ export function TimingEditor({
     }
   }, [shiftDrag !== null, shiftPhrase]) // eslint-disable-line -- re-bind only when drag starts/stops
 
+  // ── Phrase edge-drag: resize start/end by dragging the chunk's edges ──────
+  // Live preview is purely visual (transient state below); the store mutation
+  // happens exactly once on mouseup via setPhraseTiming → one undo entry per
+  // gesture (setPhraseTiming pushes a single undo snapshot per call).
+  const [edgeDrag, setEdgeDrag] = useState<{ phraseIndex: number; edge: 'start' | 'end'; deltaSec: number } | null>(null)
+  const edgeDragRef = useRef<{ phraseIndex: number; edge: 'start' | 'end'; deltaSec: number } | null>(null)
+
+  // Mirror setPhraseTiming's clamping (min duration + nearest same-speaker
+  // neighbors) so the preview never shows a position the store would reject.
+  const clampEdgeDrag = useCallback((phraseIndex: number, edge: 'start' | 'end', deltaSec: number): { start: number; end: number } | null => {
+    const phrase = phrases[phraseIndex]
+    if (!phrase || phrase.words.length === 0) return null
+    const origStart = phrase.words[0].start
+    const origEnd = phrase.words[phrase.words.length - 1].end
+    if (edge === 'start') {
+      let newStart = Math.max(0, origStart + deltaSec)
+      for (let pi = phraseIndex - 1; pi >= 0; pi--) {
+        const prev = phrases[pi]
+        if (prev.words.length === 0) continue
+        if (prev.dominantSpeaker !== phrase.dominantSpeaker) continue
+        newStart = Math.max(newStart, prev.words[prev.words.length - 1].end)
+        break
+      }
+      newStart = Math.min(newStart, origEnd - MIN_PHRASE_DURATION)
+      return { start: newStart, end: origEnd }
+    }
+    let newEnd = origEnd + deltaSec
+    for (let pi = phraseIndex + 1; pi < phrases.length; pi++) {
+      const next = phrases[pi]
+      if (next.words.length === 0) continue
+      if (next.dominantSpeaker !== phrase.dominantSpeaker) continue
+      newEnd = Math.min(newEnd, next.words[0].start)
+      break
+    }
+    newEnd = Math.max(newEnd, origStart + MIN_PHRASE_DURATION)
+    return { start: origStart, end: newEnd }
+  }, [phrases])
+
+  const handleEdgeDragStart = useCallback((e: React.MouseEvent, phraseIndex: number, edge: 'start' | 'end') => {
+    if (e.button !== 0) return
+    e.preventDefault() // block text selection + native HTML5 drag initiation
+    e.stopPropagation() // don't trigger the phrase-block shift drag
+
+    const startX = e.clientX
+    edgeDragRef.current = { phraseIndex, edge, deltaSec: 0 }
+    setEdgeDrag({ phraseIndex, edge, deltaSec: 0 })
+
+    const onMove = (me: MouseEvent) => {
+      if (!edgeDragRef.current) return
+      const deltaSec = (me.clientX - startX) / ppsRef.current
+      edgeDragRef.current = { phraseIndex, edge, deltaSec }
+      setEdgeDrag({ phraseIndex, edge, deltaSec })
+    }
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      const drag = edgeDragRef.current
+      edgeDragRef.current = null
+      setEdgeDrag(null)
+      if (!drag) return
+      // Single commit per gesture — dead zone matches the shift-drag threshold.
+      if (Math.abs(drag.deltaSec) * ppsRef.current > 2) {
+        const clamped = clampEdgeDrag(drag.phraseIndex, drag.edge, drag.deltaSec)
+        if (clamped) setPhraseTiming(drag.phraseIndex, clamped.start, clamped.end)
+      }
+    }
+
+    document.body.style.cursor = 'ew-resize'
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [clampEdgeDrag, setPhraseTiming])
+
   // Drag and drop handlers (cross-lane reassignment)
   const handleDragStart = useCallback((e: React.DragEvent, phraseIndex: number) => {
-    // Don't start DnD during timing shift
-    if (shiftDragRef.current) { e.preventDefault(); return }
+    // Don't start DnD during timing shift or edge resize
+    if (shiftDragRef.current || edgeDragRef.current) { e.preventDefault(); return }
     e.dataTransfer.setData('text/plain', String(phraseIndex))
     e.dataTransfer.effectAllowed = 'move'
   }, [])
@@ -673,10 +750,22 @@ export function TimingEditor({
                     const firstWord = phrase.words[0]
                     const lastWord = phrase.words[phrase.words.length - 1]
                     const lingerSec = phrase.lingerDuration ?? globalLingerDuration
-                    const left = firstWord.start * pps
-                    const wordsWidth = (lastWord.end - firstWord.start) * pps
+
+                    // Live edge-drag preview: visually stretch this block (and
+                    // rescale its word markers) without touching the store; the
+                    // single store commit happens on mouseup.
+                    const isEdgeDragging = edgeDrag?.phraseIndex === phraseIndex
+                    const edgePreview = isEdgeDragging
+                      ? clampEdgeDrag(phraseIndex, edgeDrag.edge, edgeDrag.deltaSec)
+                      : null
+                    const blockStart = edgePreview?.start ?? firstWord.start
+                    const blockEnd = edgePreview?.end ?? lastWord.end
+
+                    const left = blockStart * pps
+                    const wordsWidth = (blockEnd - blockStart) * pps
                     const lingerWidth = lingerSec * pps
                     const width = Math.max(4, wordsWidth + lingerWidth)
+                    const origWordsDuration = lastWord.end - firstWord.start
 
                     const isSelected = selectedPhraseIndex === phraseIndex
                     const isEditing = editingPhraseIndex === phraseIndex
@@ -690,8 +779,8 @@ export function TimingEditor({
                     return (
                       <div
                         key={phraseIndex}
-                        className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}${isDragging ? ' timing-editor__phrase-block--dragging' : ''}${isEditing ? ' timing-editor__phrase-block--editing' : ''}`}
-                        style={{ left: visualLeft, width, background: blockBg, zIndex: isSelected ? 10 : undefined }}
+                        className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}${isDragging ? ' timing-editor__phrase-block--dragging' : ''}${isEdgeDragging ? ' timing-editor__phrase-block--edge-dragging' : ''}${isEditing ? ' timing-editor__phrase-block--editing' : ''}`}
+                        style={{ left: visualLeft, width, background: blockBg, zIndex: isSelected || isEdgeDragging ? 10 : undefined }}
                         onClick={(e) => {
                           e.stopPropagation()
                           if (!isDragging && !isEditing) handlePhraseClick(phraseIndex)
@@ -711,14 +800,39 @@ export function TimingEditor({
                             style={{ left: wordsWidth, width: lingerWidth }}
                           />
                         )}
-                        {/* Word-end markers (red lines showing where each word ends) */}
+                        {/* Word-end markers (red lines showing where each word ends) —
+                            scaled to the preview width during an edge drag so they
+                            mirror the proportional word rescale setPhraseTiming applies */}
                         {phrase.words.length > 1 && phrase.words.slice(0, -1).map((w, wi) => (
                           <span
                             key={wi}
                             className="timing-editor__word-end-marker"
-                            style={{ left: (w.end - firstWord.start) * pps }}
+                            style={{
+                              left: origWordsDuration > 0
+                                ? ((w.end - firstWord.start) / origWordsDuration) * wordsWidth
+                                : 0,
+                            }}
                           />
                         ))}
+                        {/* Edge-drag grab zones: resize phrase start/end */}
+                        {!isEditing && (
+                          <>
+                            <span
+                              className="timing-editor__phrase-edge-handle timing-editor__phrase-edge-handle--start"
+                              onMouseDown={(e) => handleEdgeDragStart(e, phraseIndex, 'start')}
+                              onClick={(e) => e.stopPropagation()}
+                              onDoubleClick={(e) => e.stopPropagation()}
+                              title="Drag to adjust phrase start"
+                            />
+                            <span
+                              className="timing-editor__phrase-edge-handle timing-editor__phrase-edge-handle--end"
+                              onMouseDown={(e) => handleEdgeDragStart(e, phraseIndex, 'end')}
+                              onClick={(e) => e.stopPropagation()}
+                              onDoubleClick={(e) => e.stopPropagation()}
+                              title="Drag to adjust phrase end"
+                            />
+                          </>
+                        )}
                         {isEditing ? (
                           <InlinePhraseInput
                             initialText={phraseText}

@@ -422,6 +422,39 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
+/* ── Phrase edge-drag handles (resize start/end) ────────────────────────── */
+
+.timing-editor__phrase-edge-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 3;
+}
+
+.timing-editor__phrase-edge-handle--start {
+  left: 0;
+  border-radius: 4px 0 0 4px;
+}
+
+.timing-editor__phrase-edge-handle--end {
+  right: 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.timing-editor__phrase-edge-handle:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.timing-editor__phrase-block--edge-dragging {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.timing-editor__phrase-block--edge-dragging .timing-editor__phrase-edge-handle {
+  background: rgba(255, 255, 255, 0.35);
+}
+
 /* ── Linger tail (semi-transparent extension after last word) ───────────── */
 
 .timing-editor__linger-tail {
