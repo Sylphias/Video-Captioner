@@ -141,6 +141,8 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   const setPhraseTiming = useSubtitleStore((s) => s.setPhraseTiming)
   const reassignPhraseSpeaker = useSubtitleStore((s) => s.reassignPhraseSpeaker)
   const storeJobId = useSubtitleStore((s) => s.jobId)
+  const maxWordsPerPhrase = useSubtitleStore((s) => s.maxWordsPerPhrase)
+  const maxCharsPerPhrase = useSubtitleStore((s) => s.maxCharsPerPhrase)
   // Resolve jobId: prefer store (works for loaded projects), fall back to upload hook
   const resolvedJobId = storeJobId ?? uploadState.jobId ?? null
   // Only fetch waveform once session exists (transcription done → video is normalized)
@@ -943,6 +945,8 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
           <TranscriptionOptionsDialog
             title="Re-transcribe video"
             confirmLabel="Re-transcribe"
+            initialWords={maxWordsPerPhrase}
+            initialChars={maxCharsPerPhrase}
             onConfirm={() => {
               setRetranscribeDialogOpen(false)
               // Mark this as an explicit re-transcribe so the setJob effect

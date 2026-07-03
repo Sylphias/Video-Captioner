@@ -17,6 +17,13 @@ interface TranscriptionOptionsDialogProps {
   title: string
   confirmLabel: string
   /**
+   * Prefill overrides. When re-transcribing an open session, pass the
+   * session's own caps so the dialog reflects what the session actually
+   * uses; omitted fields fall back to the last-used localStorage prefs.
+   */
+  initialWords?: number
+  initialChars?: number | null
+  /**
    * Called after the chosen values have been persisted to localStorage
    * (transcriptionPrefs). setJob reads the prefs when it builds phrases, so
    * most callers can ignore the options argument.
@@ -39,12 +46,14 @@ interface TranscriptionOptionsDialogProps {
 export function TranscriptionOptionsDialog({
   title,
   confirmLabel,
+  initialWords,
+  initialChars,
   onConfirm,
   onCancel,
 }: TranscriptionOptionsDialogProps) {
-  const [words, setWords] = useState(() => String(loadMaxWordsPerLine()))
+  const [words, setWords] = useState(() => String(initialWords ?? loadMaxWordsPerLine()))
   const [chars, setChars] = useState(() => {
-    const c = loadMaxCharsPerLine()
+    const c = initialChars !== undefined ? initialChars : loadMaxCharsPerLine()
     return c === null ? '' : String(c)
   })
   const wordsInputRef = useRef<HTMLInputElement>(null)
