@@ -75,6 +75,27 @@
   color: var(--color-text-secondary);
 }
 
+/* Max chars per line — plain number input (typed, commits on blur/Enter) */
+.style-panel__chars-input {
+  width: 72px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs);
+  text-align: center;
+  outline: none;
+}
+
+.style-panel__chars-input:focus {
+  border-color: var(--color-accent-green);
+}
+
+.style-panel__chars-input::placeholder {
+  color: var(--color-text-disabled);
+}
+
 .style-panel__mini-label {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);

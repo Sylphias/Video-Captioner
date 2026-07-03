@@ -24,6 +24,55 @@ function loadCustomGoogleFont(fontName: string): Promise<string | null> {
   })
 }
 
+/**
+ * Session "max chars per line" control. Mirrors the transcription-options
+ * dialog value for this session (seeded at setJob, persisted in the project
+ * blob). Commits on blur/Enter rather than per keystroke because each commit
+ * regroups all phrases and pushes an undo snapshot. Blank = off — old
+ * projects load with the cap off and stay untouched until a value is set.
+ */
+function MaxCharsPerLineControl() {
+  const maxCharsPerPhrase = useSubtitleStore((s) => s.maxCharsPerPhrase)
+  const setMaxCharsPerPhrase = useSubtitleStore((s) => s.setMaxCharsPerPhrase)
+  const [draft, setDraft] = useState(maxCharsPerPhrase === null ? '' : String(maxCharsPerPhrase))
+
+  // Sync draft when the store value changes externally (undo/redo, project load)
+  useEffect(() => {
+    setDraft(maxCharsPerPhrase === null ? '' : String(maxCharsPerPhrase))
+  }, [maxCharsPerPhrase])
+
+  const commit = () => {
+    const n = draft.trim() === '' ? NaN : Number(draft)
+    const next = Number.isFinite(n) && n > 0 ? Math.round(n) : null
+    setMaxCharsPerPhrase(next)
+    setDraft(next === null ? '' : String(next))
+  }
+
+  return (
+    <div className="style-panel__section">
+      <label
+        className="style-panel__label"
+        title="Regroups phrases so no line exceeds this many characters. Takes priority over the word cap. Blank = off."
+      >
+        Max chars per line
+      </label>
+      <div className="style-panel__inline-row">
+        <input
+          type="number"
+          className="style-panel__chars-input"
+          min={8}
+          max={200}
+          placeholder="Off"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+        />
+      </div>
+    </div>
+  )
+}
+
 /** Custom font picker that renders each option in its own font face. */
 function FontPicker({ value, onChange }: { value: string; onChange: (family: string) => void }) {
   const [open, setOpen] = useState(false)
@@ -304,6 +353,9 @@ export function StylePanel() {
           />
         </div>
       </div>
+
+      {/* Max chars per line (session value; participates in regrouping) */}
+      <MaxCharsPerLineControl />
 
       {/* Highlight color */}
       <div className="style-panel__section">

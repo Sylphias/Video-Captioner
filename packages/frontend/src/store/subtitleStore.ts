@@ -26,6 +26,7 @@ interface SubtitleStore {
   } | null
   style: StyleProps
   maxWordsPerPhrase: number             // max words per auto-grouped phrase (default 5)
+  maxCharsPerPhrase: number | null      // session's char cap for auto-grouping (null = off); seeded from prefs at setJob, persisted in the project blob
   speakerNames: Record<string, string>               // maps raw speaker IDs to display names
   speakerStyles: Record<string, SpeakerStyleOverride> // per-speaker style overrides
   activeAnimationPresetId: string | null              // globally active animation preset ID (Entry/Exit/Hold)
@@ -50,6 +51,7 @@ interface SubtitleStore {
   resetSession: () => void
   setStyle: (partial: Partial<StyleProps>) => void
   setMaxWordsPerPhrase: (n: number) => void
+  setMaxCharsPerPhrase: (n: number | null) => void
   setSpeakerStyle: (speakerId: string, override: SpeakerStyleOverride) => void
   clearSpeakerStyle: (speakerId: string) => void
   reset: () => void
@@ -110,6 +112,7 @@ function captureSnapshot(state: {
   session: SubtitleStore['session']
   style: StyleProps
   maxWordsPerPhrase: number
+  maxCharsPerPhrase: number | null
   speakerNames: Record<string, string>
   speakerStyles: Record<string, SpeakerStyleOverride>
   activeAnimationPresetId: string | null
@@ -130,6 +133,7 @@ function captureSnapshot(state: {
       : null,
     style: structuredClone(state.style) as unknown as Record<string, unknown>,
     maxWordsPerPhrase: state.maxWordsPerPhrase,
+    maxCharsPerPhrase: state.maxCharsPerPhrase,
     speakerNames: { ...state.speakerNames },
     speakerStyles: structuredClone(state.speakerStyles) as Record<string, Record<string, unknown>>,
     activeAnimationPresetId: state.activeAnimationPresetId,
@@ -150,6 +154,7 @@ function pushUndo(state: {
   session: SubtitleStore['session']
   style: StyleProps
   maxWordsPerPhrase: number
+  maxCharsPerPhrase: number | null
   speakerNames: Record<string, string>
   speakerStyles: Record<string, SpeakerStyleOverride>
   activeAnimationPresetId: string | null
@@ -184,6 +189,9 @@ export function restoreSnapshot(snapshot: StateSnapshot): void {
       },
       style: structuredClone(snapshot.style) as unknown as StyleProps,
       maxWordsPerPhrase: snapshot.maxWordsPerPhrase ?? 5,
+      // Preserve the current value when the snapshot predates the field (some
+      // snapshot producers omit optional fields) — don't clobber the session cap.
+      maxCharsPerPhrase: snapshot.maxCharsPerPhrase !== undefined ? snapshot.maxCharsPerPhrase : state.maxCharsPerPhrase,
       speakerNames: { ...snapshot.speakerNames },
       speakerStyles: structuredClone(snapshot.speakerStyles) as unknown as Record<string, SpeakerStyleOverride>,
       activeAnimationPresetId: snapshot.activeAnimationPresetId ?? null,
@@ -204,6 +212,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   session: null,
   style: DEFAULT_STYLE,
   maxWordsPerPhrase: 5,
+  maxCharsPerPhrase: null,
   speakerNames: {},
   speakerStyles: {},
   activeAnimationPresetId: null,
@@ -223,7 +232,8 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     // maxWordsPerPhrase so the Global Styling panel shows the same number.
     // Saved projects restore phrases from their blob and never pass here.
     const maxWordsPerPhrase = loadMaxWordsPerLine()
-    const phrases = buildSessionPhrases(words, new Set(), maxWordsPerPhrase, loadMaxCharsPerLine())
+    const maxCharsPerPhrase = loadMaxCharsPerLine()
+    const phrases = buildSessionPhrases(words, new Set(), maxWordsPerPhrase, maxCharsPerPhrase)
     // Initialize speakerNames from unique speakers found in words
     const uniqueSpeakers = new Set<string>()
     for (const w of words) { if (w.speaker) uniqueSpeakers.add(w.speaker) }
@@ -236,6 +246,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       session: { words, phrases, manualSplitWordIndices: new Set() },
       speakerNames,
       maxWordsPerPhrase,
+      maxCharsPerPhrase,
     })
   },
 
@@ -457,7 +468,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         manualSplitWordIndices.add(globalIdx + 1)
       }
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase, state.maxCharsPerPhrase)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -529,7 +540,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       }
       manualSplitWordIndices.add(globalIdx)
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase, state.maxCharsPerPhrase)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -553,7 +564,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         manualSplitWordIndices.add(idx > wordIndex ? idx - 1 : idx)
       }
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase, state.maxCharsPerPhrase)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -673,7 +684,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         // manual splits inside the replaced range are dropped
       }
 
-      const phrases = buildSessionPhrases(newWords, newManualSplits, state.maxWordsPerPhrase)
+      const phrases = buildSessionPhrases(newWords, newManualSplits, state.maxWordsPerPhrase, state.maxCharsPerPhrase)
       return { session: { ...state.session, words: newWords, phrases, manualSplitWordIndices: newManualSplits } }
     }),
 
@@ -697,7 +708,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     set((state) => {
       if (!state.original) return state
       const words: SessionWord[] = state.original.words.map((w) => ({ ...w }))
-      const phrases = buildSessionPhrases(words, new Set(), state.maxWordsPerPhrase)
+      const phrases = buildSessionPhrases(words, new Set(), state.maxWordsPerPhrase, state.maxCharsPerPhrase)
       // Re-initialize speakerNames from original transcript
       const uniqueSpeakers = new Set<string>()
       for (const w of words) { if (w.speaker) uniqueSpeakers.add(w.speaker) }
@@ -718,9 +729,23 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     set((state) => {
       if (!state.session) return state
       pushUndo(state)
-      const phrases = buildSessionPhrases(state.session.words, state.session.manualSplitWordIndices, n)
+      // Regroup with the session's own char cap (null = off for old projects)
+      const phrases = buildSessionPhrases(state.session.words, state.session.manualSplitWordIndices, n, state.maxCharsPerPhrase)
       return {
         maxWordsPerPhrase: n,
+        session: { ...state.session, phrases },
+      }
+    })
+  },
+
+  setMaxCharsPerPhrase: (n) => {
+    set((state) => {
+      if (!state.session) return state
+      if (n === state.maxCharsPerPhrase) return state
+      pushUndo(state)
+      const phrases = buildSessionPhrases(state.session.words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase, n)
+      return {
+        maxCharsPerPhrase: n,
         session: { ...state.session, phrases },
       }
     })
@@ -747,7 +772,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     })
   },
 
-  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, maxWordsPerPhrase: 5, speakerNames: {}, speakerStyles: {}, activeAnimationPresetId: null, activeHighlightPresetId: null, phraseAnimationPresetIds: {}, laneCount: 2, phraseLaneOverrides: {} }),
+  reset: () => set({ jobId: null, original: null, videoMetadata: null, session: null, style: DEFAULT_STYLE, maxWordsPerPhrase: 5, maxCharsPerPhrase: null, speakerNames: {}, speakerStyles: {}, activeAnimationPresetId: null, activeHighlightPresetId: null, phraseAnimationPresetIds: {}, laneCount: 2, phraseLaneOverrides: {} }),
 
   renameSpeaker: (speakerId, displayName) => {
     set((state) => {
@@ -845,7 +870,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       )
 
       // Rebuild phrases with updated speakers
-      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
+      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase, state.maxCharsPerPhrase)
 
       // Remove deleted speaker from speakerNames and speakerStyles
       const speakerNames = { ...state.speakerNames }
@@ -957,7 +982,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       // Force phrase boundary after the new word
       if (insertIdx < words.length - 1) manualSplitWordIndices.add(insertIdx + 1)
 
-      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase)
+      const phrases = buildSessionPhrases(words, manualSplitWordIndices, state.maxWordsPerPhrase, state.maxCharsPerPhrase)
       return { session: { words, phrases, manualSplitWordIndices } }
     })
   },
@@ -1157,7 +1182,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         end: w.end + clampedDelta,
       }))
 
-      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
+      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase, state.maxCharsPerPhrase)
       return { session: { ...state.session, words, phrases } }
     })
   },
@@ -1175,7 +1200,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         end: w.end + clampedDelta,
       }))
 
-      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase)
+      const phrases = buildSessionPhrases(words, state.session.manualSplitWordIndices, state.maxWordsPerPhrase, state.maxCharsPerPhrase)
       return { session: { ...state.session, words, phrases } }
     })
   },
@@ -1594,7 +1619,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
         )
       }
 
-      const rebuiltPhrases = buildSessionPhrases(words as SessionWord[], manualSplitWordIndices, state.maxWordsPerPhrase)
+      const rebuiltPhrases = buildSessionPhrases(words as SessionWord[], manualSplitWordIndices, state.maxWordsPerPhrase, state.maxCharsPerPhrase)
       return { session: { words: words as SessionWord[], phrases: rebuiltPhrases, manualSplitWordIndices } }
     })
   },

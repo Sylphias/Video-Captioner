@@ -28,6 +28,7 @@ export interface StateSnapshot {
   } | null
   style: Record<string, unknown>
   maxWordsPerPhrase?: number
+  maxCharsPerPhrase?: number | null
   speakerNames: Record<string, string>
   speakerStyles: Record<string, Record<string, unknown>>
   activeAnimationPresetId?: string | null

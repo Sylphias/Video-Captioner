@@ -30,6 +30,7 @@ export interface ProjectStateBlob {
   // Style state
   style: Record<string, unknown>
   maxWordsPerPhrase: number
+  maxCharsPerPhrase?: number | null   // optional: blobs saved before this field exist without it (treated as null = off)
   speakerNames: Record<string, string>
   speakerStyles: Record<string, Record<string, unknown>>
   activeAnimationPresetId: string | null
@@ -64,6 +65,7 @@ export function buildStateBlob(): ProjectStateBlob | null {
     },
     style: structuredClone(state.style) as unknown as Record<string, unknown>,
     maxWordsPerPhrase: state.maxWordsPerPhrase,
+    maxCharsPerPhrase: state.maxCharsPerPhrase ?? null,
     speakerNames: { ...state.speakerNames },
     speakerStyles: structuredClone(state.speakerStyles) as Record<string, Record<string, unknown>>,
     activeAnimationPresetId: state.activeAnimationPresetId,
@@ -99,6 +101,7 @@ export function loadProjectBlob(blob: ProjectStateBlob): void {
       : null,
     style: structuredClone(blob.style) as unknown as StyleProps,
     maxWordsPerPhrase: blob.maxWordsPerPhrase ?? 5,
+    maxCharsPerPhrase: blob.maxCharsPerPhrase ?? null,
     speakerNames: { ...blob.speakerNames },
     speakerStyles: structuredClone(blob.speakerStyles) as unknown as Record<string, SpeakerStyleOverride>,
     activeAnimationPresetId: blob.activeAnimationPresetId ?? null,
