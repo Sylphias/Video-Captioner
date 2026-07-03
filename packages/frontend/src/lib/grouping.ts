@@ -54,25 +54,39 @@ export function endsWithPunctuation(word: string): boolean {
  * 1. Silence gaps > PHRASE_GAP_SEC (0.3s)
  * 2. Sentence-ending punctuation (. ? !)
  * 3. Max word count per phrase (MAX_WORDS_PER_PHRASE = 8)
+ * 4. Optional max characters per phrase (null = no cap — historical behavior).
+ *    Counted as rendered line length: word lengths + one joining space per
+ *    boundary. A single word longer than the cap still forms its own phrase
+ *    (words are never split).
  *
  * Returns an array of word arrays — each inner array is one phrase's words.
  */
-export function groupIntoPhrases(words: TranscriptWord[], maxWordsPerPhrase = MAX_WORDS_PER_PHRASE): TranscriptWord[][] {
+export function groupIntoPhrases(
+  words: TranscriptWord[],
+  maxWordsPerPhrase = MAX_WORDS_PER_PHRASE,
+  maxCharsPerPhrase: number | null = null,
+): TranscriptWord[][] {
   if (words.length === 0) return []
 
   const phrases: TranscriptWord[][] = []
   let currentPhrase: TranscriptWord[] = [words[0]]
+  let currentChars = words[0].word.length
 
   for (let i = 1; i < words.length; i++) {
     const gap = words[i].start - words[i - 1].end
     const prevEndsPunctuation = endsWithPunctuation(words[i - 1].word)
     const atMaxWords = currentPhrase.length >= maxWordsPerPhrase
+    const wouldExceedChars =
+      maxCharsPerPhrase !== null &&
+      currentChars + 1 + words[i].word.length > maxCharsPerPhrase
 
-    if (gap > PHRASE_GAP_SEC || prevEndsPunctuation || atMaxWords) {
+    if (gap > PHRASE_GAP_SEC || prevEndsPunctuation || atMaxWords || wouldExceedChars) {
       phrases.push(currentPhrase)
       currentPhrase = [words[i]]
+      currentChars = words[i].word.length
     } else {
       currentPhrase.push(words[i])
+      currentChars += 1 + words[i].word.length
     }
   }
   phrases.push(currentPhrase)
@@ -97,10 +111,11 @@ export function buildSessionPhrases(
   words: SessionWord[],
   manualSplitWordIndices: Set<number>,
   maxWordsPerPhrase = MAX_WORDS_PER_PHRASE,
+  maxCharsPerPhrase: number | null = null,
 ): SessionPhrase[] {
   if (words.length === 0) return []
 
-  const autoGroups = groupIntoPhrases(words, maxWordsPerPhrase)
+  const autoGroups = groupIntoPhrases(words, maxWordsPerPhrase, maxCharsPerPhrase)
 
   // Collect auto-split boundary global indices (start of each group except the first)
   const autoSplitBoundaries = new Set<number>()

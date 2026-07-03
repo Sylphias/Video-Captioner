@@ -15,6 +15,7 @@ import { useUndoStore } from '../store/undoMiddleware.ts'
 import { buildStateBlob, loadProjectBlob, type ProjectStateBlob } from '../lib/projectState.ts'
 import { useWaveform } from '../hooks/useWaveform.ts'
 import { AutoSaveIndicator, type SaveStatus } from '../components/AutoSaveIndicator.tsx'
+import { MaxCharsPerLineInput } from '../components/MaxCharsPerLineInput.tsx'
 import { LaneSidePanel } from '../components/LaneSidePanel.tsx'
 import { GlobalStyleSidePanel, type RightPanelMode } from '../components/GlobalStyleSidePanel.tsx'
 import './SubtitlesPage.css'
@@ -770,6 +771,7 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
               <div className="subtitles-page__toolbar-separator" />
 
               <div className="subtitles-page__toolbar-group">
+                <MaxCharsPerLineInput />
                 <button
                   className="subtitles-page__toolbar-btn"
                   onClick={() => transcribe(resolvedJobId!, numSpeakers)}

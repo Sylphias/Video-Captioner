@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ProjectRecord } from '@eigen/shared-types'
 import { UploadZone } from '../components/UploadZone.tsx'
+import { MaxCharsPerLineInput } from '../components/MaxCharsPerLineInput.tsx'
 import { ProjectCard } from '../components/ProjectCard.tsx'
 import { ProjectContextMenu } from '../components/ProjectContextMenu.tsx'
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog.tsx'
@@ -164,6 +165,9 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
           Upload a video file and Eigen will transcribe and caption it automatically.
         </p>
         <UploadZone onFile={handleFileDrop} />
+        <div className="projects-page__transcribe-options">
+          <MaxCharsPerLineInput />
+        </div>
       </div>
     )
   }
@@ -185,7 +189,10 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
   // D-01: Card grid with projects + D-02: create-new card at end
   return (
     <div className="projects-page">
-      <h2 className="projects-page__heading">Your Projects</h2>
+      <div className="projects-page__heading-row">
+        <h2 className="projects-page__heading">Your Projects</h2>
+        <MaxCharsPerLineInput />
+      </div>
       <div className="projects-page__grid">
         {projects.map((p) => (
           <ProjectCard
