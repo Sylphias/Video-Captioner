@@ -11,6 +11,30 @@
  */
 
 const MAX_CHARS_KEY = 'eigen:max-chars-per-line'
+const MAX_WORDS_KEY = 'eigen:max-words-per-line'
+
+/** Matches the subtitleStore maxWordsPerPhrase default. */
+export const DEFAULT_MAX_WORDS_PER_LINE = 5
+
+export function loadMaxWordsPerLine(): number {
+  try {
+    const raw = localStorage.getItem(MAX_WORDS_KEY)
+    if (raw === null) return DEFAULT_MAX_WORDS_PER_LINE
+    const n = parseInt(raw, 10)
+    return Number.isFinite(n) && n > 0 ? n : DEFAULT_MAX_WORDS_PER_LINE
+  } catch {
+    return DEFAULT_MAX_WORDS_PER_LINE
+  }
+}
+
+export function saveMaxWordsPerLine(value: number): void {
+  try {
+    if (!Number.isFinite(value) || value <= 0) return
+    localStorage.setItem(MAX_WORDS_KEY, String(Math.round(value)))
+  } catch {
+    // localStorage unavailable (private mode etc.) — preference just won't persist
+  }
+}
 
 /** null = no cap (matches historical behavior). */
 export function loadMaxCharsPerLine(): number | null {

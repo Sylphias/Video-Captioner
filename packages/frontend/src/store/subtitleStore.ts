@@ -8,7 +8,7 @@ import {
   computeDominantSpeaker,
 } from '../lib/grouping.ts'
 import { useUndoStore, type StateSnapshot } from './undoMiddleware.ts'
-import { loadMaxCharsPerLine } from '../lib/transcriptionPrefs.ts'
+import { loadMaxCharsPerLine, loadMaxWordsPerLine } from '../lib/transcriptionPrefs.ts'
 
 export type { SessionWord, SessionPhrase }
 
@@ -218,9 +218,12 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   setJob: (jobId, transcript, videoMetadata) => {
     const words: SessionWord[] = transcript.words.map((w) => ({ ...w }))
     // Initial phrase construction from a fresh transcript (NOT an in-place
-    // edit): honor the transcription-time "max chars per line" preference.
+    // edit): honor the transcription-time preferences chosen in the options
+    // dialog (max words + max chars per line). The words value also seeds
+    // maxWordsPerPhrase so the Global Styling panel shows the same number.
     // Saved projects restore phrases from their blob and never pass here.
-    const phrases = buildSessionPhrases(words, new Set(), get().maxWordsPerPhrase, loadMaxCharsPerLine())
+    const maxWordsPerPhrase = loadMaxWordsPerLine()
+    const phrases = buildSessionPhrases(words, new Set(), maxWordsPerPhrase, loadMaxCharsPerLine())
     // Initialize speakerNames from unique speakers found in words
     const uniqueSpeakers = new Set<string>()
     for (const w of words) { if (w.speaker) uniqueSpeakers.add(w.speaker) }
@@ -232,6 +235,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       videoMetadata,
       session: { words, phrases, manualSplitWordIndices: new Set() },
       speakerNames,
+      maxWordsPerPhrase,
     })
   },
 

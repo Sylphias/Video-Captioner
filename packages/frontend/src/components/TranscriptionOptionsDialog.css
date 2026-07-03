@@ -1,0 +1,103 @@
+.transcription-options-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.transcription-options-dialog {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  width: 380px;
+  max-width: 90vw;
+}
+
+.transcription-options-dialog__header {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.transcription-options-dialog__header h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.transcription-options-dialog__body {
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.transcription-options-dialog__field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.transcription-options-dialog__field input {
+  width: 90px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+}
+
+.transcription-options-dialog__field input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+}
+
+.transcription-options-dialog__hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.transcription-options-dialog__footer {
+  padding: var(--spacing-md);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.transcription-options-dialog__btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 4px;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.transcription-options-dialog__btn--secondary {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.transcription-options-dialog__btn--secondary:hover {
+  background: var(--color-bg-hover);
+}
+
+.transcription-options-dialog__btn--primary {
+  background: transparent;
+  border: 1px solid var(--color-accent-green);
+  color: var(--color-accent-green);
+}
+
+.transcription-options-dialog__btn--primary:hover {
+  background: var(--color-accent-green-muted);
+}
