@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 12
 current_phase_name: ui-ux-layout-improvements
-status: executing
-stopped_at: "Phase 12 plan-phase: research complete, UI gate pending — user chose to continue without UI-SPEC next"
-last_updated: "2026-07-02T13:29:04.370Z"
-last_activity: 2026-07-02
-last_activity_desc: Phase 12 execution started
+status: phase_complete
+stopped_at: "Phase 12 complete — human-verify checkpoint approved; Phase 15 (Desktop App Port) is next"
+last_updated: "2026-07-07T00:00:00.000Z"
+last_activity: 2026-07-07
+last_activity_desc: Phase 12 complete (12-03 human-verify approved)
 progress:
   total_phases: 17
-  completed_phases: 14
-  total_plans: 47
-  completed_plans: 48
-  percent: 82
+  completed_phases: 15
+  total_plans: 48
+  completed_plans: 49
+  percent: 88
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 12 — ui-ux-layout-improvements
+**Current focus:** Phase 15 — desktop-app-port (next up; Phase 12 complete)
 
 ## Current Position
 
-Phase: 12 (ui-ux-layout-improvements) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-07-02 — Phase 12 execution started
+Phase: 12 (ui-ux-layout-improvements) — COMPLETE (human-verified 2026-07-07)
+Plan: 3 of 3 complete
+Status: Phase 12 closed; Phase 15 (Desktop App Port) ready for discuss/plan
+Last activity: 2026-07-07 — Phase 12 human-verify approved, 12-03 summary written
 
-Progress: [████████████████░░░░] 82% (8 of 11 phases complete; Phase 9 pending verification, 9.1 next)
+Progress: [██████████████████░░] 88% (Phase 15 Desktop App Port remaining)
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Progress: [████████████████░░░░] 82% (8 
 | Phase 13-project-persistence-and-landing-page P02 | 8 | 1 tasks | 1 files |
 | Phase 12-ui-ux-layout-improvements P01 | 15min | 2 tasks | 5 files |
 | Phase 12-ui-ux-layout-improvements P02 | 6min | 2 tasks | 3 files |
+| Phase 12-ui-ux-layout-improvements P03 | ~2 days (checkpoint feedback) | 2 tasks + human-verify | 23 files |
 
 ## Accumulated Context
 
@@ -263,6 +264,10 @@ Recent decisions affecting current work:
 - [Phase 12]: [12-01]: Full-height flow side panels (position: relative, flex-shrink: 0, height: 100%) replace position:absolute overlay panels as the pattern for LaneSidePanel and GlobalStyleSidePanel
 - [Phase ?]: [12-02]: Kept underline-tab pattern (no pill/box conversion) per CONTEXT.md constraint; muted/highlighted contrast improved via padding + active font-weight 600 rather than color token change
 - [Phase ?]: [12-02]: srt-import-btn height now padding-driven (fixed 32px removed) to exactly match subtitles-page__goto-btn sizing
+- [Phase 12]: [12-03]: Go to Subtitle control removed from toolbar entirely per checkpoint feedback — superseded original D-05 "goto leads first group" placement
+- [Phase 12]: [12-03]: Char cap (max chars/line) promoted to session state in subtitleStore so all regrouping respects it; re-transcribe dialogs prefill from session's own caps
+- [Phase 12]: [12-03]: TranscriptionOptionsDialog (max words/chars per line) shown before upload and re-transcribe on both projects page and toolbar; prefs persisted via lib/transcriptionPrefs.ts
+- [Phase 12]: [12-03]: Word Timing upgrades from checkpoint feedback — editable phrase start/end, drag-to-scrub time inputs (one undo per gesture), edge-drag phrase chunks, playhead auto-centering, same-speaker phrase nav (ArrowLeft/ArrowRight)
 
 ### Roadmap Evolution
 
@@ -294,12 +299,11 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-02T13:11:58.698Z
-Stopped at: Phase 12 plan-phase: research complete, UI gate pending — user chose to continue without UI-SPEC next
+Last session: 2026-07-07
+Stopped at: Phase 12 complete — 12-03 human-verify approved, summary written, roadmap updated
 
 Next planned work:
 
-  - End-to-end verification (Plan 02 Task 2): upload video → transcribe → diarize → editor → preview
-  - WSL networking: .wslconfig mirrored mode created but not yet active (needs wsl --shutdown)
-  - Access app via http://172.20.14.177:5173 until mirrored networking enabled
-  - After Task 2 approval: Phase 9.1 complete
+  - Phase 15: Desktop App Port — no CONTEXT.md yet; start with /gsd-discuss-phase 15 (shell tech decision: likely Electron; must house web frontend + Node server + Python/WSL ML backend + Remotion rendering)
+  - Phase 15 also collects remaining small webapp workflow fixes
+  - Note: ROADMAP checkboxes for Phases 9 and 9.1 were stale (all plans have summaries) — verify and tick if confirmed complete

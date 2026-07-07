@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 9.1: Transcription & Diarization Upgrade** (INSERTED) - Migrate from Apple Silicon CPU to NVIDIA RTX 4080 GPU; upgrade transcription (Parakeet TDT or WhisperX) and diarization (pyannote community-1 on CUDA) for faster, more accurate results
 - [x] **Phase 10: SRT Import and Text Correction** - Import SRT from DaVinci Resolve, align with Whisper word timestamps for accurate text with word-level timing (completed 2026-03-28)
 - [x] **Phase 11: Text Editor Enhancements** - Multi-select phrase joining, find-and-replace, keyboard shortcuts, contextual bulk actions, low-confidence word hints
-- [ ] **Phase 12: UI/UX Layout Improvements** - Reposition Re-transcribe/Re-upload buttons, inline style drawer (match Animation page), Global Styling permanent on right panel
+- [x] **Phase 12: UI/UX Layout Improvements** - Reposition Re-transcribe/Re-upload buttons, inline style drawer (match Animation page), Global Styling permanent on right panel (completed 2026-07-07)
 - [x] **Phase 13: Project Persistence and Landing Page** - Save/load video projects, project card grid landing page, auto-save, project lifecycle (rename, delete, duplicate, re-transcribe)
 - [x] **Phase 14: Editor Stability & New Features** - Text editor bug fixes (blur cascades, phrase boundary corruption), timeline drag/snap/cross-lane, additional speaker rows, per-phrase highlight disable, MiniTimeline zoom
 - [ ] **Phase 15: Desktop App Port** - Package the app as a desktop application (web frontend + Node server + Python ML backend + Remotion rendering in a desktop shell, likely Electron); fix remaining small webapp workflow issues
