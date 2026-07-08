@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 12
 current_phase_name: ui-ux-layout-improvements
 status: phase_complete
-stopped_at: Phase 15 context gathered
-last_updated: "2026-07-08T04:00:04.157Z"
+stopped_at: Phase 15 UI-SPEC approved
+last_updated: "2026-07-08T06:18:24.163Z"
 last_activity: 2026-07-07
 last_activity_desc: Phase 12 human-verify approved, 12-03 summary written
 progress:
@@ -299,10 +299,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/15-desktop-app-port/15-CONTEXT.md
+**Resume file:** .planning/phases/15-desktop-app-port/15-UI-SPEC.md
 
-Last session: 2026-07-08T04:00:04.141Z
-Stopped at: Phase 15 context gathered
+Last session: 2026-07-08T06:18:24.149Z
+Stopped at: Phase 15 UI-SPEC approved
 
 Next planned work:
 
