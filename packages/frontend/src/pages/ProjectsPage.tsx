@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ProjectRecord } from '@eigen/shared-types'
 import { UploadZone } from '../components/UploadZone.tsx'
 import { TranscriptionOptionsDialog } from '../components/TranscriptionOptionsDialog.tsx'
@@ -6,6 +6,9 @@ import { ProjectCard } from '../components/ProjectCard.tsx'
 import { ProjectContextMenu } from '../components/ProjectContextMenu.tsx'
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog.tsx'
 import { useUpload } from '../hooks/useUpload.ts'
+import { setPendingSrt } from '../lib/pendingSrt.ts'
+import type { SrtCue } from '../lib/srtAlignment.ts'
+import type { TranscriptionOptions } from '../components/TranscriptionOptionsDialog.tsx'
 import './ProjectsPage.css'
 
 interface ProjectsPageProps {
@@ -30,6 +33,10 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
   const [transcribeDialog, setTranscribeDialog] = useState<
     { kind: 'upload'; file: File } | { kind: 'retranscribe'; projectId: string } | null
   >(null)
+  // SRT cues chosen in the dialog for the upload currently in flight. The
+  // jobId isn't known until the upload completes, so the cues wait here and
+  // are handed to the pendingSrt slot (keyed by jobId) right before navigate.
+  const pendingSrtCuesRef = useRef<SrtCue[] | null>(null)
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -61,6 +68,12 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
         body: JSON.stringify({ jobId: uploadState.jobId, name, duration }),
       })
       const project = (await res.json()) as ProjectRecord
+      // Hand off SRT cues (if chosen) now that the jobId is known, so
+      // SubtitlesPage skips transcription and builds the session from them.
+      if (pendingSrtCuesRef.current && uploadState.jobId) {
+        setPendingSrt(uploadState.jobId, pendingSrtCuesRef.current)
+        pendingSrtCuesRef.current = null
+      }
       resetUpload()
       onOpenProject(project.id)
     }
@@ -146,11 +159,12 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
     }
   }, [fetchProjects])
 
-  const handleDialogConfirm = useCallback(() => {
+  const handleDialogConfirm = useCallback((options: TranscriptionOptions) => {
     // Prefs are already persisted by the dialog; setJob reads them when the
     // fresh transcript's phrases are built.
     if (!transcribeDialog) return
     if (transcribeDialog.kind === 'upload') {
+      pendingSrtCuesRef.current = options.srtCues ?? null
       upload(transcribeDialog.file)
     } else {
       void performRetranscribe(transcribeDialog.projectId)
@@ -162,6 +176,7 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
     <TranscriptionOptionsDialog
       title={transcribeDialog.kind === 'upload' ? 'Transcription options' : 'Re-transcribe project'}
       confirmLabel={transcribeDialog.kind === 'upload' ? 'Upload & Transcribe' : 'Re-transcribe'}
+      allowSrt={transcribeDialog.kind === 'upload'}
       onConfirm={handleDialogConfirm}
       onCancel={() => setTranscribeDialog(null)}
     />

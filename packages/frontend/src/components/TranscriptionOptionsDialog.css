@@ -66,6 +66,48 @@
   line-height: 1.4;
 }
 
+.transcription-options-dialog__srt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.transcription-options-dialog__srt-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.transcription-options-dialog__srt-name {
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-green);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transcription-options-dialog__srt-clear {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs);
+}
+
+.transcription-options-dialog__srt-clear:hover {
+  color: var(--color-text-primary);
+}
+
+.transcription-options-dialog__srt-error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-red, #e5484d);
+}
+
 .transcription-options-dialog__footer {
   padding: var(--spacing-md);
   display: flex;

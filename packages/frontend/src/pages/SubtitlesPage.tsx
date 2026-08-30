@@ -15,6 +15,8 @@ import { useUndoStore } from '../store/undoMiddleware.ts'
 import { buildStateBlob, loadProjectBlob, type ProjectStateBlob } from '../lib/projectState.ts'
 import { useWaveform } from '../hooks/useWaveform.ts'
 import { AutoSaveIndicator, type SaveStatus } from '../components/AutoSaveIndicator.tsx'
+import { consumePendingSrt } from '../lib/pendingSrt.ts'
+import { srtToTranscript } from '../lib/srtAlignment.ts'
 import { TranscriptionOptionsDialog } from '../components/TranscriptionOptionsDialog.tsx'
 import { LaneSidePanel } from '../components/LaneSidePanel.tsx'
 import { GlobalStyleSidePanel, type RightPanelMode } from '../components/GlobalStyleSidePanel.tsx'
@@ -381,8 +383,19 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
     if (!uploadState.jobId) return
     if (transcribeState.status !== 'idle') return
     if (useSubtitleStore.getState().session) return // already have subtitles — don't overwrite
+    // SRT-instead-of-transcription: cues chosen at upload time build the
+    // session directly; WhisperX never runs. Requires the job metadata from
+    // the normalization pipeline — if it's missing (server restarted between
+    // upload and open), fall back to transcribing.
+    const pendingCues = consumePendingSrt(uploadState.jobId)
+    const metadata = uploadState.job?.metadata
+    if (pendingCues && metadata) {
+      const { transcript, cueBreakIndices } = srtToTranscript(pendingCues)
+      useSubtitleStore.getState().setJob(uploadState.jobId, transcript, metadata, cueBreakIndices)
+      return
+    }
     transcribe(uploadState.jobId, numSpeakers)
-  }, [uploadState.status, uploadState.jobId, transcribeState.status, transcribe, numSpeakers])
+  }, [uploadState.status, uploadState.jobId, uploadState.job, transcribeState.status, transcribe, numSpeakers])
 
   // Push job data into Zustand store when transcription completes so PreviewPanel can consume it
   useEffect(() => {

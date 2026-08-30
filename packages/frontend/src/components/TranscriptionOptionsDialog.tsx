@@ -6,11 +6,14 @@ import {
   saveMaxCharsPerLine,
   saveMaxWordsPerLine,
 } from '../lib/transcriptionPrefs.ts'
+import { parseSrt, type SrtCue } from '../lib/srtAlignment.ts'
 import './TranscriptionOptionsDialog.css'
 
 export interface TranscriptionOptions {
   maxWordsPerLine: number
   maxCharsPerLine: number | null
+  /** Parsed SRT cues when the user chose "use SRT instead of transcribing". */
+  srtCues?: SrtCue[] | null
 }
 
 interface TranscriptionOptionsDialogProps {
@@ -30,6 +33,11 @@ interface TranscriptionOptionsDialogProps {
    */
   onConfirm: (options: TranscriptionOptions) => void
   onCancel: () => void
+  /**
+   * Show the "use an SRT file instead of transcribing" picker. Only offered
+   * for fresh uploads — re-transcribe always runs WhisperX.
+   */
+  allowSrt?: boolean
 }
 
 /**
@@ -50,13 +58,44 @@ export function TranscriptionOptionsDialog({
   initialChars,
   onConfirm,
   onCancel,
+  allowSrt,
 }: TranscriptionOptionsDialogProps) {
   const [words, setWords] = useState(() => String(initialWords ?? loadMaxWordsPerLine()))
   const [chars, setChars] = useState(() => {
     const c = initialChars !== undefined ? initialChars : loadMaxCharsPerLine()
     return c === null ? '' : String(c)
   })
+  const [srtCues, setSrtCues] = useState<SrtCue[] | null>(null)
+  const [srtFileName, setSrtFileName] = useState<string | null>(null)
+  const [srtError, setSrtError] = useState<string | null>(null)
   const wordsInputRef = useRef<HTMLInputElement>(null)
+  const srtInputRef = useRef<HTMLInputElement>(null)
+
+  const handleSrtFile = async (file: File) => {
+    try {
+      const cues = parseSrt(await file.text())
+      if (cues.length === 0) {
+        setSrtCues(null)
+        setSrtFileName(null)
+        setSrtError('Could not parse any cues from that file.')
+        return
+      }
+      setSrtCues(cues)
+      setSrtFileName(file.name)
+      setSrtError(null)
+    } catch {
+      setSrtCues(null)
+      setSrtFileName(null)
+      setSrtError('Could not read that file.')
+    }
+  }
+
+  const clearSrt = () => {
+    setSrtCues(null)
+    setSrtFileName(null)
+    setSrtError(null)
+    if (srtInputRef.current) srtInputRef.current.value = ''
+  }
 
   useEffect(() => {
     wordsInputRef.current?.focus()
@@ -81,7 +120,7 @@ export function TranscriptionOptionsDialog({
 
     saveMaxWordsPerLine(maxWordsPerLine)
     saveMaxCharsPerLine(maxCharsPerLine)
-    onConfirm({ maxWordsPerLine, maxCharsPerLine })
+    onConfirm({ maxWordsPerLine, maxCharsPerLine, srtCues })
   }
 
   return (
@@ -122,6 +161,52 @@ export function TranscriptionOptionsDialog({
             the remaining words wrap to the next caption. Leave characters blank
             for no limit.
           </p>
+          {allowSrt && (
+            <div className="transcription-options-dialog__srt">
+              <input
+                ref={srtInputRef}
+                type="file"
+                accept=".srt"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void handleSrtFile(file)
+                }}
+              />
+              {srtCues === null ? (
+                <button
+                  type="button"
+                  className="transcription-options-dialog__btn transcription-options-dialog__btn--secondary"
+                  onClick={() => srtInputRef.current?.click()}
+                >
+                  Use SRT file instead of transcribing…
+                </button>
+              ) : (
+                <div className="transcription-options-dialog__srt-selected">
+                  <span className="transcription-options-dialog__srt-name">
+                    {srtFileName} ({srtCues.length} cues)
+                  </span>
+                  <button
+                    type="button"
+                    className="transcription-options-dialog__srt-clear"
+                    onClick={clearSrt}
+                    title="Remove SRT — transcribe with WhisperX instead"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              {srtError && (
+                <p className="transcription-options-dialog__srt-error">{srtError}</p>
+              )}
+              {srtCues !== null && (
+                <p className="transcription-options-dialog__hint">
+                  Transcription will be skipped. Words get evenly spread timings
+                  within each cue, and no speaker labels are assigned.
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div className="transcription-options-dialog__footer">
           <button
@@ -135,7 +220,7 @@ export function TranscriptionOptionsDialog({
             type="submit"
             className="transcription-options-dialog__btn transcription-options-dialog__btn--primary"
           >
-            {confirmLabel}
+            {srtCues !== null ? 'Upload with SRT' : confirmLabel}
           </button>
         </div>
       </form>

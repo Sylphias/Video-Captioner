@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseSrt, alignSrtToWhisper } from './srtAlignment.ts'
+import { parseSrt, alignSrtToWhisper, srtToTranscript } from './srtAlignment.ts'
 import type { SessionPhrase } from './grouping.ts'
 
 // -----------------------------------------------------------------------
@@ -265,5 +265,63 @@ describe('alignSrtToWhisper', () => {
     expect(result).toHaveLength(1)
     expect(result[0].srtText).toBe('corrected text')
     expect(result[0].replacementWords[0].start).toBeCloseTo(0, 1)
+  })
+})
+
+// -----------------------------------------------------------------------
+// srtToTranscript tests
+// -----------------------------------------------------------------------
+
+describe('srtToTranscript', () => {
+  const cues = [
+    { startSec: 1.0, endSec: 3.0, text: 'Hello brave new world' },
+    { startSec: 4.0, endSec: 6.0, text: 'Second line' },
+  ]
+
+  it('builds a flat word list with evenly distributed timings per cue', () => {
+    const { transcript } = srtToTranscript(cues)
+    expect(transcript.words).toHaveLength(6)
+    expect(transcript.words.map((w) => w.word)).toEqual([
+      'Hello', 'brave', 'new', 'world', 'Second', 'line',
+    ])
+    // First cue: 2s / 4 words = 0.5s each, starting at 1.0
+    expect(transcript.words[0].start).toBeCloseTo(1.0)
+    expect(transcript.words[0].end).toBeCloseTo(1.5)
+    expect(transcript.words[3].start).toBeCloseTo(2.5)
+    expect(transcript.words[3].end).toBeCloseTo(3.0)
+    // Second cue: 2s / 2 words = 1s each, starting at 4.0
+    expect(transcript.words[4].start).toBeCloseTo(4.0)
+    expect(transcript.words[5].end).toBeCloseTo(6.0)
+  })
+
+  it('assigns confidence 1.0 and no speaker', () => {
+    const { transcript } = srtToTranscript(cues)
+    for (const w of transcript.words) {
+      expect(w.confidence).toBe(1.0)
+      expect(w.speaker).toBeUndefined()
+    }
+  })
+
+  it('returns cue break indices at the start of every cue after the first', () => {
+    const { cueBreakIndices } = srtToTranscript(cues)
+    expect([...cueBreakIndices]).toEqual([4])
+  })
+
+  it('sorts out-of-order cues by start time', () => {
+    const { transcript } = srtToTranscript([cues[1], cues[0]])
+    expect(transcript.words[0].word).toBe('Hello')
+    expect(transcript.words[4].word).toBe('Second')
+  })
+
+  it('skips cues whose text yields no words and returns empty for no cues', () => {
+    const { transcript, cueBreakIndices } = srtToTranscript([
+      { startSec: 0, endSec: 1, text: '   ' },
+      { startSec: 2, endSec: 3, text: 'Only cue' },
+    ])
+    expect(transcript.words.map((w) => w.word)).toEqual(['Only', 'cue'])
+    expect(cueBreakIndices.size).toBe(0)
+
+    const empty = srtToTranscript([])
+    expect(empty.transcript.words).toHaveLength(0)
   })
 })

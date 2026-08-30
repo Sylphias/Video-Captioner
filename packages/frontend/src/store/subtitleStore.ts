@@ -38,7 +38,7 @@ interface SubtitleStore {
   additionalSpeakerCount: number                       // extra custom speaker rows (0–10)
   speakerHighlightDisabled: Record<string, boolean>    // per-speaker highlight disable
   // Actions
-  setJob: (jobId: string, transcript: Transcript, videoMetadata: VideoMetadata) => void
+  setJob: (jobId: string, transcript: Transcript, videoMetadata: VideoMetadata, manualSplitWordIndices?: Set<number>) => void
   updateWord: (wordIndex: number, patch: Partial<Pick<SessionWord, 'word' | 'start' | 'end'>>) => void
   setWordTransition: (wordIndex: number, newTime: number) => void
   splitPhrase: (phraseIndex: number, splitBeforeWordIndex: number) => void
@@ -224,8 +224,11 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
   additionalSpeakerCount: 0,
   speakerHighlightDisabled: {},
 
-  setJob: (jobId, transcript, videoMetadata) => {
+  setJob: (jobId, transcript, videoMetadata, manualSplitWordIndices) => {
     const words: SessionWord[] = transcript.words.map((w) => ({ ...w }))
+    // SRT-sourced transcripts pass cue boundaries as manual splits so the
+    // user's cue segmentation survives auto-grouping.
+    const manualSplits = manualSplitWordIndices ?? new Set<number>()
     // Initial phrase construction from a fresh transcript (NOT an in-place
     // edit): honor the transcription-time preferences chosen in the options
     // dialog (max words + max chars per line). The words value also seeds
@@ -233,7 +236,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
     // Saved projects restore phrases from their blob and never pass here.
     const maxWordsPerPhrase = loadMaxWordsPerLine()
     const maxCharsPerPhrase = loadMaxCharsPerLine()
-    const phrases = buildSessionPhrases(words, new Set(), maxWordsPerPhrase, maxCharsPerPhrase)
+    const phrases = buildSessionPhrases(words, manualSplits, maxWordsPerPhrase, maxCharsPerPhrase)
     // Initialize speakerNames from unique speakers found in words
     const uniqueSpeakers = new Set<string>()
     for (const w of words) { if (w.speaker) uniqueSpeakers.add(w.speaker) }
@@ -243,7 +246,7 @@ export const useSubtitleStore = create<SubtitleStore>()((set, get) => ({
       jobId,
       original: transcript,
       videoMetadata,
-      session: { words, phrases, manualSplitWordIndices: new Set() },
+      session: { words, phrases, manualSplitWordIndices: manualSplits },
       speakerNames,
       maxWordsPerPhrase,
       maxCharsPerPhrase,

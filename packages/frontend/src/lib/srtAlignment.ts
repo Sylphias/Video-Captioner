@@ -1,4 +1,5 @@
 import SrtParser from 'srt-parser-2'
+import type { Transcript } from '@eigen/shared-types'
 import type { SessionWord, SessionPhrase } from './grouping.ts'
 
 // Re-export for use in hooks and components
@@ -93,6 +94,35 @@ function distributeTimings(
       speaker,
     }
   })
+}
+
+/**
+ * Build a full Transcript directly from SRT cues — the "skip transcription"
+ * path for users who already have subtitles. Each cue's text is split into
+ * words and the cue's own time window is distributed evenly across them
+ * (SRT carries no word-level timings or speakers).
+ *
+ * Also returns cueBreakIndices: the global word index at the start of every
+ * cue after the first. Passed to setJob as manual splits so the user's cue
+ * segmentation survives auto-grouping (cues with no silence gap between them
+ * would otherwise merge).
+ */
+export function srtToTranscript(cues: SrtCue[]): {
+  transcript: Transcript
+  cueBreakIndices: Set<number>
+} {
+  const sorted = [...cues].sort((a, b) => a.startSec - b.startSec)
+  const words: SessionWord[] = []
+  const cueBreakIndices = new Set<number>()
+
+  for (const cue of sorted) {
+    const cueWords = cue.text.split(/\s+/).filter(Boolean)
+    if (cueWords.length === 0) continue
+    if (words.length > 0) cueBreakIndices.add(words.length)
+    words.push(...distributeTimings(cueWords, cue.startSec, cue.endSec))
+  }
+
+  return { transcript: { language: 'en', words }, cueBreakIndices }
 }
 
 /**
