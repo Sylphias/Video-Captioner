@@ -11,7 +11,35 @@ import sys
 import json
 import os
 
-import torch
+
+def register_windows_cuda_dlls():
+    """Make cuDNN/cuBLAS DLLs from the pip-installed nvidia-* packages visible to ctranslate2.
+
+    On native Windows, ctranslate2's C++ extension does not see the DLL dirs that torch
+    registers for itself, so it fails with "Could not locate cudnn64_9.dll". WSL/Linux
+    resolves .so files differently and never hit this. No-op off Windows; silently skips
+    when the nvidia-* packages are absent (CPU-only installs).
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import nvidia.cudnn
+        import nvidia.cublas
+        for pkg in (nvidia.cudnn, nvidia.cublas):
+            pkg_dir = os.path.dirname(pkg.__file__) if getattr(pkg, "__file__", None) else list(pkg.__path__)[0]
+            bin_dir = os.path.join(pkg_dir, "bin")
+            if os.path.isdir(bin_dir):
+                os.add_dll_directory(bin_dir)
+    except ImportError:
+        pass  # CPU-only fallback: nvidia-* CUDA packages not installed
+
+
+# Must run before anything that loads ctranslate2 (whisperx / faster-whisper) or torch.
+register_windows_cuda_dlls()
+# Avoid requiring Windows Developer Mode for HuggingFace cache symlinks (falls back to file copies).
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS", "1")
+
+import torch  # noqa: E402
 
 
 def detect_device():
