@@ -4,16 +4,16 @@ milestone: v1.0
 current_phase: 15
 current_phase_name: Desktop App Port
 status: executing
-stopped_at: Completed 15-03-PLAN.md
-last_updated: "2026-10-08T05:45:22.047Z"
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-10-08T05:47:52.861Z"
 last_activity: 2026-10-08
 last_activity_desc: Phase 15 execution started
-state_head: e39012c59d2d821b81e7a3a95d7065414d05d04d
+state_head: 964f21e4eefe23654dd72bbbf6e6c47469ff38b4
 progress:
   total_phases: 17
   completed_phases: 5
   total_plans: 56
-  completed_plans: 49
+  completed_plans: 50
 milestone_name: milestone
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 15 (Desktop App Port) — EXECUTING
-Plan: 3 of 9
+Plan: 4 of 9
 Status: Ready to execute
 Last activity: 2026-10-08 — Phase 15 execution started
 
@@ -79,6 +79,7 @@ Progress: [██████████████████░░] 88% (Ph
 |------|----------|-------|-------|
 | Phase 15 P01 | 12 min | 3 tasks | 4 files |
 | Phase 15 P03 | 8 min | 2 tasks | 4 files |
+| Phase 15 P02 | 10 min | 4 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -276,6 +277,8 @@ Recent decisions affecting current work:
 - [Phase 12]: [12-03]: Word Timing upgrades from checkpoint feedback — editable phrase start/end, drag-to-scrub time inputs (one undo per gesture), edge-drag phrase chunks, playhead auto-centering, same-speaker phrase nav (ArrowLeft/ArrowRight)
 - [Phase 15]: MEDIA_ROOT defaults to DATA_ROOT; backend serves SPA only when dist exists; watchdog reacts only to ESRCH
 - [Phase 15]: 15-03: torch/torchaudio cu128 uv index sources gated to win32 so Linux/WSL resolve is unchanged; nvidia-cudnn/cublas installed explicitly in setup-python-windows
+- [Phase 15]: 15-02: VENV_PYTHON default is platform-aware (win32 Scripts/python.exe, else bin/python3) so WSL dev keeps working
+- [Phase 15]: 15-02: Per-job media paths use MEDIA_ROOT; SQLite DBs stay on DATA_ROOT; render workers terminated via terminateActiveRenders() in shutdown
 
 ### Roadmap Evolution
 
@@ -309,8 +312,8 @@ Recent decisions affecting current work:
 
 **Resume file:** None
 
-Last session: 2026-10-08T05:45:21.913Z
-Stopped at: Completed 15-03-PLAN.md
+Last session: 2026-10-08T05:47:52.721Z
+Stopped at: Completed 15-02-PLAN.md
 
 Next planned work:
 
