@@ -24,11 +24,17 @@ import { initBundle } from './services/render.ts'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// data/ directory at repo root (two levels up from packages/backend/src)
-export const DATA_ROOT = path.resolve(__dirname, '../../../data')
+// Settings + SQLite DBs root (D-11). Electron points this at app.getPath('userData');
+// dev fallback is the data/ directory at repo root (three levels up from packages/backend/src).
+export const DATA_ROOT = process.env.DATA_ROOT ?? path.resolve(__dirname, '../../../data')
 
-// Ensure data directory exists at startup
+// Heavy media root (uploads/renders/thumbnails/job dirs) — user-configurable big-drive folder
+// in packaged mode (D-11); defaults to DATA_ROOT so dev behavior is unchanged.
+export const MEDIA_ROOT = process.env.MEDIA_ROOT ?? DATA_ROOT
+
+// Ensure data directories exist at startup
 mkdirSync(DATA_ROOT, { recursive: true })
+mkdirSync(MEDIA_ROOT, { recursive: true })
 
 const fastify = Fastify({
   logger: { level: 'info' },
@@ -64,9 +70,9 @@ const bundleStart = Date.now()
 await initBundle()
 console.log(`Remotion bundle ready in ${Date.now() - bundleStart}ms`)
 
-// Start server — must bind to 0.0.0.0 for LAN access (PLAT-02)
+// Start server — localhost only (D-12); PORT/HOST overridable by the Electron shell
 try {
-  await fastify.listen({ port: 3001, host: '0.0.0.0' })
+  await fastify.listen({ port: Number(process.env.PORT ?? 3001), host: process.env.HOST ?? '127.0.0.1' })
 } catch (err) {
   fastify.log.error(err)
   process.exit(1)
