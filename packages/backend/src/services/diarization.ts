@@ -2,12 +2,20 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import readline from 'node:readline'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { registerChild, unregisterChild } from './childRegistry.ts'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const REPO_ROOT = path.resolve(__dirname, '../../../../')
-const VENV_PYTHON = path.join(REPO_ROOT, '.venv/bin/python3')
+// D-07: Electron injects an absolute venv path via VENV_PYTHON. Default is the Windows venv
+// layout (target platform); non-Windows dev (WSL/Linux) falls back to the POSIX venv layout.
+const VENV_PYTHON =
+  process.env.VENV_PYTHON ??
+  path.join(
+    REPO_ROOT,
+    process.platform === 'win32' ? '.venv/Scripts/python.exe' : '.venv/bin/python3',
+  )
 const SCRIPT = path.join(REPO_ROOT, 'scripts/diarize.py')
 
 /**
@@ -33,6 +41,8 @@ export function runDiarization(
   const proc = spawn(VENV_PYTHON, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
+  // Track for tree-kill on shutdown (D-03); unregistered on close below
+  if (proc.pid !== undefined) registerChild(proc.pid)
 
   const promise = new Promise<void>((resolve, reject) => {
     const rl = readline.createInterface({ input: proc.stdout!, terminal: false })
@@ -55,6 +65,7 @@ export function runDiarization(
     })
 
     proc.on('close', (code) => {
+      if (proc.pid !== undefined) unregisterChild(proc.pid)
       if (code === 0) {
         if (onProgress) onProgress(100)
         resolve()
@@ -64,7 +75,7 @@ export function runDiarization(
     })
 
     proc.on('error', (err) => {
-      reject(new Error(`Failed to spawn diarize.py: ${err.message}. Ensure venv exists (run: just setup-python)`))
+      reject(new Error(`Failed to spawn diarize.py: ${err.message}. Ensure venv exists (run: just setup-python-windows, or complete first-run setup)`))
     })
   })
 
