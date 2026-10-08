@@ -18,8 +18,17 @@ override-dependencies = [
     "torchaudio>=2.8.0,<2.9",
 ]
 
+[[tool.uv.index]]
+# Mirrors whisperX main's own index routing: native Windows resolves torch from cu128, not the CPU PyPI wheel.
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
 [tool.uv.sources]
 whisperx = { git = "https://github.com/m-bain/whisperX.git" }
+# Marker-gated so Linux/WSL and macOS resolution is unchanged.
+torch = { index = "pytorch", marker = "sys_platform == 'win32'" }
+torchaudio = { index = "pytorch", marker = "sys_platform == 'win32'" }
 
 [project.scripts]
 transcribe = "scripts.transcribe:main"

@@ -32,9 +32,22 @@ setup-python-cpu:
     uv pip install --python .venv/bin/python torch torchaudio --index-url https://download.pytorch.org/whl/cpu
     uv pip install --python .venv/bin/python whisperx 'pyannote-audio>=3.1'
 
+# Canonical Windows provisioning command set; the in-app first-run setup (Phase 15 Plan 06) replicates these steps.
+# nvidia-cudnn-cu12 / nvidia-cublas-cu12 are installed explicitly: the Windows torch wheel bundles its own
+# CUDA DLLs and does not pull them in, but ctranslate2 needs them (see register_windows_cuda_dlls in scripts/).
+# Set up Python venv — native Windows + NVIDIA GPU (CUDA 12.8)
+setup-python-windows:
+    uv venv .venv
+    uv pip install --python .venv/Scripts/python.exe 'torch>=2.8.0,<2.9' 'torchaudio>=2.8.0,<2.9' --index-url https://download.pytorch.org/whl/cu128
+    uv pip install --python .venv/Scripts/python.exe whisperx 'pyannote-audio>=4.0.4' nvidia-cudnn-cu12 nvidia-cublas-cu12
+
 # Validate the venv: confirm torch + whisperx importable, show detected device
 check-env:
     .venv/bin/python3 -c "import torch; print('CUDA:', torch.cuda.is_available()); print('MPS:', torch.backends.mps.is_available()); import whisperx; print('WhisperX: OK')"
+
+# Validate the Windows venv: torch + CUDA availability + whisperx importable
+check-env-windows:
+    .venv/Scripts/python.exe -c "import torch; print('torch:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu'); import whisperx; print('WhisperX: OK')"
 
 # Build shared-types and remotion-composition so downstream packages see updated types/exports
 build-libs:
