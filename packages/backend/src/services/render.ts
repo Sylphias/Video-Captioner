@@ -1,6 +1,7 @@
 import { bundle } from '@remotion/bundler'
 import { Worker } from 'node:worker_threads'
 import path from 'node:path'
+import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { updateJob } from './jobStore.ts'
 import type { Job } from '@eigen/shared-types'
@@ -10,7 +11,34 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 let bundleLocation: string | null = null
 
+// Live render worker threads, tracked so shutdown can terminate them (T-15-21).
+// Workers are in-process threads (threadId is not an OS pid), so they cannot go in childRegistry.
+const activeWorkers = new Set<Worker>()
+
+export function terminateActiveRenders(): void {
+  for (const worker of [...activeWorkers]) {
+    // Best-effort: terminate() returns a promise; ignore rejection during shutdown
+    void worker.terminate().catch(() => undefined)
+  }
+  activeWorkers.clear()
+}
+
 export async function initBundle(): Promise<void> {
+  // Packaged mode (Pattern 2, Pitfall 3): webpack bundle() cannot run against asar-packed source
+  // and is slow on every launch, so reuse the prebuilt bundle shipped as extraResources.
+  if (process.env.IS_PACKAGED === '1') {
+    const prebuilt = process.env.REMOTION_BUNDLE_DIR
+    if (!prebuilt || !existsSync(prebuilt)) {
+      throw new Error(
+        'Packaged app missing its prebuilt Remotion bundle — rebuild the installer ' +
+          `(REMOTION_BUNDLE_DIR=${prebuilt ?? '<unset>'})`,
+      )
+    }
+    bundleLocation = prebuilt
+    console.log(`[render] Using prebuilt Remotion bundle at ${bundleLocation}`)
+    return
+  }
+
   const entryPoint = path.resolve(
     __dirname,
     '../../../remotion-composition/src/remotion-entry.ts',
@@ -57,6 +85,7 @@ export function dispatchRender(
     },
   })
 
+  activeWorkers.add(worker)
   let hasFinished = false
 
   worker.on('message', (msg: { type: string; progress?: number }) => {
@@ -78,6 +107,7 @@ export function dispatchRender(
   })
 
   worker.on('exit', (code: number) => {
+    activeWorkers.delete(worker)
     if (!hasFinished && code !== 0) {
       updateJob(jobs, jobId, {
         status: 'failed',

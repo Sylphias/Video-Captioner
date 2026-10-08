@@ -19,7 +19,7 @@ import waveformRoutes from './routes/waveform.ts'
 import presetsRoutes from './routes/presets.ts'
 import lanePresetsRoutes from './routes/lanePresets.ts'
 import projectsRoutes from './routes/projects.ts'
-import { initBundle } from './services/render.ts'
+import { initBundle, terminateActiveRenders } from './services/render.ts'
 import { killAll } from './services/childRegistry.ts'
 
 // ESM __dirname equivalent
@@ -106,6 +106,7 @@ async function shutdown(reason: string): Promise<void> {
   shuttingDown = true
   fastify.log.info(`Shutting down (${reason})`)
   try {
+    terminateActiveRenders()
     await killAll('SIGKILL')
     await fastify.close()
   } catch (err) {
