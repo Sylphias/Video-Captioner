@@ -63,3 +63,31 @@ export function buildBackendEnv(opts: BackendEnvOptions): NodeJS.ProcessEnv {
   if (opts.frontendDist) env.FRONTEND_DIST = opts.frontendDist
   return env
 }
+
+export interface PackagedPaths {
+  backendEntry: string
+  ffmpegPath: string
+  ffprobePath: string
+  uvPath: string
+  remotionBundleDir: string
+  frontendDist: string
+  /** Venv is created by first-run setup (D-08) in a userData-writable location, never shipped. */
+  venvPython: string
+}
+
+/**
+ * Packaged-mode resource layout, matching the electron-builder extraResources contract in Plan 08:
+ * backend at <resources>/backend, ffmpeg/ffprobe/uv at <resources>/bin, prebuilt Remotion bundle at
+ * <resources>/remotion-bundle, Vite dist at <resources>/frontend/dist.
+ */
+export function resolvePackagedPaths(resourcesPath: string, userDataDir: string): PackagedPaths {
+  return {
+    backendEntry: path.join(resourcesPath, 'backend', 'src', 'index.ts'),
+    ffmpegPath: path.join(resourcesPath, 'bin', 'ffmpeg.exe'),
+    ffprobePath: path.join(resourcesPath, 'bin', 'ffprobe.exe'),
+    uvPath: path.join(resourcesPath, 'bin', 'uv.exe'),
+    remotionBundleDir: path.join(resourcesPath, 'remotion-bundle'),
+    frontendDist: path.join(resourcesPath, 'frontend', 'dist'),
+    venvPython: path.join(userDataDir, 'venv', 'Scripts', 'python.exe'),
+  }
+}

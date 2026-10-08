@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildBackendEnv, resolveDataRoot, resolveMediaRoot } from './config.ts'
+import { buildBackendEnv, resolveDataRoot, resolveMediaRoot, resolvePackagedPaths } from './config.ts'
 
 const userData = path.join(path.sep, 'users', 'me', 'AppData', 'Roaming', 'Eigen')
 
@@ -64,5 +64,24 @@ describe('buildBackendEnv', () => {
     expect(env.UV_PATH).toBe('uv.exe')
     expect(env.REMOTION_BUNDLE_DIR).toBe('bundle')
     expect(env.FRONTEND_DIST).toBe('dist')
+  })
+})
+
+describe('resolvePackagedPaths', () => {
+  const res = path.join(path.sep, 'app', 'resources')
+  const p = resolvePackagedPaths(res, userData)
+
+  it('places shipped assets under resourcesPath', () => {
+    expect(p.backendEntry).toBe(path.join(res, 'backend', 'src', 'index.ts'))
+    expect(p.ffmpegPath).toBe(path.join(res, 'bin', 'ffmpeg.exe'))
+    expect(p.ffprobePath).toBe(path.join(res, 'bin', 'ffprobe.exe'))
+    expect(p.uvPath).toBe(path.join(res, 'bin', 'uv.exe'))
+    expect(p.remotionBundleDir).toBe(path.join(res, 'remotion-bundle'))
+    expect(p.frontendDist).toBe(path.join(res, 'frontend', 'dist'))
+  })
+
+  it('puts the venv python under userData, not resources', () => {
+    expect(p.venvPython.startsWith(userData)).toBe(true)
+    expect(p.venvPython.endsWith(path.join('Scripts', 'python.exe'))).toBe(true)
   })
 })
