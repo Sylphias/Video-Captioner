@@ -1,7 +1,8 @@
 import Fastify from 'fastify'
+import fastifyStatic from '@fastify/static'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, existsSync } from 'node:fs'
 
 import corsPlugin from './plugins/cors.ts'
 import multipartPlugin from './plugins/multipart.ts'
@@ -59,6 +60,24 @@ await fastify.register(waveformRoutes)
 await fastify.register(presetsRoutes)
 await fastify.register(lanePresetsRoutes)
 await fastify.register(projectsRoutes)
+
+// Serve the Vite production build at / (D-04). Skipped when no dist exists so
+// `just dev` (frontend on Vite :5173, proxying /api) is unaffected.
+const FRONTEND_DIST = process.env.FRONTEND_DIST ?? path.resolve(__dirname, '../../frontend/dist')
+if (existsSync(FRONTEND_DIST)) {
+  await fastify.register(fastifyStatic, { root: FRONTEND_DIST })
+  // SPA fallback: non-/api GETs get index.html; /api keeps Fastify's normal 404
+  fastify.setNotFoundHandler((request, reply) => {
+    if (request.method === 'GET' && !request.url.startsWith('/api')) {
+      return reply.sendFile('index.html')
+    }
+    return reply.code(404).send({
+      message: `Route ${request.method}:${request.url} not found`,
+      error: 'Not Found',
+      statusCode: 404,
+    })
+  })
+}
 
 // Health check endpoint
 fastify.get('/api/health', async (_request, _reply) => {
