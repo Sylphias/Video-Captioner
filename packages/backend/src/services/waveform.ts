@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 
-const FFMPEG = 'ffmpeg'
+const FFMPEG = process.env.FFMPEG_PATH ?? 'ffmpeg'
 
 // Module-level cache: keyed by jobId -> Float32Array of 2000 amplitude samples (0.0-1.0)
 const waveformCache = new Map<string, Float32Array>()

@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 
-const FFMPEG = 'ffmpeg'
+const FFMPEG = process.env.FFMPEG_PATH ?? 'ffmpeg'
 
 /**
  * Extract a thumbnail JPEG from a video at the 1-second mark.

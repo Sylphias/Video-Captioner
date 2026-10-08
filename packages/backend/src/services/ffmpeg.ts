@@ -1,14 +1,15 @@
 import { spawn, execFileSync } from 'node:child_process'
 import type { VideoMetadata } from '@eigen/shared-types'
 
-const FFMPEG = 'ffmpeg'
-const FFPROBE = 'ffprobe'
+// D-13: packaged app injects bundled static binaries via env; dev falls back to PATH lookup
+const FFMPEG = process.env.FFMPEG_PATH ?? 'ffmpeg'
+const FFPROBE = process.env.FFPROBE_PATH ?? 'ffprobe'
 
 // Verify FFmpeg binaries exist at module load time
 try {
   execFileSync(FFMPEG, ['-version'], { stdio: 'ignore' })
 } catch {
-  const msg = 'FFmpeg not found. Install with: choco install ffmpeg (Windows) or brew install ffmpeg (Mac)'
+  const msg = `FFmpeg not found (bundled ffmpeg not found at FFMPEG_PATH=${process.env.FFMPEG_PATH ?? '<unset, using PATH>'}). Install with: choco install ffmpeg (Windows) or brew install ffmpeg (Mac)`
   console.error(msg)
   throw new Error(msg)
 }

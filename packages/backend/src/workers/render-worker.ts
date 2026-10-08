@@ -6,6 +6,9 @@ import { readdir, rename, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import type { SubtitleCompositionProps } from '@eigen/remotion-composition'
 
+// D-13: worker threads inherit the parent env, so FFMPEG_PATH propagates automatically
+const FFMPEG = process.env.FFMPEG_PATH ?? 'ffmpeg'
+
 interface RenderWorkerData {
   bundleLocation: string
   outputPath: string
@@ -64,7 +67,7 @@ function muxOriginalAudio(renderedPath: string, originalPath: string, finalPath:
       '-y',
       finalPath,
     ]
-    const proc = spawn('ffmpeg', args)
+    const proc = spawn(FFMPEG, args)
     let stderr = ''
     proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString() })
     proc.on('close', (code) => {
