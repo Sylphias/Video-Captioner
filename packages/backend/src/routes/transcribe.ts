@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ChildProcess } from 'node:child_process'
 import path from 'node:path'
 
-import { DATA_ROOT } from '../index.ts'
+import { MEDIA_ROOT } from '../index.ts'
 import { updateJob } from '../services/jobStore.ts'
 import { runTranscription } from '../services/transcription.ts'
 
@@ -52,7 +52,7 @@ async function transcribeRoutes(fastify: FastifyInstance): Promise<void> {
     reply.code(202).send({ jobId, status: 'transcribing' })
 
     // Fire-and-forget: background transcription pipeline
-    const jobDir = path.join(DATA_ROOT, jobId)
+    const jobDir = path.join(MEDIA_ROOT, jobId)
     void runTranscriptionPipeline(fastify, jobId, jobDir, numSpeakers)
   })
 }

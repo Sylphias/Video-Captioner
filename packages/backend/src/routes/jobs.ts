@@ -4,7 +4,7 @@ import path from 'node:path'
 import { createReadStream } from 'node:fs'
 import { access, readFile, stat } from 'node:fs/promises'
 
-import { DATA_ROOT } from '../index.ts'
+import { MEDIA_ROOT } from '../index.ts'
 import { killTranscription } from './transcribe.ts'
 import { killDiarization } from './diarize.ts'
 
@@ -95,7 +95,7 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
 
     // Try in-memory job first, fall back to predictable disk path
     const job = fastify.jobs.get(jobId)
-    const thumbPath = job?.thumbnailPath ?? path.join(DATA_ROOT, jobId, 'thumbnail.jpg')
+    const thumbPath = job?.thumbnailPath ?? path.join(MEDIA_ROOT, jobId, 'thumbnail.jpg')
 
     try {
       await access(thumbPath)
@@ -113,7 +113,7 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
 
     // Try in-memory job first, fall back to predictable disk path
     const job = fastify.jobs.get(jobId)
-    const transcriptPath = job?.transcriptPath ?? path.join(DATA_ROOT, jobId, 'transcript.json')
+    const transcriptPath = job?.transcriptPath ?? path.join(MEDIA_ROOT, jobId, 'transcript.json')
 
     try {
       const content = await readFile(transcriptPath, 'utf-8')
@@ -135,7 +135,7 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     // Serve from predictable disk path (works even after server restart)
-    const normalizedPath = path.join(DATA_ROOT, jobId, 'normalized.mp4')
+    const normalizedPath = path.join(MEDIA_ROOT, jobId, 'normalized.mp4')
 
     // Verify file exists on disk
     try {

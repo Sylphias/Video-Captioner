@@ -4,7 +4,7 @@ import crypto from 'node:crypto'
 import path from 'node:path'
 import { rm } from 'node:fs/promises'
 
-import { DATA_ROOT } from '../index.ts'
+import { MEDIA_ROOT } from '../index.ts'
 
 // ── Row shape (as stored in SQLite) ──────────────────────────────────────────
 
@@ -134,7 +134,7 @@ async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
     const countRow = countByJobIdStmt.get(row.job_id)!
     if (countRow.cnt <= 1) {
       // Last project referencing this job directory — safe to delete files
-      await rm(path.join(DATA_ROOT, row.job_id), { recursive: true, force: true }).catch(() => {})
+      await rm(path.join(MEDIA_ROOT, row.job_id), { recursive: true, force: true }).catch(() => {})
     }
 
     deleteStmt.run(id)

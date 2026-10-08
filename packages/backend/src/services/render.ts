@@ -69,7 +69,7 @@ export function dispatchRender(
   const currentBundleLocation = getBundleLocation()
 
   const workerPath = path.resolve(__dirname, '../workers/render-worker.ts')
-  const jobDir = path.join(path.dirname(outputPath)) // e.g. DATA_ROOT/{jobId}
+  const jobDir = path.join(path.dirname(outputPath)) // e.g. MEDIA_ROOT/{jobId}
 
   const worker = new Worker(workerPath, {
     workerData: {

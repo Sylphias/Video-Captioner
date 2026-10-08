@@ -5,7 +5,7 @@ import { createWriteStream, mkdirSync } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
 import { randomUUID } from 'node:crypto'
 
-import { DATA_ROOT } from '../index.ts'
+import { MEDIA_ROOT } from '../index.ts'
 import { createJob, updateJob } from '../services/jobStore.ts'
 import { normalizeVideo, probeVideo } from '../services/ffmpeg.ts'
 import { extractThumbnail } from '../services/thumbnail.ts'
@@ -19,7 +19,7 @@ async function uploadRoutes(fastify: FastifyInstance): Promise<void> {
 
     // Generate a unique job ID and create job directory
     const jobId = randomUUID()
-    const jobDir = path.join(DATA_ROOT, jobId)
+    const jobDir = path.join(MEDIA_ROOT, jobId)
     mkdirSync(jobDir, { recursive: true })
 
     // Determine the original file extension
