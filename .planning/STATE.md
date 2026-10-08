@@ -1,20 +1,20 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-current_phase: 12
-current_phase_name: ui-ux-layout-improvements
-status: phase_complete
-stopped_at: Phase 15 UI-SPEC approved
-last_updated: "2026-07-08T06:18:24.163Z"
-last_activity: 2026-07-07
-last_activity_desc: Phase 12 human-verify approved, 12-03 summary written
+current_phase: 15
+current_phase_name: Desktop App Port
+status: executing
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-10-08T05:43:29.408Z"
+last_activity: 2026-10-08
+last_activity_desc: Phase 15 execution started
+state_head: 816c0e3db6e3aea8d83166c04206a9498d6e22a2
 progress:
   total_phases: 17
-  completed_phases: 15
-  total_plans: 47
-  completed_plans: 49
-  percent: 88
+  completed_phases: 5
+  total_plans: 56
+  completed_plans: 48
+milestone_name: milestone
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 15 — desktop-app-port (next up; Phase 12 complete)
+**Current focus:** Phase 15 — Desktop App Port
 
 ## Current Position
 
-Phase: 12 (ui-ux-layout-improvements) — COMPLETE (human-verified 2026-07-07)
-Plan: 3 of 3 complete
-Status: Phase 12 closed; Phase 15 (Desktop App Port) ready for discuss/plan
-Last activity: 2026-07-07 — Phase 12 human-verify approved, 12-03 summary written
+Phase: 15 (Desktop App Port) — EXECUTING
+Plan: 2 of 9
+Status: Ready to execute
+Last activity: 2026-10-08 — Phase 15 execution started
 
 Progress: [██████████████████░░] 88% (Phase 15 Desktop App Port remaining)
 
@@ -73,6 +73,11 @@ Progress: [██████████████████░░] 88% (Ph
 | Phase 12-ui-ux-layout-improvements P01 | 15min | 2 tasks | 5 files |
 | Phase 12-ui-ux-layout-improvements P02 | 6min | 2 tasks | 3 files |
 | Phase 12-ui-ux-layout-improvements P03 | ~2 days (checkpoint feedback) | 2 tasks + human-verify | 23 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 15 P01 | 12 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -268,6 +273,7 @@ Recent decisions affecting current work:
 - [Phase 12]: [12-03]: Char cap (max chars/line) promoted to session state in subtitleStore so all regrouping respects it; re-transcribe dialogs prefill from session's own caps
 - [Phase 12]: [12-03]: TranscriptionOptionsDialog (max words/chars per line) shown before upload and re-transcribe on both projects page and toolbar; prefs persisted via lib/transcriptionPrefs.ts
 - [Phase 12]: [12-03]: Word Timing upgrades from checkpoint feedback — editable phrase start/end, drag-to-scrub time inputs (one undo per gesture), edge-drag phrase chunks, playhead auto-centering, same-speaker phrase nav (ArrowLeft/ArrowRight)
+- [Phase 15]: MEDIA_ROOT defaults to DATA_ROOT; backend serves SPA only when dist exists; watchdog reacts only to ESRCH
 
 ### Roadmap Evolution
 
@@ -299,10 +305,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/15-desktop-app-port/15-UI-SPEC.md
+**Resume file:** None
 
-Last session: 2026-07-08T06:18:24.149Z
-Stopped at: Phase 15 UI-SPEC approved
+Last session: 2026-10-08T05:43:29.279Z
+Stopped at: Completed 15-01-PLAN.md
 
 Next planned work:
 
