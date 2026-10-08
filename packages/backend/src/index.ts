@@ -20,6 +20,7 @@ import presetsRoutes from './routes/presets.ts'
 import lanePresetsRoutes from './routes/lanePresets.ts'
 import projectsRoutes from './routes/projects.ts'
 import { initBundle } from './services/render.ts'
+import { killAll } from './services/childRegistry.ts'
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url)
@@ -95,4 +96,39 @@ try {
 } catch (err) {
   fastify.log.error(err)
   process.exit(1)
+}
+
+// Graceful shutdown (D-03): tree-kill every tracked child (python, ffmpeg, render worker),
+// then close Fastify, then exit. Re-entry guarded so double signals don't re-run it.
+let shuttingDown = false
+async function shutdown(reason: string): Promise<void> {
+  if (shuttingDown) return
+  shuttingDown = true
+  fastify.log.info(`Shutting down (${reason})`)
+  try {
+    await killAll('SIGKILL')
+    await fastify.close()
+  } catch (err) {
+    fastify.log.error(err)
+  }
+  process.exit(0)
+}
+
+process.on('SIGTERM', () => void shutdown('SIGTERM'))
+process.on('SIGINT', () => void shutdown('SIGINT'))
+
+// Orphan watchdog (D-03): if the Electron parent vanishes, reap children and self-exit.
+// Only active when the shell supplies PARENT_PID (no-op in dev).
+const parentPid = Number(process.env.PARENT_PID)
+if (process.env.PARENT_PID && Number.isInteger(parentPid) && parentPid > 0) {
+  setInterval(() => {
+    try {
+      process.kill(parentPid, 0)
+    } catch (err) {
+      // ESRCH = parent is gone; EPERM means it exists but is not signalable (still alive)
+      if ((err as NodeJS.ErrnoException).code === 'ESRCH') {
+        void shutdown('parent process gone')
+      }
+    }
+  }, 2000).unref()
 }
