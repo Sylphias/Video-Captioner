@@ -5,3 +5,6 @@ data/
 *.tsbuildinfo
 .venv/
 .env
+# Desktop packaging outputs (Phase 15 Plan 08) - fetched/generated, never committed
+packages/desktop/build/*
+!packages/desktop/build/README.md
