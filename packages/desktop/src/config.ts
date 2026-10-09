@@ -1,5 +1,6 @@
 // Pure, Electron-free path/env derivation for the desktop shell (D-11, D-12).
 // Everything takes userDataDir as a parameter so it can be unit-tested without launching Electron.
+import fs from 'node:fs'
 import path from 'node:path'
 
 export const BACKEND_PORT = 3001
@@ -18,6 +19,22 @@ export function resolveMediaRoot(userDataDir: string, override?: string | null):
   const trimmed = override?.trim()
   if (trimmed) return trimmed
   return path.join(userDataDir, 'media')
+}
+
+/**
+ * Media-root the user chose in Settings (D-11), read from the backend's settings.json at launch.
+ * The backend resolves MEDIA_ROOT once at startup, so a change takes effect on the next launch.
+ * Returns null when no usable value is saved (missing/corrupt file, non-string, not a directory).
+ */
+export function readSavedMediaRoot(dataRoot: string): string | null {
+  try {
+    const parsed: unknown = JSON.parse(fs.readFileSync(path.join(dataRoot, 'settings.json'), 'utf8'))
+    const value = (parsed as { mediaRoot?: unknown } | null)?.mediaRoot
+    if (typeof value !== 'string' || !path.isAbsolute(value.trim())) return null
+    return fs.statSync(value.trim()).isDirectory() ? value.trim() : null
+  } catch {
+    return null
+  }
 }
 
 export interface BackendEnvOptions {

@@ -9,6 +9,7 @@ import {
   BACKEND_HOST,
   BACKEND_PORT,
   buildBackendEnv,
+  readSavedMediaRoot,
   resolveDataRoot,
   resolveMediaRoot,
   resolvePackagedPaths,
@@ -116,8 +117,9 @@ async function boot(): Promise<void> {
 
   const userDataDir = app.getPath('userData')
   const dataRoot = resolveDataRoot(userDataDir)
-  // Plan 07 supplies the user's saved media-root override; until then the default applies.
-  const mediaRoot = resolveMediaRoot(userDataDir)
+  // Media root chosen in Settings (D-11) lives in the backend's settings.json; it is read here
+  // at launch because the backend resolves MEDIA_ROOT once, so changes apply on next start.
+  const mediaRoot = resolveMediaRoot(userDataDir, readSavedMediaRoot(dataRoot))
 
   const packaged = app.isPackaged ? resolvePackagedPaths(process.resourcesPath, userDataDir) : null
   const backendEntry = packaged?.backendEntry ?? path.resolve(__dirname, '../../backend/src/index.ts')
