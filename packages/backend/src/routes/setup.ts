@@ -25,6 +25,8 @@ interface ActiveSetup {
 // Additional POST /start calls (e.g. a reloaded window) attach to the same run.
 let active: ActiveSetup | null = null
 
+const DISCONNECT_GRACE_MS = 5000
+
 function broadcast(run: ActiveSetup, event: SetupEvent): void {
   run.last = event
   for (const listener of run.listeners) listener(event)
@@ -88,12 +90,14 @@ async function setupRoutes(fastify: FastifyInstance): Promise<void> {
     run.listeners.add(send)
 
     // Client gone (window closed / fetch aborted): drop the listener, and if nobody is
-    // watching any more, kill uv so no orphan keeps downloading (T-15-62).
+    // watching any more, kill uv so no orphan keeps downloading (T-15-62). A short grace
+    // period lets a reloaded window re-attach to the same run instead of killing it.
     raw.on('close', () => {
       run.listeners.delete(send)
-      if (run.listeners.size === 0 && active === run && !raw.writableFinished) {
-        run.handle.cancel()
-      }
+      if (run.listeners.size > 0 || raw.writableFinished) return
+      setTimeout(() => {
+        if (active === run && run.listeners.size === 0) run.handle.cancel()
+      }, DISCONNECT_GRACE_MS).unref()
     })
   })
 
