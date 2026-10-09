@@ -43,7 +43,7 @@ describe('buildBackendEnv', () => {
 
   it('omits packaged-only vars when not provided', () => {
     const env = buildBackendEnv({ ...base, baseEnv: { IS_PACKAGED: '1' } })
-    for (const k of ['IS_PACKAGED', 'VENV_PYTHON', 'FFMPEG_PATH', 'FFPROBE_PATH', 'UV_PATH', 'REMOTION_BUNDLE_DIR', 'FRONTEND_DIST']) {
+    for (const k of ['IS_PACKAGED', 'VENV_PYTHON', 'FFMPEG_PATH', 'FFPROBE_PATH', 'UV_PATH', 'REMOTION_BUNDLE_DIR', 'FRONTEND_DIST', 'SCRIPTS_DIR']) {
       expect(env[k]).toBeUndefined()
     }
   })
@@ -58,6 +58,7 @@ describe('buildBackendEnv', () => {
       uvPath: 'uv.exe',
       remotionBundleDir: 'bundle',
       frontendDist: 'dist',
+      scriptsDir: 'scripts',
     })
     expect(env.IS_PACKAGED).toBe('1')
     expect(env.VENV_PYTHON).toBe('py.exe')
@@ -66,6 +67,7 @@ describe('buildBackendEnv', () => {
     expect(env.UV_PATH).toBe('uv.exe')
     expect(env.REMOTION_BUNDLE_DIR).toBe('bundle')
     expect(env.FRONTEND_DIST).toBe('dist')
+    expect(env.SCRIPTS_DIR).toBe('scripts')
   })
 })
 
@@ -80,6 +82,7 @@ describe('resolvePackagedPaths', () => {
     expect(p.uvPath).toBe(path.join(res, 'bin', 'uv.exe'))
     expect(p.remotionBundleDir).toBe(path.join(res, 'remotion-bundle'))
     expect(p.frontendDist).toBe(path.join(res, 'frontend', 'dist'))
+    expect(p.scriptsDir).toBe(path.join(res, 'scripts'))
   })
 
   it('puts the venv python under userData, not resources', () => {

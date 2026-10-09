@@ -16,7 +16,8 @@ const VENV_PYTHON =
     REPO_ROOT,
     process.platform === 'win32' ? '.venv/Scripts/python.exe' : '.venv/bin/python3',
   )
-const SCRIPT = path.join(REPO_ROOT, 'scripts/diarize.py')
+// Packaged app: Electron injects SCRIPTS_DIR (the shipped scripts/ resource); dev uses <repo>/scripts.
+const SCRIPT = path.join(process.env.SCRIPTS_DIR ?? path.join(REPO_ROOT, 'scripts'), 'diarize.py')
 
 /**
  * Run pyannote speaker diarization on a transcribed video file.
