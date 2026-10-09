@@ -1,0 +1,83 @@
+# electron-builder config for the Eigen Windows installer (Phase 15 Plan 08, D-10).
+# Run from packages/desktop after `npm run prebuild` (fetches ffmpeg/uv, builds the Remotion bundle,
+# builds the Vite frontend, stages + rebuilds the backend). Resource layout below MUST match
+# resolvePackagedPaths() in src/config.ts.
+
+appId: com.eigen.videoeditor
+# productName also names the %APPDATA%\Eigen userData folder (main.ts pins it explicitly too).
+productName: Eigen
+executableName: Eigen
+copyright: Eigen
+
+directories:
+  output: dist
+  buildResources: build
+
+# --- asar contents: ONLY the Electron main process ------------------------------------------------
+# (main.ts, config.ts, backend-process.ts, preload.cjs, splash/ + the desktop's own production deps
+# electron-log / tree-kill, which electron-builder adds automatically). The backend does NOT go here.
+files:
+  - package.json
+  - src/**/*
+  - "!src/**/*.test.ts"
+
+# --- Real files OUTSIDE asar (Open Q2, Pitfall 3, D-13) ---------------------------------------------
+# The backend runs as a plain Node child from these files, so nothing here can live in app.asar.
+extraResources:
+  # backend source + production node_modules (better-sqlite3 rebuilt for Electron's ABI,
+  # @remotion/compositor-win32-x64-msvc), staged by scripts/stage-backend.mjs
+  - from: build/backend
+    to: backend
+    # (its node_modules is copied by scripts/after-pack.cjs: extraResources always drops node_modules dirs)
+  # Vite-built SPA served by the backend (FRONTEND_DIST)
+  - from: ../frontend/dist
+    to: frontend/dist
+  # prebuilt Remotion bundle (REMOTION_BUNDLE_DIR, Pattern 2)
+  - from: build/remotion-bundle
+    to: remotion-bundle
+  # bundled ffmpeg / ffprobe / uv (FFMPEG_PATH, FFPROBE_PATH, UV_PATH)
+  - from: build/bin
+    to: bin
+    filter:
+      - ffmpeg.exe
+      - ffprobe.exe
+      - uv.exe
+      - ffmpeg-LICENSE.txt
+  # transcribe.py / diarize.py (SCRIPTS_DIR); the venv itself is created by first-run setup, not shipped
+  - from: ../../scripts
+    to: scripts
+    filter:
+      - "*.py"
+
+# Copies build/backend/node_modules into resources/backend/node_modules (see the script for why).
+afterPack: scripts/after-pack.cjs
+
+# Belt and suspenders: if either native package ever ends up inside asar, unpack it so it can load.
+asarUnpack:
+  - "**/node_modules/better-sqlite3/**"
+  - "**/node_modules/@remotion/compositor-win32-x64-msvc/**"
+
+# Rebuild native deps of the desktop app against Electron's ABI (none today). The backend's
+# better-sqlite3 is rebuilt separately by scripts/stage-backend.mjs via @electron/rebuild.
+npmRebuild: true
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  # Per-user, assisted installer, never elevates (D-10, T-15-83)
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  createStartMenuShortcut: true
+  createDesktopShortcut: false
+  shortcutName: Eigen
+  uninstallDisplayName: Eigen Video Editor
+  # Keep the user's projects/settings/venv in %APPDATA%\Eigen when uninstalling
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+  artifactName: Eigen-Setup-${version}.${ext}

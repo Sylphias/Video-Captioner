@@ -14,7 +14,7 @@
     "@fastify/static": "^7.0.4",
     "@remotion/bundler": "4.0.379",
     "@remotion/renderer": "4.0.379",
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.11.1",
     "fastify": "^4.28.0",
     "tree-kill": "1.2.2",
     "uuid": "^9.0.1"

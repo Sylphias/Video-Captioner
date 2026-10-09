@@ -1,21 +1,33 @@
 {
   "name": "@eigen/desktop",
   "version": "0.0.1",
+  "description": "Eigen Video Editor - desktop shell",
+  "author": "Eigen",
   "private": true,
   "type": "module",
   "main": "src/main.ts",
   "scripts": {
     "electron:dev": "electron .",
     "typecheck": "tsc --noEmit -p .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:libs": "tsc --build ../remotion-composition",
+    "build:frontend": "npm run build --workspace @eigen/frontend",
+    "prebuild": "npm run build:libs && npm run build:frontend && node scripts/fetch-binaries.mjs && node scripts/build-remotion-bundle.mjs && node scripts/stage-backend.mjs",
+    "dist": "electron-builder --win --config electron-builder.yml",
+    "dist:dir": "electron-builder --win --dir --config electron-builder.yml",
+    "package": "npm run prebuild && npm run dist",
+    "clean": "node -e \"for (const d of ['build/backend','build/remotion-bundle','build/bin','build/cache','dist']) require('node:fs').rmSync(d,{recursive:true,force:true})\""
   },
   "dependencies": {
     "electron-log": "5.4.4",
     "tree-kill": "1.2.2"
   },
   "devDependencies": {
+    "@electron/rebuild": "4.2.1",
+    "@remotion/bundler": "4.0.379",
     "@types/node": "^22.0.0",
     "electron": "43.1.0",
+    "electron-builder": "26.15.3",
     "typescript": "^5.4.0",
     "vitest": "^4.1.2"
   }
