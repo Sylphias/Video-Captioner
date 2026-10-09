@@ -1,6 +1,8 @@
+import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildBackendEnv, resolveDataRoot, resolveMediaRoot, resolvePackagedPaths } from './config.ts'
+import { buildBackendEnv, readSavedMediaRoot, resolveDataRoot, resolveMediaRoot, resolvePackagedPaths } from './config.ts'
 
 const userData = path.join(path.sep, 'users', 'me', 'AppData', 'Roaming', 'Eigen')
 
@@ -83,5 +85,30 @@ describe('resolvePackagedPaths', () => {
   it('puts the venv python under userData, not resources', () => {
     expect(p.venvPython.startsWith(userData)).toBe(true)
     expect(p.venvPython.endsWith(path.join('Scripts', 'python.exe'))).toBe(true)
+  })
+})
+
+describe('readSavedMediaRoot', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eigen-cfg-'))
+  const settings = path.join(dir, 'settings.json')
+
+  it('returns null when settings.json is missing', () => {
+    expect(readSavedMediaRoot(path.join(dir, 'nope'))).toBeNull()
+  })
+  it('returns null for corrupt JSON or a non-string value', () => {
+    fs.writeFileSync(settings, '{not json')
+    expect(readSavedMediaRoot(dir)).toBeNull()
+    fs.writeFileSync(settings, JSON.stringify({ mediaRoot: 5 }))
+    expect(readSavedMediaRoot(dir)).toBeNull()
+  })
+  it('returns null for a relative path or a path that is not an existing directory', () => {
+    fs.writeFileSync(settings, JSON.stringify({ mediaRoot: 'relative/dir' }))
+    expect(readSavedMediaRoot(dir)).toBeNull()
+    fs.writeFileSync(settings, JSON.stringify({ mediaRoot: path.join(dir, 'gone') }))
+    expect(readSavedMediaRoot(dir)).toBeNull()
+  })
+  it('returns the saved directory when it exists', () => {
+    fs.writeFileSync(settings, JSON.stringify({ mediaRoot: dir, hfToken: 'hf_x' }))
+    expect(readSavedMediaRoot(dir)).toBe(dir)
   })
 })
