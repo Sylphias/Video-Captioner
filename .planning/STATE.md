@@ -4,10 +4,10 @@ milestone: v1.0
 current_phase: 15
 current_phase_name: Desktop App Port
 status: executing
-stopped_at: Completed 15-07-PLAN.md
+stopped_at: 15-08 Task 3 checkpoint — human install+launch of Eigen-Setup-0.0.1.exe pending
 last_updated: "2026-10-08T05:53:18.592Z"
 last_activity: 2026-10-09
-last_activity_desc: 15-07 in-app settings merged
+last_activity_desc: 15-08 tasks 1-2 merged; installer built, awaiting human verify
 state_head: c6431a44d088d5570ae07efa1e685657e87c8588
 progress:
   total_phases: 17
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 Phase: 15 (Desktop App Port) — EXECUTING
 Plan: 8 of 9
-Status: Ready to execute
-Last activity: 2026-10-09 — 15-07 in-app settings + model-download progress merged
+Status: Awaiting human verification (15-08 Task 3)
+Last activity: 2026-10-09 — 15-08 packaging merged; unsigned NSIS installer built (212 MiB); awaiting install+launch check
 
 Progress: [██████████████████░░] 88% (Phase 15 Desktop App Port remaining)
 
