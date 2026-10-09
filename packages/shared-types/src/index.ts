@@ -18,6 +18,8 @@ export interface Job {
   transcriptPath?: string  // absolute path to transcript.json (internal only — not sent to client)
   outputPath?: string      // absolute path to output.mp4 (internal only — not sent to client)
   error?: string
+  /** Sub-phase while status is 'transcribing': first-run model download (progress is then download %). */
+  phase?: 'downloading_model'
   createdAt: number        // Date.now()
 }
 

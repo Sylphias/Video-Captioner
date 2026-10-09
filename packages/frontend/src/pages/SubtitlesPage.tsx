@@ -660,7 +660,9 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
 
           <div className="subtitles-page__progress-card">
             <p className="subtitles-page__status-label">
-              Transcribing... {transcribeState.progress}%
+              {transcribeState.phase === 'downloading_model'
+                ? `Downloading transcription model… ${transcribeState.progress}%`
+                : `Transcribing... ${transcribeState.progress}%`}
             </p>
             <div className="subtitles-page__progress-track">
               <div

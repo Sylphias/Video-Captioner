@@ -24,7 +24,7 @@ const SCRIPT = path.join(REPO_ROOT, 'scripts/transcribe.py')
  *
  * @param audioPath - Path to the normalized .mp4 or audio file
  * @param outputPath - Path where transcript.json will be written
- * @param onProgress - Callback receiving progress percentage 0-100
+ * @param onProgress - Callback receiving progress percentage 0-100 and the script's phase label
  * @param language - Language code (default: 'en')
  * @param hfToken - Optional HuggingFace token for speaker diarization
  * @param numSpeakers - Optional speaker count constraint
@@ -33,7 +33,7 @@ const SCRIPT = path.join(REPO_ROOT, 'scripts/transcribe.py')
 export function runTranscription(
   audioPath: string,
   outputPath: string,
-  onProgress?: (percent: number) => void,
+  onProgress?: (percent: number, status?: string) => void,
   language: string = 'en',
   hfToken?: string,
   numSpeakers?: number,
@@ -53,9 +53,10 @@ export function runTranscription(
 
     rl.on('line', (line) => {
       try {
-        const msg = JSON.parse(line) as { type: string; percent?: number }
+        const msg = JSON.parse(line) as { type: string; percent?: number; status?: string }
         if (msg.type === 'progress' && msg.percent !== undefined && onProgress) {
-          onProgress(msg.percent)
+          // status ("loading_model", "transcribing", ...) is the script's phase label
+          onProgress(msg.percent, msg.status)
         }
         // 'done' type is informational — process exit code is the real signal
       } catch {

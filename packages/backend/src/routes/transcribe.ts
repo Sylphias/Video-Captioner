@@ -6,6 +6,9 @@ import path from 'node:path'
 import { MEDIA_ROOT } from '../index.ts'
 import { updateJob } from '../services/jobStore.ts'
 import { runTranscription } from '../services/transcription.ts'
+import { watchModelDownload, whisperModelCached } from '../services/modelCache.ts'
+
+const MODEL_DOWNLOAD_FAILED = 'Model download failed — check your internet connection and try again.'
 
 // Module-level subprocess tracking (not serializable — kept separate from job store)
 const transcriptionProcesses = new Map<string, ChildProcess>()
@@ -63,16 +66,42 @@ async function runTranscriptionPipeline(
   jobDir: string,
   numSpeakers?: number,
 ): Promise<void> {
+  // First run: WhisperX silently downloads large-v3 (~3 GB). Surface it as its own phase with a
+  // percent inferred from the HF cache folder (UI-SPEC section 4).
+  let downloadingModel = !whisperModelCached()
+  let stopDownloadWatch: (() => void) | null = null
+  const endDownloadPhase = () => {
+    stopDownloadWatch?.()
+    stopDownloadWatch = null
+    if (downloadingModel) {
+      downloadingModel = false
+      updateJob(fastify.jobs, jobId, { phase: undefined })
+    }
+  }
+
   try {
     const normalizedPath = path.join(jobDir, 'normalized.mp4')
     const transcriptPath = path.join(jobDir, 'transcript.json')
     // App config (Settings screen, D-09) first; env var only as a dev fallback
     const hfToken = fastify.appConfig.getSetting('hfToken') ?? process.env.HUGGINGFACE_TOKEN
 
+    if (downloadingModel) {
+      updateJob(fastify.jobs, jobId, { phase: 'downloading_model', progress: 0 })
+      stopDownloadWatch = watchModelDownload((percent) => {
+        if (downloadingModel) updateJob(fastify.jobs, jobId, { progress: percent })
+      })
+    }
+
     const { promise, process: proc } = runTranscription(
       normalizedPath,
       transcriptPath,
-      (percent) => {
+      (percent, status) => {
+        if (downloadingModel) {
+          // The script reports 0% / loading_model while the download runs; the watcher owns
+          // progress until the script moves on to the next phase.
+          if (status === undefined || status === 'loading_model') return
+          endDownloadPhase()
+        }
         updateJob(fastify.jobs, jobId, { progress: percent })
       },
       'en',
@@ -87,6 +116,7 @@ async function runTranscriptionPipeline(
     await promise
 
     transcriptionProcesses.delete(jobId)
+    endDownloadPhase()
 
     updateJob(fastify.jobs, jobId, {
       status: 'transcribed',
@@ -95,7 +125,14 @@ async function runTranscriptionPipeline(
     })
   } catch (err) {
     transcriptionProcesses.delete(jobId)
-    const errorMessage = err instanceof Error ? err.message : String(err)
+    // Still no complete model on disk after a failure mid-download: most likely the network.
+    const downloadFailed = downloadingModel && !whisperModelCached()
+    endDownloadPhase()
+    const errorMessage = downloadFailed
+      ? MODEL_DOWNLOAD_FAILED
+      : err instanceof Error
+        ? err.message
+        : String(err)
     updateJob(fastify.jobs, jobId, {
       status: 'failed',
       error: errorMessage,

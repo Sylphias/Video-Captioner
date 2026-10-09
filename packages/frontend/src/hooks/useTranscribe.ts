@@ -4,6 +4,8 @@ import type { Job, Transcript } from '@eigen/shared-types'
 export interface TranscribeState {
   status: 'idle' | 'transcribing' | 'transcribed' | 'failed'
   progress: number
+  /** 'downloading_model' while the backend reports the first-run model download (progress = download %). */
+  phase?: Job['phase']
   transcript: Transcript | null
   error: string | null
 }
@@ -24,7 +26,7 @@ export function useTranscribe() {
       const res = await fetch(`/api/jobs/${jobId}/transcript`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const transcript = await res.json() as Transcript
-      setState({ status: 'transcribed', progress: 100, transcript, error: null })
+      setState({ status: 'transcribed', progress: 100, phase: undefined, transcript, error: null })
     } catch {
       setState(prev => ({ ...prev, status: 'failed', error: 'Failed to load transcript' }))
     }
@@ -69,7 +71,7 @@ export function useTranscribe() {
       } catch { return }
 
       if (job.status === 'transcribing') {
-        setState(prev => ({ ...prev, progress: job.progress }))
+        setState(prev => ({ ...prev, progress: job.progress, phase: job.phase }))
       } else if (job.status === 'transcribed') {
         es.close()
         eventSourceRef.current = null
