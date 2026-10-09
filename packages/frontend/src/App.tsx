@@ -3,6 +3,8 @@ import { Header } from './components/Header'
 import { SubtitlesPage } from './pages/SubtitlesPage'
 import { ProjectsPage } from './pages/ProjectsPage'
 import { AnimationBuilderPage } from './components/AnimationBuilder/AnimationBuilderPage'
+import { FirstRunSetup } from './components/FirstRunSetup'
+import { useSetup } from './hooks/useSetup'
 import './App.css'
 
 const TABS = [
@@ -11,6 +13,7 @@ const TABS = [
 ]
 
 export default function App() {
+  const setup = useSetup()
   const [activeTab, setActiveTab] = useState('projects')
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
 
@@ -36,6 +39,26 @@ export default function App() {
   const handleTitleClick = () => {
     setActiveProjectId(null)
     setActiveTab('projects')
+  }
+
+  // First-run gate (D-08): nothing works without the Python venv, so the setup screen
+  // replaces the whole app until the environment is ready.
+  if (setup.status === 'checking') {
+    return <div className="app" />
+  }
+  if (setup.status !== 'ready') {
+    return (
+      <div className="app">
+        <FirstRunSetup
+          status={setup.status}
+          progress={setup.progress}
+          phaseLabel={setup.phaseLabel}
+          error={setup.error}
+          onStart={() => void setup.startSetup()}
+          onCancel={() => void setup.cancelSetup()}
+        />
+      </div>
+    )
   }
 
   return (
