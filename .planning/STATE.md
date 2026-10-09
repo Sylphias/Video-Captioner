@@ -4,16 +4,16 @@ milestone: v1.0
 current_phase: 15
 current_phase_name: Desktop App Port
 status: executing
-stopped_at: Completed 15-04-PLAN.md (native-Windows GPU verified)
+stopped_at: Completed 15-06-PLAN.md
 last_updated: "2026-10-08T05:53:18.592Z"
 last_activity: 2026-10-09
-last_activity_desc: 15-04 native-Windows GPU verification passed
+last_activity_desc: 15-06 first-run Python setup merged
 state_head: c6431a44d088d5570ae07efa1e685657e87c8588
 progress:
   total_phases: 17
   completed_phases: 5
   total_plans: 56
-  completed_plans: 52
+  completed_plans: 53
 milestone_name: milestone
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 15 (Desktop App Port) — EXECUTING
-Plan: 6 of 9
+Plan: 7 of 9
 Status: Ready to execute
-Last activity: 2026-10-09 — 15-04 native-Windows GPU verification passed; Plan 06 unblocked
+Last activity: 2026-10-09 — 15-06 first-run Python setup merged; 5 pre-existing subtitleStore bulk-action test failures noted
 
 Progress: [██████████████████░░] 88% (Phase 15 Desktop App Port remaining)
 
