@@ -137,6 +137,7 @@ async function boot(): Promise<void> {
     uvPath: packaged?.uvPath,
     remotionBundleDir: packaged?.remotionBundleDir,
     frontendDist: packaged?.frontendDist,
+    scriptsDir: packaged?.scriptsDir,
   })
 
   log.info(`[main] boot packaged=${app.isPackaged} dataRoot=${dataRoot} mediaRoot=${mediaRoot}`)

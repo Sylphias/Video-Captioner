@@ -52,6 +52,8 @@ export interface BackendEnvOptions {
   uvPath?: string
   remotionBundleDir?: string
   frontendDist?: string
+  /** Directory holding the shipped Python scripts (transcribe.py/diarize.py). */
+  scriptsDir?: string
   /** Environment to inherit (PATH, SystemRoot, ...). Defaults to process.env. */
   baseEnv?: NodeJS.ProcessEnv
 }
@@ -78,6 +80,7 @@ export function buildBackendEnv(opts: BackendEnvOptions): NodeJS.ProcessEnv {
   if (opts.uvPath) env.UV_PATH = opts.uvPath
   if (opts.remotionBundleDir) env.REMOTION_BUNDLE_DIR = opts.remotionBundleDir
   if (opts.frontendDist) env.FRONTEND_DIST = opts.frontendDist
+  if (opts.scriptsDir) env.SCRIPTS_DIR = opts.scriptsDir
   return env
 }
 
@@ -88,6 +91,8 @@ export interface PackagedPaths {
   uvPath: string
   remotionBundleDir: string
   frontendDist: string
+  /** transcribe.py / diarize.py (the backend's repo-relative lookup does not hold once packaged). */
+  scriptsDir: string
   /** Venv is created by first-run setup (D-08) in a userData-writable location, never shipped. */
   venvPython: string
 }
@@ -95,7 +100,7 @@ export interface PackagedPaths {
 /**
  * Packaged-mode resource layout, matching the electron-builder extraResources contract in Plan 08:
  * backend at <resources>/backend, ffmpeg/ffprobe/uv at <resources>/bin, prebuilt Remotion bundle at
- * <resources>/remotion-bundle, Vite dist at <resources>/frontend/dist.
+ * <resources>/remotion-bundle, Vite dist at <resources>/frontend/dist, Python scripts at <resources>/scripts.
  */
 export function resolvePackagedPaths(resourcesPath: string, userDataDir: string): PackagedPaths {
   return {
@@ -105,6 +110,7 @@ export function resolvePackagedPaths(resourcesPath: string, userDataDir: string)
     uvPath: path.join(resourcesPath, 'bin', 'uv.exe'),
     remotionBundleDir: path.join(resourcesPath, 'remotion-bundle'),
     frontendDist: path.join(resourcesPath, 'frontend', 'dist'),
+    scriptsDir: path.join(resourcesPath, 'scripts'),
     venvPython: path.join(userDataDir, 'venv', 'Scripts', 'python.exe'),
   }
 }
