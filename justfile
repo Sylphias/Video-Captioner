@@ -1,6 +1,7 @@
 # Eigen Video Editor
 
 set dotenv-load
+set windows-shell := ["pwsh", "-NoLogo", "-NoProfile", "-Command"]
 
 # Install all workspace dependencies
 install-deps:
