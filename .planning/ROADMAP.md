@@ -378,7 +378,7 @@ Plans:
 - [x] 15-03-PLAN.md
 - [x] 15-04-PLAN.md
 - [x] 15-05-PLAN.md
-- [ ] 15-06-PLAN.md
+- [x] 15-06-PLAN.md
 - [ ] 15-07-PLAN.md
 - [ ] 15-08-PLAN.md
 - [ ] 15-09-PLAN.md
