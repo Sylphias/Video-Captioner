@@ -59,13 +59,14 @@ async function runDiarizationPipeline(
   jobDir: string,
   numSpeakers?: number,
 ): Promise<void> {
-  const hfToken = process.env.HUGGINGFACE_TOKEN
+  // App config (Settings screen, D-09) first; env var only as a dev fallback
+  const hfToken = fastify.appConfig.getSetting('hfToken') ?? process.env.HUGGINGFACE_TOKEN
 
   if (!hfToken) {
     updateJob(fastify.jobs, jobId, {
       status: 'failed',
       error:
-        'HUGGINGFACE_TOKEN environment variable not set. Create a read token at https://huggingface.co/settings/tokens and accept the model license at https://huggingface.co/pyannote/speaker-diarization-3.1',
+        'No HuggingFace token set. Add one in Settings (gear icon in the header). Create a read token at https://huggingface.co/settings/tokens and accept the model license at https://huggingface.co/pyannote/speaker-diarization-3.1',
     })
     return
   }

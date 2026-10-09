@@ -66,7 +66,8 @@ async function runTranscriptionPipeline(
   try {
     const normalizedPath = path.join(jobDir, 'normalized.mp4')
     const transcriptPath = path.join(jobDir, 'transcript.json')
-    const hfToken = process.env.HUGGINGFACE_TOKEN
+    // App config (Settings screen, D-09) first; env var only as a dev fallback
+    const hfToken = fastify.appConfig.getSetting('hfToken') ?? process.env.HUGGINGFACE_TOKEN
 
     const { promise, process: proc } = runTranscription(
       normalizedPath,
