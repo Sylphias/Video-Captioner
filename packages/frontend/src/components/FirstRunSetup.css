@@ -1,0 +1,120 @@
+/* Full-page blocking view — replaces the app content (not a modal overlay) */
+.first-run-setup {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: var(--color-bg-base);
+}
+
+.first-run-setup__card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  width: 480px;
+  max-width: 100%;
+}
+
+.first-run-setup__header {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.first-run-setup__header h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.first-run-setup__body {
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.first-run-setup__text {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+
+.first-run-setup__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.first-run-setup__status-label {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+/* The track/fill base look comes from the shared subtitles-page__progress-* classes. The elevated
+   background keeps the 4px track visible against the surface-coloured card. */
+.first-run-setup .first-run-setup__progress-track {
+  background-color: var(--color-bg-elevated);
+}
+
+/* Installing phase: no percentage available, so a looping fill instead of a static bar */
+.first-run-setup__progress-fill--indeterminate {
+  width: 40%;
+  animation: first-run-setup-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes first-run-setup-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.first-run-setup__error {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-error);
+  overflow-wrap: anywhere;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.first-run-setup__footer {
+  padding: var(--spacing-md);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.first-run-setup__btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 4px;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.first-run-setup__btn--primary {
+  background: transparent;
+  border: 1px solid var(--color-accent-green);
+  color: var(--color-accent-green);
+}
+
+.first-run-setup__btn--primary:hover {
+  background: var(--color-accent-green-muted);
+}
+
+.first-run-setup__btn--secondary {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.first-run-setup__btn--secondary:hover {
+  background: var(--color-bg-hover);
+}

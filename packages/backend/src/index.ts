@@ -19,6 +19,7 @@ import waveformRoutes from './routes/waveform.ts'
 import presetsRoutes from './routes/presets.ts'
 import lanePresetsRoutes from './routes/lanePresets.ts'
 import projectsRoutes from './routes/projects.ts'
+import setupRoutes from './routes/setup.ts'
 import { initBundle, terminateActiveRenders } from './services/render.ts'
 import { killAll } from './services/childRegistry.ts'
 
@@ -61,6 +62,7 @@ await fastify.register(waveformRoutes)
 await fastify.register(presetsRoutes)
 await fastify.register(lanePresetsRoutes)
 await fastify.register(projectsRoutes)
+await fastify.register(setupRoutes)
 
 // Serve the Vite production build at / (D-04). Skipped when no dist exists so
 // `just dev` (frontend on Vite :5173, proxying /api) is unaffected.
