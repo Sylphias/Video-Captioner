@@ -246,6 +246,7 @@ export function ProjectsPage({ onOpenProject }: ProjectsPageProps) {
             onClick={() => onOpenProject(p.id)}
             onRefresh={fetchProjects}
             onContextMenu={(e) => handleContextMenu(e, p)}
+            onDelete={() => setDeleteTarget(p)}
             isRenaming={renamingId === p.id}
             renamingValue={renamingValue}
             onRenameChange={setRenamingValue}

@@ -4,15 +4,17 @@ import path from 'node:path'
 import { createReadStream } from 'node:fs'
 import { access, readFile, stat } from 'node:fs/promises'
 
-import { MEDIA_ROOT } from '../index.ts'
 import { killTranscription } from './transcribe.ts'
 import { killDiarization } from './diarize.ts'
+import { getOrRehydrateJob } from '../services/jobRecovery.ts'
 
 async function jobRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/jobs/:jobId — get job info (non-SSE, one-shot)
   fastify.get('/api/jobs/:jobId', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
-    const job = fastify.jobs.get(jobId)
+    // Not in memory after a restart/crash: rebuild from the job folder so the editor hydrates
+    // with the real state ('ready' / 'transcribed') instead of guessing
+    const job = await getOrRehydrateJob(fastify, jobId)
     if (!job) {
       return reply.code(404).send({ error: 'Job not found' })
     }
@@ -23,6 +25,9 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/jobs/:jobId/status — Server-Sent Events stream of job progress
   fastify.get('/api/jobs/:jobId/status', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
+
+    // Recover a job lost to a restart before polling (the poll loop reports a missing job)
+    await getOrRehydrateJob(fastify, jobId)
 
     // Write SSE headers manually (most reliable approach per plan research notes)
     reply.raw.writeHead(200, {
@@ -93,11 +98,13 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/api/jobs/:jobId/thumbnail', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
 
-    // Try in-memory job first, fall back to predictable disk path
+    // Try in-memory job first, fall back to the job folder in whichever media root holds it
     const job = fastify.jobs.get(jobId)
-    const thumbPath = job?.thumbnailPath ?? path.join(MEDIA_ROOT, jobId, 'thumbnail.jpg')
+    const jobDir = fastify.jobDirs.resolve(jobId)
+    const thumbPath = job?.thumbnailPath ?? (jobDir ? path.join(jobDir, 'thumbnail.jpg') : null)
 
     try {
+      if (!thumbPath) throw new Error('no job folder')
       await access(thumbPath)
     } catch {
       return reply.code(404).send({ error: 'Thumbnail not found' })
@@ -111,11 +118,13 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/api/jobs/:jobId/transcript', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
 
-    // Try in-memory job first, fall back to predictable disk path
+    // Try in-memory job first, fall back to the job folder in whichever media root holds it
     const job = fastify.jobs.get(jobId)
-    const transcriptPath = job?.transcriptPath ?? path.join(MEDIA_ROOT, jobId, 'transcript.json')
+    const jobDir = fastify.jobDirs.resolve(jobId)
+    const transcriptPath = job?.transcriptPath ?? (jobDir ? path.join(jobDir, 'transcript.json') : null)
 
     try {
+      if (!transcriptPath) throw new Error('no job folder')
       const content = await readFile(transcriptPath, 'utf-8')
       reply.header('Content-Type', 'application/json')
       return reply.send(content)
@@ -134,8 +143,12 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(404).send({ error: 'Video not ready' })
     }
 
-    // Serve from predictable disk path (works even after server restart)
-    const normalizedPath = path.join(MEDIA_ROOT, jobId, 'normalized.mp4')
+    // Serve from the job folder on disk (works after restart and for older media roots)
+    const jobDir = fastify.jobDirs.resolve(jobId)
+    if (!jobDir) {
+      return reply.code(404).send({ error: 'Video file not found on disk' })
+    }
+    const normalizedPath = path.join(jobDir, 'normalized.mp4')
 
     // Verify file exists on disk
     try {

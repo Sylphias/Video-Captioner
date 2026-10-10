@@ -3,8 +3,8 @@ import type { FastifyInstance } from 'fastify'
 import type { ChildProcess } from 'node:child_process'
 import path from 'node:path'
 
-import { MEDIA_ROOT } from '../index.ts'
 import { updateJob } from '../services/jobStore.ts'
+import { getOrRehydrateJob } from '../services/jobRecovery.ts'
 import { runDiarization } from '../services/diarization.ts'
 
 // Module-level subprocess tracking (not serializable — kept separate from job store)
@@ -28,7 +28,8 @@ async function diarizeRoutes(fastify: FastifyInstance): Promise<void> {
     const { jobId } = req.params as { jobId: string }
     const { numSpeakers } = (req.body as { numSpeakers?: number }) ?? {}
 
-    const job = fastify.jobs.get(jobId)
+    // Recover jobs lost to a restart from disk ('transcribed' when transcript.json exists)
+    const job = await getOrRehydrateJob(fastify, jobId)
 
     if (!job) {
       return reply.code(404).send({ error: 'Job not found' })
@@ -41,6 +42,12 @@ async function diarizeRoutes(fastify: FastifyInstance): Promise<void> {
         .send({ error: `Job is in '${job.status}' state — diarization requires 'transcribed' status` })
     }
 
+    // Job folder may live under an older media root (resolver probes every known root)
+    const jobDir = fastify.jobDirs.resolve(jobId)
+    if (!jobDir) {
+      return reply.code(404).send({ error: 'Job media not found' })
+    }
+
     // Update job status immediately before firing background work
     updateJob(fastify.jobs, jobId, { status: 'diarizing', progress: 0 })
 
@@ -48,7 +55,6 @@ async function diarizeRoutes(fastify: FastifyInstance): Promise<void> {
     reply.code(202).send({ jobId, status: 'diarizing' })
 
     // Fire-and-forget: background diarization pipeline
-    const jobDir = path.join(MEDIA_ROOT, jobId)
     void runDiarizationPipeline(fastify, jobId, jobDir, numSpeakers)
   })
 }

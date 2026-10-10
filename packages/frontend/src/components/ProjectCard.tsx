@@ -6,6 +6,8 @@ interface ProjectCardProps {
   onClick: () => void
   onRefresh: () => void
   onContextMenu: (e: React.MouseEvent) => void
+  /** Opens the shared delete confirmation (offered directly on cards whose media is missing). */
+  onDelete: () => void
   isRenaming: boolean
   renamingValue: string
   onRenameChange: (val: string) => void
@@ -28,15 +30,19 @@ export function ProjectCard({
   project,
   onClick,
   onContextMenu,
+  onDelete,
   isRenaming,
   renamingValue,
   onRenameChange,
   onRenameCommit,
   onRenameCancel,
 }: ProjectCardProps) {
+  // Only an explicit false from the backend counts as missing (older responses omit the field)
+  const mediaMissing = project.mediaAvailable === false
+
   return (
     <div
-      className="project-card"
+      className={`project-card${mediaMissing ? ' project-card--media-missing' : ''}`}
       onClick={isRenaming ? undefined : onClick}
       onContextMenu={onContextMenu}
       onKeyDown={(e) => { if (!isRenaming && e.key === 'Enter') onClick() }}
@@ -44,12 +50,29 @@ export function ProjectCard({
       tabIndex={0}
     >
       <div className="project-card__thumbnail">
-        <img
-          src={`/api/jobs/${project.jobId}/thumbnail`}
-          alt=""
-          className="project-card__img"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
+        {mediaMissing ? (
+          <div className="project-card__missing">
+            <span className="project-card__missing-badge">Media missing</span>
+            <span className="project-card__missing-text">
+              The video files for this project can't be found.
+            </span>
+            <button
+              type="button"
+              className="project-card__missing-delete"
+              onClick={(e) => { e.stopPropagation(); onDelete() }}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              Delete Project
+            </button>
+          </div>
+        ) : (
+          <img
+            src={`/api/jobs/${project.jobId}/thumbnail`}
+            alt=""
+            className="project-card__img"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+        )}
       </div>
       <div className="project-card__meta">
         {isRenaming ? (

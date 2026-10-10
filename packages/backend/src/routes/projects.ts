@@ -4,7 +4,7 @@ import crypto from 'node:crypto'
 import path from 'node:path'
 import { rm } from 'node:fs/promises'
 
-import { MEDIA_ROOT } from '../index.ts'
+import { isValidJobId } from '../services/jobDirs.ts'
 
 // ── Row shape (as stored in SQLite) ──────────────────────────────────────────
 
@@ -13,6 +13,7 @@ interface ProjectRow {
   job_id: string
   name: string
   state_json: string | null
+  media_root: string | null
   duration: number | null
   created_at: number
   updated_at: number
@@ -43,7 +44,7 @@ async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
     'SELECT * FROM projects WHERE id = ?'
   )
   const insertStmt = fastify.projectsDb.prepare(
-    'INSERT INTO projects (id, job_id, name, state_json, duration, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO projects (id, job_id, name, state_json, duration, created_at, updated_at, media_root) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   )
   const updateNameStmt = fastify.projectsDb.prepare(
     'UPDATE projects SET name = ?, updated_at = ? WHERE id = ?'
@@ -61,7 +62,12 @@ async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/projects — list all projects (no stateJson — too large for list)
   fastify.get('/api/projects', async (_req, reply) => {
     const rows = getAllStmt.all()
-    return reply.send(rows.map(rowToProject))
+    // mediaAvailable: whether any known media root still holds the job's normalized.mp4
+    // (a few cached fs checks per project; lets the list flag projects whose media is gone)
+    return reply.send(rows.map((row) => ({
+      ...rowToProject(row),
+      mediaAvailable: fastify.jobDirs.hasMedia(row.job_id),
+    })))
   })
 
   // POST /api/projects — create a new project record
@@ -71,12 +77,18 @@ async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
     if (!body.jobId || !body.name) {
       return reply.code(400).send({ error: 'Missing required fields: jobId, name' })
     }
+    // job_id later becomes a folder name (and a delete target) — only accept real job ids
+    if (!isValidJobId(body.jobId)) {
+      return reply.code(400).send({ error: 'Invalid jobId' })
+    }
 
     const id = crypto.randomUUID()
     const now = Date.now()
     const duration = body.duration ?? null
+    // Record which media root holds this job so it keeps working if the setting changes
+    const mediaRoot = fastify.jobDirs.rootOf(body.jobId)
 
-    insertStmt.run(id, body.jobId, body.name, null, duration, now, now)
+    insertStmt.run(id, body.jobId, body.name, null, duration, now, now, mediaRoot)
 
     return reply.code(201).send({
       id,
@@ -98,7 +110,7 @@ async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(404).send({ error: 'Project not found' })
     }
 
-    return reply.send(rowToProject(row))
+    return reply.send({ ...rowToProject(row), mediaAvailable: fastify.jobDirs.hasMedia(row.job_id) })
   })
 
   // PUT /api/projects/:id — update name and/or stateJson
@@ -133,8 +145,17 @@ async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
 
     const countRow = countByJobIdStmt.get(row.job_id)!
     if (countRow.cnt <= 1) {
-      // Last project referencing this job directory — safe to delete files
-      await rm(path.join(MEDIA_ROOT, row.job_id), { recursive: true, force: true }).catch(() => {})
+      // Last project referencing this job directory — safe to delete files. Delete the folder in
+      // the media root where it actually lives; the resolver only returns <root>/<uuid> for a
+      // valid job id, so nothing outside that one job folder can be targeted.
+      const jobDir = fastify.jobDirs.resolve(row.job_id)
+      if (jobDir && path.basename(jobDir) === row.job_id) {
+        await rm(jobDir, { recursive: true, force: true }).catch((err) => {
+          fastify.log.warn({ jobId: row.job_id, err }, 'Could not delete job folder')
+        })
+      }
+      fastify.jobDirs.forget(row.job_id)
+      fastify.jobs.delete(row.job_id)
     }
 
     deleteStmt.run(id)
@@ -154,7 +175,10 @@ async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
     const now = Date.now()
     const newName = row.name + ' (copy)'
 
-    insertStmt.run(newId, row.job_id, newName, row.state_json, row.duration, now, now)
+    insertStmt.run(
+      newId, row.job_id, newName, row.state_json, row.duration, now, now,
+      row.media_root ?? fastify.jobDirs.rootOf(row.job_id),
+    )
 
     return reply.code(201).send({
       id: newId,
