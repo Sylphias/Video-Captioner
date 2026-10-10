@@ -4,7 +4,22 @@ import {
   offscreenSide,
   centeredViewStart,
   zoomAnchoredViewStart,
+  isTypingTarget,
 } from './timelineZoom.ts'
+
+describe('isTypingTarget', () => {
+  it('is true for inputs, textareas, selects and contentEditable', () => {
+    expect(isTypingTarget({ tagName: 'INPUT' } as unknown as EventTarget)).toBe(true)
+    expect(isTypingTarget({ tagName: 'TEXTAREA' } as unknown as EventTarget)).toBe(true)
+    expect(isTypingTarget({ tagName: 'SELECT' } as unknown as EventTarget)).toBe(true)
+    expect(isTypingTarget({ tagName: 'DIV', isContentEditable: true } as unknown as EventTarget)).toBe(true)
+  })
+  it('is false for other elements and non-elements', () => {
+    expect(isTypingTarget({ tagName: 'BUTTON', isContentEditable: false } as unknown as EventTarget)).toBe(false)
+    expect(isTypingTarget({} as EventTarget)).toBe(false)
+    expect(isTypingTarget(null)).toBe(false)
+  })
+})
 
 describe('clampViewStart', () => {
   it('clamps below 0 to 0', () => {

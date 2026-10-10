@@ -122,6 +122,49 @@
   font-size: var(--font-size-sm, 0.875rem);
 }
 
+/* ── Timeline wrapper + off-screen playhead indicator ───────────────────── */
+
+.timing-editor__timeline-wrap {
+  position: relative;
+}
+
+/* Pinned to the edge of the visible track area (left edge sits just right of
+   the 160px sticky lane headers) when the playhead is scrolled out of view.
+   Only the pill itself receives pointer events — lanes underneath stay clickable. */
+.timing-editor__offscreen-playhead {
+  position: absolute;
+  top: 3px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--color-accent-green, #00e696);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--color-accent-green, #00e696);
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.timing-editor__offscreen-playhead:hover {
+  background: var(--color-accent-green, #00e696);
+  color: #000;
+}
+
+.timing-editor__offscreen-playhead--left {
+  left: calc(160px + 4px);
+}
+
+.timing-editor__offscreen-playhead--right {
+  right: 4px;
+}
+
 /* ── Scrollable timeline container ───────────────────────────────────────── */
 
 .timing-editor__timeline-scroll {
@@ -747,6 +790,13 @@
   padding: 0;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
+}
+
+.timing-editor__zoom-btn--playhead {
+  margin-right: 6px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--color-accent-green, #00e696);
 }
 
 .timing-editor__zoom-btn:hover {

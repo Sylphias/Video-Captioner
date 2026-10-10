@@ -2,7 +2,14 @@ import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useWaveform } from '../../hooks/useWaveform.ts'
 import { findAdjacentSameSpeakerPhrase } from '../../lib/grouping.ts'
-import { zoomAnchoredViewStart } from '../../lib/timelineZoom.ts'
+import {
+  zoomAnchoredViewStart,
+  centeredViewStart,
+  offscreenSide,
+  isTypingTarget,
+  JUMP_TO_PLAYHEAD_KEY,
+} from '../../lib/timelineZoom.ts'
+import type { OffscreenSide } from '../../lib/timelineZoom.ts'
 import { WaveformCanvas } from './WaveformCanvas.tsx'
 import type { SessionPhrase } from '../../store/subtitleStore.ts'
 import type { DiarizeState } from '../../hooks/useDiarize.ts'
@@ -206,6 +213,33 @@ export function TimingEditor({
     el.scrollLeft = target
   }, [pps])
 
+  // Center the visible track area on the playhead (jump-to-playhead button,
+  // keyboard shortcut and the off-screen playhead indicator).
+  const centerOnPlayhead = useCallback(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const p = ppsRef.current
+    const trackViewportWidth = Math.max(1, el.clientWidth - LANE_HEADER_WIDTH)
+    const t = getCurrentTimeRef.current?.() ?? 0
+    pendingScrollLeftRef.current = null
+    el.scrollLeft = centeredViewStart(t, trackViewportWidth / p, totalDurationRef.current) * p
+  }, [])
+
+  // Jump-to-playhead shortcut. TimingEditor is only mounted on the Word Timing
+  // stage, so this is scoped to that stage by construction. Ignored while
+  // typing and for modified combos (Ctrl/Cmd+C copy etc.).
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== JUMP_TO_PLAYHEAD_KEY && e.key !== JUMP_TO_PLAYHEAD_KEY.toUpperCase()) return
+      if (e.altKey || e.ctrlKey || e.metaKey) return
+      if (isTypingTarget(e.target)) return
+      e.preventDefault()
+      centerOnPlayhead()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [centerOnPlayhead])
+
   const applyZoomRef = useRef(applyZoom)
   applyZoomRef.current = applyZoom
 
@@ -233,6 +267,10 @@ export function TimingEditor({
   // Playhead: poll current video time via rAF
   const [playheadX, setPlayheadX] = useState<number>(0)
   const [playheadTime, setPlayheadTime] = useState<number>(0)
+  // Which edge of the visible track area the playhead is beyond (null = visible).
+  // Computed in the same rAF tick; React bails out when the value is unchanged,
+  // so this adds no renders beyond the existing per-frame playhead updates.
+  const [playheadOffscreen, setPlayheadOffscreen] = useState<OffscreenSide | null>(null)
   useEffect(() => {
     if (!getCurrentTime) return
     let raf = 0
@@ -240,6 +278,13 @@ export function TimingEditor({
       const t = getCurrentTime()
       setPlayheadX(t * ppsRef.current)
       setPlayheadTime(t)
+      const el = scrollContainerRef.current
+      if (el) {
+        const p = ppsRef.current
+        const scrollLeft = pendingScrollLeftRef.current ?? el.scrollLeft
+        const trackViewportWidth = Math.max(1, el.clientWidth - LANE_HEADER_WIDTH)
+        setPlayheadOffscreen(offscreenSide(t, scrollLeft / p, trackViewportWidth / p))
+      }
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
@@ -648,316 +693,333 @@ export function TimingEditor({
         </div>
       )}
 
-      {/* Horizontally scrollable timeline with speaker lanes */}
-      <div className="timing-editor__timeline-scroll" ref={scrollContainerRef}>
-        {/* Playhead line */}
-        <div
-          className="timing-editor__playhead"
-          style={{ left: playheadX }}
-        >
-          <span className="timing-editor__playhead-time">{formatTimePrecise(playheadTime)}</span>
-        </div>
-
-        {/* Time ruler */}
-        <div className="timing-editor__ruler" style={{ width: timelineWidth }} onClick={handleTimelineClick}>
-          {rulerTicks.map(({ time, major }) => (
-            <div
-              key={time}
-              className={`timing-editor__ruler-tick${major ? ' timing-editor__ruler-tick--major' : ''}`}
-              style={{ left: time * pps }}
-            >
-              {major && (
-                <span className="timing-editor__ruler-label">{formatTime(time)}</span>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Waveform row — above speaker lanes */}
-        {waveform && (
-          <div className="timing-editor__waveform-row" style={{ width: timelineWidth }} onClick={handleTimelineClick}>
-            <WaveformCanvas
-              samples={waveform.samples}
-              duration={waveform.duration}
-              pixelsPerSecond={pps}
-              height={48}
-            />
-          </div>
+      {/* Positioning context for the off-screen playhead indicator, which must
+          stay pinned to the viewport edges rather than scroll with the track. */}
+      <div className="timing-editor__timeline-wrap">
+        {playheadOffscreen && (
+          <button
+            type="button"
+            className={`timing-editor__offscreen-playhead timing-editor__offscreen-playhead--${playheadOffscreen}`}
+            onClick={centerOnPlayhead}
+            title={`Playhead is off-screen — click to jump to it (${JUMP_TO_PLAYHEAD_KEY.toUpperCase()})`}
+            aria-label="Jump to playhead"
+          >
+            {playheadOffscreen === 'left' && <span aria-hidden="true">◀</span>}
+            <span className="timing-editor__offscreen-playhead-time">{formatTimePrecise(playheadTime)}</span>
+            {playheadOffscreen === 'right' && <span aria-hidden="true">▶</span>}
+          </button>
         )}
+        {/* Horizontally scrollable timeline with speaker lanes */}
+        <div className="timing-editor__timeline-scroll" ref={scrollContainerRef}>
+          {/* Playhead line */}
+          <div
+            className="timing-editor__playhead"
+            style={{ left: playheadX }}
+          >
+            <span className="timing-editor__playhead-time">{formatTimePrecise(playheadTime)}</span>
+          </div>
 
-        {/* Speaker lanes */}
-        <div className="timing-editor__speaker-lanes">
-          {lanes.map((lane) => {
-            const colorIdx = getSpeakerColorIndex(lane.speakerId)
-            const isDragOver = dragOverLane === lane.speakerId
-            const isDeleting = deletingLane === lane.speakerId
-
-            return (
+          {/* Time ruler */}
+          <div className="timing-editor__ruler" style={{ width: timelineWidth }} onClick={handleTimelineClick}>
+            {rulerTicks.map(({ time, major }) => (
               <div
-                key={lane.speakerId}
-                className={`timing-editor__lane${isDragOver ? ' timing-editor__lane--drag-over' : ''}`}
-                onDragOver={(e) => handleDragOver(e, lane.speakerId)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, lane.speakerId)}
+                key={time}
+                className={`timing-editor__ruler-tick${major ? ' timing-editor__ruler-tick--major' : ''}`}
+                style={{ left: time * pps }}
               >
-                {/* Lane header (sticky left) */}
-                <div className="timing-editor__lane-header" style={{ position: 'relative' }}>
-                  <span
-                    className="timing-editor__lane-color-bar"
-                    style={{ background: `var(--speaker-color-${colorIdx})` }}
-                  />
-                  <SpeakerNameInput
-                    speakerId={lane.speakerId}
-                    displayName={speakerNames[lane.speakerId] ?? lane.speakerId}
-                    onRename={renameSpeaker}
-                  />
-                  <div className="timing-editor__lane-actions">
-                    {onEditSpeaker && (
-                      <button
-                        className="timing-editor__lane-edit-btn"
-                        type="button"
-                        onClick={() => onEditSpeaker(lane.speakerId)}
-                        title="Edit speaker style"
-                      >
-                        ✎
-                      </button>
-                    )}
-                    {allSpeakerIds.length > 1 && (
-                      <button
-                        className="timing-editor__lane-edit-btn"
-                        type="button"
-                        onClick={() => handleMergeLane(lane.speakerId)}
-                        title="Merge into another speaker"
-                      >
-                        ⤵
-                      </button>
-                    )}
-                    {allSpeakerIds.length > 1 && (
-                      <button
-                        className="timing-editor__lane-delete-btn"
-                        type="button"
-                        onClick={() => handleDeleteLane(lane.speakerId)}
-                        title="Delete this speaker lane"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
+                {major && (
+                  <span className="timing-editor__ruler-label">{formatTime(time)}</span>
+                )}
+              </div>
+            ))}
+          </div>
 
-                  {/* Inline merge confirmation */}
-                  {mergingLane === lane.speakerId && (
-                    <div className="timing-editor__lane-delete-confirm">
-                      <span className="timing-editor__lane-delete-label">Merge into:</span>
-                      <select
-                        className="timing-editor__lane-delete-select"
-                        value={mergeTarget}
-                        onChange={(e) => setMergeTarget(e.target.value)}
-                      >
-                        {allSpeakerIds
-                          .filter((s) => s !== lane.speakerId)
-                          .map((s) => (
-                            <option key={s} value={s}>
-                              {speakerNames[s] ?? s}
-                            </option>
-                          ))}
-                      </select>
-                      <button
-                        className="timing-editor__lane-delete-action timing-editor__lane-delete-action--confirm"
-                        type="button"
-                        onClick={confirmMergeLane}
-                      >
-                        Merge
-                      </button>
-                      <button
-                        className="timing-editor__lane-delete-action timing-editor__lane-delete-action--cancel"
-                        type="button"
-                        onClick={cancelMergeLane}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
+          {/* Waveform row — above speaker lanes */}
+          {waveform && (
+            <div className="timing-editor__waveform-row" style={{ width: timelineWidth }} onClick={handleTimelineClick}>
+              <WaveformCanvas
+                samples={waveform.samples}
+                duration={waveform.duration}
+                pixelsPerSecond={pps}
+                height={48}
+              />
+            </div>
+          )}
 
-                  {/* Inline delete confirmation */}
-                  {isDeleting && (
-                    <div className="timing-editor__lane-delete-confirm">
-                      <span className="timing-editor__lane-delete-label">Reassign to:</span>
-                      <select
-                        className="timing-editor__lane-delete-select"
-                        value={deleteReassignTo}
-                        onChange={(e) => setDeleteReassignTo(e.target.value)}
-                      >
-                        {allSpeakerIds
-                          .filter((s) => s !== lane.speakerId)
-                          .map((s) => (
-                            <option key={s} value={s}>
-                              {speakerNames[s] ?? s}
-                            </option>
-                          ))}
-                      </select>
-                      <button
-                        className="timing-editor__lane-delete-action timing-editor__lane-delete-action--confirm"
-                        type="button"
-                        onClick={confirmDeleteLane}
-                      >
-                        Confirm
-                      </button>
-                      <button
-                        className="timing-editor__lane-delete-action timing-editor__lane-delete-action--cancel"
-                        type="button"
-                        onClick={cancelDeleteLane}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
+          {/* Speaker lanes */}
+          <div className="timing-editor__speaker-lanes">
+            {lanes.map((lane) => {
+              const colorIdx = getSpeakerColorIndex(lane.speakerId)
+              const isDragOver = dragOverLane === lane.speakerId
+              const isDeleting = deletingLane === lane.speakerId
 
-                {/* Lane track (scrollable with phrases) — click empty space to add phrase */}
+              return (
                 <div
-                  className="timing-editor__lane-track"
-                  style={{ width: timelineWidth, height: LANE_HEIGHT }}
-                  onClick={(e) => handleLaneTrackClick(e, lane.speakerId)}
+                  key={lane.speakerId}
+                  className={`timing-editor__lane${isDragOver ? ' timing-editor__lane--drag-over' : ''}`}
+                  onDragOver={(e) => handleDragOver(e, lane.speakerId)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, lane.speakerId)}
                 >
-                  {/* Phrase blocks in this lane */}
-                  {lane.phrases.map(({ phrase, phraseIndex }) => {
-                    if (phrase.words.length === 0) return null
-
-                    const firstWord = phrase.words[0]
-                    const lastWord = phrase.words[phrase.words.length - 1]
-                    const lingerSec = phrase.lingerDuration ?? globalLingerDuration
-
-                    // Live edge-drag preview: visually stretch this block (and
-                    // rescale its word markers) without touching the store; the
-                    // single store commit happens on mouseup.
-                    const isEdgeDragging = edgeDrag?.phraseIndex === phraseIndex
-                    const edgePreview = isEdgeDragging
-                      ? clampEdgeDrag(phraseIndex, edgeDrag.edge, edgeDrag.deltaSec)
-                      : null
-                    const blockStart = edgePreview?.start ?? firstWord.start
-                    const blockEnd = edgePreview?.end ?? lastWord.end
-
-                    const left = blockStart * pps
-                    const wordsWidth = (blockEnd - blockStart) * pps
-                    const lingerWidth = lingerSec * pps
-                    const width = Math.max(4, wordsWidth + lingerWidth)
-                    const origWordsDuration = lastWord.end - firstWord.start
-
-                    const isSelected = selectedPhraseIndex === phraseIndex
-                    const isEditing = editingPhraseIndex === phraseIndex
-                    const phraseText = phrase.words.map((w) => w.word).join(' ')
-                    const blockBg = `var(--speaker-color-${colorIdx}, rgba(0, 230, 150, 0.4))`
-
-                    // Apply visual offset during timing shift drag
-                    const isDragging = shiftDrag?.phraseIndex === phraseIndex
-                    const visualLeft = isDragging ? left + shiftDrag.offsetPx : left
-
-                    return (
-                      <div
-                        key={phraseIndex}
-                        className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}${isDragging ? ' timing-editor__phrase-block--dragging' : ''}${isEdgeDragging ? ' timing-editor__phrase-block--edge-dragging' : ''}${isEditing ? ' timing-editor__phrase-block--editing' : ''}`}
-                        style={{ left: visualLeft, width, background: blockBg, zIndex: isSelected || isEdgeDragging ? 10 : undefined }}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (!isDragging && !isEditing) handlePhraseClick(phraseIndex)
-                        }}
-                        onDoubleClick={(e) => handlePhraseDoubleClick(e, phraseIndex)}
-                        title={isEditing ? undefined : phraseText}
-                        onMouseDown={(e) => {
-                          if (!isEditing) handlePhraseShiftStart(e, phraseIndex)
-                        }}
-                        draggable={!isEditing}
-                        onDragStart={(e) => handleDragStart(e, phraseIndex)}
-                      >
-                        {/* Linger tail — semi-transparent extension after last word */}
-                        {lingerWidth > 0 && (
-                          <span
-                            className="timing-editor__linger-tail"
-                            style={{ left: wordsWidth, width: lingerWidth }}
-                          />
-                        )}
-                        {/* Word-end markers (red lines showing where each word ends) —
-                            scaled to the preview width during an edge drag so they
-                            mirror the proportional word rescale setPhraseTiming applies */}
-                        {phrase.words.length > 1 && phrase.words.slice(0, -1).map((w, wi) => (
-                          <span
-                            key={wi}
-                            className="timing-editor__word-end-marker"
-                            style={{
-                              left: origWordsDuration > 0
-                                ? ((w.end - firstWord.start) / origWordsDuration) * wordsWidth
-                                : 0,
-                            }}
-                          />
-                        ))}
-                        {/* Edge-drag grab zones: resize phrase start/end */}
-                        {!isEditing && (
-                          <>
-                            <span
-                              className="timing-editor__phrase-edge-handle timing-editor__phrase-edge-handle--start"
-                              onMouseDown={(e) => handleEdgeDragStart(e, phraseIndex, 'start')}
-                              onClick={(e) => e.stopPropagation()}
-                              onDoubleClick={(e) => e.stopPropagation()}
-                              title="Drag to adjust phrase start"
-                            />
-                            <span
-                              className="timing-editor__phrase-edge-handle timing-editor__phrase-edge-handle--end"
-                              onMouseDown={(e) => handleEdgeDragStart(e, phraseIndex, 'end')}
-                              onClick={(e) => e.stopPropagation()}
-                              onDoubleClick={(e) => e.stopPropagation()}
-                              title="Drag to adjust phrase end"
-                            />
-                          </>
-                        )}
-                        {isEditing ? (
-                          <InlinePhraseInput
-                            initialText={phraseText}
-                            onCommit={(text) => handleInlineEditCommit(phraseIndex, text)}
-                            onCancel={handleInlineEditCancel}
-                          />
-                        ) : (
-                          <span className="timing-editor__phrase-text">{phraseText}</span>
-                        )}
-                        {/* Lane override selector */}
-                        <select
-                          className="timing-editor__phrase-lane-select"
-                          value={phraseLaneOverrides[phraseIndex] ?? ''}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            e.stopPropagation()
-                            const val = e.target.value
-                            setPhraseLane(phraseIndex, val === '' ? null : parseInt(val, 10))
-                          }}
-                          title="Assign to lane"
-                        >
-                          <option value="">Auto</option>
-                          {Array.from({ length: laneCount }).map((_, li) => (
-                            <option key={li} value={li}>L{li + 1}</option>
-                          ))}
-                        </select>
+                  {/* Lane header (sticky left) */}
+                  <div className="timing-editor__lane-header" style={{ position: 'relative' }}>
+                    <span
+                      className="timing-editor__lane-color-bar"
+                      style={{ background: `var(--speaker-color-${colorIdx})` }}
+                    />
+                    <SpeakerNameInput
+                      speakerId={lane.speakerId}
+                      displayName={speakerNames[lane.speakerId] ?? lane.speakerId}
+                      onRename={renameSpeaker}
+                    />
+                    <div className="timing-editor__lane-actions">
+                      {onEditSpeaker && (
                         <button
-                          className="timing-editor__phrase-edit"
+                          className="timing-editor__lane-edit-btn"
                           type="button"
-                          onClick={(e) => handleEditPhrase(e, phraseIndex)}
-                          title="Edit phrase style"
+                          onClick={() => onEditSpeaker(lane.speakerId)}
+                          title="Edit speaker style"
                         >
                           ✎
                         </button>
+                      )}
+                      {allSpeakerIds.length > 1 && (
                         <button
-                          className="timing-editor__phrase-delete"
+                          className="timing-editor__lane-edit-btn"
                           type="button"
-                          onClick={(e) => handleDeletePhrase(e, phraseIndex)}
-                          title="Delete phrase"
+                          onClick={() => handleMergeLane(lane.speakerId)}
+                          title="Merge into another speaker"
+                        >
+                          ⤵
+                        </button>
+                      )}
+                      {allSpeakerIds.length > 1 && (
+                        <button
+                          className="timing-editor__lane-delete-btn"
+                          type="button"
+                          onClick={() => handleDeleteLane(lane.speakerId)}
+                          title="Delete this speaker lane"
                         >
                           ×
                         </button>
+                      )}
+                    </div>
+
+                    {/* Inline merge confirmation */}
+                    {mergingLane === lane.speakerId && (
+                      <div className="timing-editor__lane-delete-confirm">
+                        <span className="timing-editor__lane-delete-label">Merge into:</span>
+                        <select
+                          className="timing-editor__lane-delete-select"
+                          value={mergeTarget}
+                          onChange={(e) => setMergeTarget(e.target.value)}
+                        >
+                          {allSpeakerIds
+                            .filter((s) => s !== lane.speakerId)
+                            .map((s) => (
+                              <option key={s} value={s}>
+                                {speakerNames[s] ?? s}
+                              </option>
+                            ))}
+                        </select>
+                        <button
+                          className="timing-editor__lane-delete-action timing-editor__lane-delete-action--confirm"
+                          type="button"
+                          onClick={confirmMergeLane}
+                        >
+                          Merge
+                        </button>
+                        <button
+                          className="timing-editor__lane-delete-action timing-editor__lane-delete-action--cancel"
+                          type="button"
+                          onClick={cancelMergeLane}
+                        >
+                          Cancel
+                        </button>
                       </div>
-                    )
-                  })}
+                    )}
+
+                    {/* Inline delete confirmation */}
+                    {isDeleting && (
+                      <div className="timing-editor__lane-delete-confirm">
+                        <span className="timing-editor__lane-delete-label">Reassign to:</span>
+                        <select
+                          className="timing-editor__lane-delete-select"
+                          value={deleteReassignTo}
+                          onChange={(e) => setDeleteReassignTo(e.target.value)}
+                        >
+                          {allSpeakerIds
+                            .filter((s) => s !== lane.speakerId)
+                            .map((s) => (
+                              <option key={s} value={s}>
+                                {speakerNames[s] ?? s}
+                              </option>
+                            ))}
+                        </select>
+                        <button
+                          className="timing-editor__lane-delete-action timing-editor__lane-delete-action--confirm"
+                          type="button"
+                          onClick={confirmDeleteLane}
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          className="timing-editor__lane-delete-action timing-editor__lane-delete-action--cancel"
+                          type="button"
+                          onClick={cancelDeleteLane}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lane track (scrollable with phrases) — click empty space to add phrase */}
+                  <div
+                    className="timing-editor__lane-track"
+                    style={{ width: timelineWidth, height: LANE_HEIGHT }}
+                    onClick={(e) => handleLaneTrackClick(e, lane.speakerId)}
+                  >
+                    {/* Phrase blocks in this lane */}
+                    {lane.phrases.map(({ phrase, phraseIndex }) => {
+                      if (phrase.words.length === 0) return null
+
+                      const firstWord = phrase.words[0]
+                      const lastWord = phrase.words[phrase.words.length - 1]
+                      const lingerSec = phrase.lingerDuration ?? globalLingerDuration
+
+                      // Live edge-drag preview: visually stretch this block (and
+                      // rescale its word markers) without touching the store; the
+                      // single store commit happens on mouseup.
+                      const isEdgeDragging = edgeDrag?.phraseIndex === phraseIndex
+                      const edgePreview = isEdgeDragging
+                        ? clampEdgeDrag(phraseIndex, edgeDrag.edge, edgeDrag.deltaSec)
+                        : null
+                      const blockStart = edgePreview?.start ?? firstWord.start
+                      const blockEnd = edgePreview?.end ?? lastWord.end
+
+                      const left = blockStart * pps
+                      const wordsWidth = (blockEnd - blockStart) * pps
+                      const lingerWidth = lingerSec * pps
+                      const width = Math.max(4, wordsWidth + lingerWidth)
+                      const origWordsDuration = lastWord.end - firstWord.start
+
+                      const isSelected = selectedPhraseIndex === phraseIndex
+                      const isEditing = editingPhraseIndex === phraseIndex
+                      const phraseText = phrase.words.map((w) => w.word).join(' ')
+                      const blockBg = `var(--speaker-color-${colorIdx}, rgba(0, 230, 150, 0.4))`
+
+                      // Apply visual offset during timing shift drag
+                      const isDragging = shiftDrag?.phraseIndex === phraseIndex
+                      const visualLeft = isDragging ? left + shiftDrag.offsetPx : left
+
+                      return (
+                        <div
+                          key={phraseIndex}
+                          className={`timing-editor__phrase-block${isSelected ? ' timing-editor__phrase-block--selected' : ''}${isDragging ? ' timing-editor__phrase-block--dragging' : ''}${isEdgeDragging ? ' timing-editor__phrase-block--edge-dragging' : ''}${isEditing ? ' timing-editor__phrase-block--editing' : ''}`}
+                          style={{ left: visualLeft, width, background: blockBg, zIndex: isSelected || isEdgeDragging ? 10 : undefined }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (!isDragging && !isEditing) handlePhraseClick(phraseIndex)
+                          }}
+                          onDoubleClick={(e) => handlePhraseDoubleClick(e, phraseIndex)}
+                          title={isEditing ? undefined : phraseText}
+                          onMouseDown={(e) => {
+                            if (!isEditing) handlePhraseShiftStart(e, phraseIndex)
+                          }}
+                          draggable={!isEditing}
+                          onDragStart={(e) => handleDragStart(e, phraseIndex)}
+                        >
+                          {/* Linger tail — semi-transparent extension after last word */}
+                          {lingerWidth > 0 && (
+                            <span
+                              className="timing-editor__linger-tail"
+                              style={{ left: wordsWidth, width: lingerWidth }}
+                            />
+                          )}
+                          {/* Word-end markers (red lines showing where each word ends) —
+                              scaled to the preview width during an edge drag so they
+                              mirror the proportional word rescale setPhraseTiming applies */}
+                          {phrase.words.length > 1 && phrase.words.slice(0, -1).map((w, wi) => (
+                            <span
+                              key={wi}
+                              className="timing-editor__word-end-marker"
+                              style={{
+                                left: origWordsDuration > 0
+                                  ? ((w.end - firstWord.start) / origWordsDuration) * wordsWidth
+                                  : 0,
+                              }}
+                            />
+                          ))}
+                          {/* Edge-drag grab zones: resize phrase start/end */}
+                          {!isEditing && (
+                            <>
+                              <span
+                                className="timing-editor__phrase-edge-handle timing-editor__phrase-edge-handle--start"
+                                onMouseDown={(e) => handleEdgeDragStart(e, phraseIndex, 'start')}
+                                onClick={(e) => e.stopPropagation()}
+                                onDoubleClick={(e) => e.stopPropagation()}
+                                title="Drag to adjust phrase start"
+                              />
+                              <span
+                                className="timing-editor__phrase-edge-handle timing-editor__phrase-edge-handle--end"
+                                onMouseDown={(e) => handleEdgeDragStart(e, phraseIndex, 'end')}
+                                onClick={(e) => e.stopPropagation()}
+                                onDoubleClick={(e) => e.stopPropagation()}
+                                title="Drag to adjust phrase end"
+                              />
+                            </>
+                          )}
+                          {isEditing ? (
+                            <InlinePhraseInput
+                              initialText={phraseText}
+                              onCommit={(text) => handleInlineEditCommit(phraseIndex, text)}
+                              onCancel={handleInlineEditCancel}
+                            />
+                          ) : (
+                            <span className="timing-editor__phrase-text">{phraseText}</span>
+                          )}
+                          {/* Lane override selector */}
+                          <select
+                            className="timing-editor__phrase-lane-select"
+                            value={phraseLaneOverrides[phraseIndex] ?? ''}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              e.stopPropagation()
+                              const val = e.target.value
+                              setPhraseLane(phraseIndex, val === '' ? null : parseInt(val, 10))
+                            }}
+                            title="Assign to lane"
+                          >
+                            <option value="">Auto</option>
+                            {Array.from({ length: laneCount }).map((_, li) => (
+                              <option key={li} value={li}>L{li + 1}</option>
+                            ))}
+                          </select>
+                          <button
+                            className="timing-editor__phrase-edit"
+                            type="button"
+                            onClick={(e) => handleEditPhrase(e, phraseIndex)}
+                            title="Edit phrase style"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            className="timing-editor__phrase-delete"
+                            type="button"
+                            onClick={(e) => handleDeletePhrase(e, phraseIndex)}
+                            title="Delete phrase"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
 
@@ -965,6 +1027,12 @@ export function TimingEditor({
       <div className="timing-editor__zoom-bar">
         <span className="timing-editor__zoom-hint">Ctrl+Scroll to zoom</span>
         <div className="timing-editor__zoom-group">
+          <button
+            className="timing-editor__zoom-btn timing-editor__zoom-btn--playhead"
+            onClick={centerOnPlayhead}
+            title={`Jump to playhead (${JUMP_TO_PLAYHEAD_KEY.toUpperCase()})`}
+            aria-label="Jump to playhead"
+          >⌖</button>
           <button
             className="timing-editor__zoom-btn"
             onClick={() => applyZoom((p) => p * 0.75)}

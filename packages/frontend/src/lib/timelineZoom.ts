@@ -10,6 +10,25 @@
 
 export type OffscreenSide = 'left' | 'right'
 
+/**
+ * Unmodified key that centers either timeline on the playhead. Chosen because
+ * no other frontend shortcut uses a bare "C" (existing: Space play/pause,
+ * ←/→ phrase nav, Escape, Delete/Backspace, Ctrl/Cmd+1/2/A/D/H/M/S/Z, Tab).
+ */
+export const JUMP_TO_PLAYHEAD_KEY = 'c'
+
+/** True when keyboard focus is somewhere the user is typing (shortcuts must not fire). */
+export function isTypingTarget(target: EventTarget | null): boolean {
+  if (!target || typeof (target as HTMLElement).tagName !== 'string') return false
+  const el = target as HTMLElement
+  return (
+    el.tagName === 'INPUT' ||
+    el.tagName === 'TEXTAREA' ||
+    el.tagName === 'SELECT' ||
+    el.isContentEditable === true
+  )
+}
+
 /** Clamp a window start so the window stays inside `[0, totalDuration]`. */
 export function clampViewStart(viewStart: number, visibleDuration: number, totalDuration: number): number {
   const maxStart = Math.max(0, totalDuration - visibleDuration)

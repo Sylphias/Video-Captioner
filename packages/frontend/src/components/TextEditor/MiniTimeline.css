@@ -1,7 +1,44 @@
 /* ---- Mini Timeline: lane-based speech overview ---- */
 
 .mini-timeline {
+  position: relative; /* positioning context for the off-screen playhead indicator */
   padding: 0;
+}
+
+/* ---- Off-screen playhead indicator (pinned to the lane-area edge) ----
+   Only the pill receives pointer events; lanes underneath stay clickable. */
+.mini-timeline__offscreen-playhead {
+  position: absolute;
+  top: 3px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  padding: 0 5px;
+  border: 1px solid var(--color-accent-green);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--color-accent-green);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.mini-timeline__offscreen-playhead:hover {
+  background: var(--color-accent-green);
+  color: #000;
+}
+
+.mini-timeline__offscreen-playhead--left {
+  left: calc(70px + 4px); /* just right of the lane label column */
+}
+
+.mini-timeline__offscreen-playhead--right {
+  right: 4px;
 }
 
 /* ---- Waveform row (above lanes, click to seek) ---- */
@@ -159,6 +196,13 @@
   padding: 0;
   cursor: pointer;
   transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.mini-timeline__zoom-btn--playhead {
+  margin-right: 6px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--color-accent-green);
 }
 
 .mini-timeline__zoom-btn:hover {
