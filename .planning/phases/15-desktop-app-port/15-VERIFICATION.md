@@ -1,9 +1,9 @@
 ---
 phase: 15-desktop-app-port
 verified: 2026-10-10T12:13:19Z
-status: human_needed
-score: 32/33 must-haves verified
-behavior_unverified: 1
+status: passed
+score: 33/33 must-haves verified
+behavior_unverified: 0
 overrides_applied: 0
 behavior_unverified_items:
   - truth: "Backend self-exits if its parent (Electron) process disappears (orphan watchdog, D-03); CONTEXT requires no strays on any exit path: quit, crash, force-kill"
@@ -183,3 +183,20 @@ Housekeeping (info, not gaps):
 
 _Verified: 2026-10-10T12:13:19Z_
 _Verifier: Claude (gsd-verifier)_
+
+## Resolution (2026-10-10)
+
+The one item left unverified (crash/force-kill orphan watchdog, D-03) was closed by human UAT. See 15-UAT.md, status complete.
+
+- **Mid-transcription force-kill:** the backend and its Python processes exited within 1s.
+- **Mid-render force-kill:** all 23 descendant processes exited within 1s. These were the backend, ffmpeg, remotion.exe and 12 chrome-headless-shell processes.
+- **Hardening:** 0d3927a makes the watchdog shutdown tree-kill the backend's own process tree.
+
+That UAT also surfaced two gaps, both fixed (merge 716b054) and approved by the user:
+
+- **A, crash recovery:** jobs are rebuilt from disk, so a project crashed mid-transcription restarts on open.
+- **B/C, multiple media roots:** each project records its media root, so projects created before the storage folder changed get their thumbnail and video back. Projects whose media is truly missing are flagged with a Delete action.
+
+Follow-ups are in deferred-items.md.
+
+**Final status: passed. 33/33 must-haves.**

@@ -10,7 +10,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Platform
 
 - [ ] **PLAT-01**: User can switch between tools via header navigation tabs in the web interface
-- [ ] **PLAT-02**: Backend runs on M4 Mac Mini and is accessible from other devices on the local network
+- [~] **PLAT-02**: ~~Backend runs on M4 Mac Mini and is accessible from other devices on the local network~~ — superseded by Phase 15 D-12 (desktop app, localhost-only)
 
 ### Video Ingestion
 
@@ -86,7 +86,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | PLAT-01 | Phase 1 | Pending |
-| PLAT-02 | Phase 1 | Pending |
+| PLAT-02 | Phase 1 | Superseded (Phase 15 D-12) |
 | INGST-01 | Phase 1 | Pending |
 | INGST-02 | Phase 1 | Pending |
 | INGST-03 | Phase 1 | Pending |

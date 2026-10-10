@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 12: UI/UX Layout Improvements** - Reposition Re-transcribe/Re-upload buttons, inline style drawer (match Animation page), Global Styling permanent on right panel (completed 2026-07-07)
 - [x] **Phase 13: Project Persistence and Landing Page** - Save/load video projects, project card grid landing page, auto-save, project lifecycle (rename, delete, duplicate, re-transcribe)
 - [x] **Phase 14: Editor Stability & New Features** - Text editor bug fixes (blur cascades, phrase boundary corruption), timeline drag/snap/cross-lane, additional speaker rows, per-phrase highlight disable, MiniTimeline zoom
-- [ ] **Phase 15: Desktop App Port** - Package the app as a desktop application (web frontend + Node server + Python ML backend + Remotion rendering in a desktop shell, likely Electron); fix remaining small webapp workflow issues
+- [x] **Phase 15: Desktop App Port** - Package the app as a desktop application (web frontend + Node server + Python ML backend + Remotion rendering in a desktop shell, likely Electron); fix remaining small webapp workflow issues (completed 2026-10-10)
 
 ## Phase Details
 
@@ -369,7 +369,7 @@ Completed work:
 **Goal:** Package the app as a desktop application — web frontend + Node server + Python ML backend + Remotion rendering wrapped in a desktop shell (likely Electron given the Node stack; tech choice settled in discuss-phase). Includes fixing remaining small webapp workflow issues surfaced during daily use.
 **Requirements**: D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-13, D-14 (see phases/15-desktop-app-port/15-CONTEXT.md)
 **Depends on:** Phase 12 (UI refresh lands first — user decision 2026-07-02)
-**Plans:** 9/9 plans executed
+**Plans:** 9/9 plans complete
 
 Plans:
 
@@ -382,8 +382,6 @@ Plans:
 - [x] 15-07-PLAN.md
 - [x] 15-08-PLAN.md
 - [x] 15-09-PLAN.md
-
-- [ ] TBD (run /gsd-plan-phase 15 to break down)
 
 ### Phase 16: Font Style Studio
 
