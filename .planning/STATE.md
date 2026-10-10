@@ -4,7 +4,7 @@ milestone: v1.0
 current_phase: 15
 current_phase_name: Desktop App Port
 status: executing
-stopped_at: 15-09 Task 2 — implementing user-named timeline fixes (D-14)
+stopped_at: 15-09 Task 3 checkpoint — full E2E desktop UAT on Windows pending (installer rebuilt with timeline fixes)
 last_updated: "2026-10-08T05:53:18.592Z"
 last_activity: 2026-10-10
 last_activity_desc: 15-08 approved (install+launch+transcribe on Windows); 15-09 started
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 Phase: 15 (Desktop App Port) — EXECUTING
 Plan: 9 of 9
-Status: Executing 15-09 Task 2 (timeline fixes)
+Status: Awaiting human verification (15-09 Task 3 — full E2E UAT)
 Last activity: 2026-10-10 — 15-08 approved by user (installer installs per-user, launches, transcribes, no stragglers)
 
 Progress: [██████████████████░░] 88% (Phase 15 Desktop App Port remaining)
