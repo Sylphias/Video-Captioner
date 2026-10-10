@@ -1,9 +1,9 @@
 ---
-status: testing
+status: complete
 phase: 15-desktop-app-port
 source: [15-VERIFICATION.md]
 started: 2026-10-10T12:15:05Z
-updated: 2026-10-10T12:15:05Z
+updated: 2026-10-10T14:32:00Z
 ---
 
 ## Current Test
@@ -14,20 +14,20 @@ expected: |
   Force-kill ONLY the Eigen.exe main process (Task Manager "End task", not "End process tree") while a
   transcription is running, then again while a render is running. Within ~5s the backend exits on its own and
   no python.exe / uv.exe / ffmpeg.exe / chrome-headless-shell / Remotion compositor processes from Eigen remain.
-awaiting: user response
+awaiting: none
 
 ## Tests
 
 ### 1. Orphan watchdog on Electron crash / force-kill (D-03)
 expected: Within ~5s of force-killing Eigen.exe mid-transcription and mid-render, the backend exits and no Eigen python/uv/ffmpeg/headless-browser/compositor processes remain
-result: [pending]
+result: pass — mid-transcription (20:52, installer 0d3927a): main Eigen.exe force-killed, backend + 2 python procs gone within 1s. Mid-render (22:31, installer 716b054): all 23 descendant procs (backend, ffmpeg, remotion.exe, 12 chrome-headless-shell, conhosts) gone within 1s; no Eigen/ffmpeg/uv/chrome remained.
 
 ## Summary
 
 total: 1
-passed: 0
+passed: 1
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
