@@ -384,3 +384,14 @@ Plans:
 - [ ] 15-09-PLAN.md
 
 - [ ] TBD (run /gsd-plan-phase 15 to break down)
+
+### Phase 16: Font Style Studio
+
+**Goal:** A dedicated page for designing reusable font/text styles (family, weight, outline, shadow, etc.) that can be applied to the captioned video — requested by the user 2026-10-10 during 15-09 fix-list triage (too large for the 15-09 fix budget)
+**Requirements**: TBD
+**Depends on:** Phase 15
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 16 to break down)

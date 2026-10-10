@@ -4,7 +4,7 @@ milestone: v1.0
 current_phase: 15
 current_phase_name: Desktop App Port
 status: executing
-stopped_at: 15-09 Task 1 checkpoint — awaiting user workflow-fix list (D-14)
+stopped_at: 15-09 Task 2 — implementing user-named timeline fixes (D-14)
 last_updated: "2026-10-08T05:53:18.592Z"
 last_activity: 2026-10-10
 last_activity_desc: 15-08 approved (install+launch+transcribe on Windows); 15-09 started
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 
 Phase: 15 (Desktop App Port) — EXECUTING
 Plan: 9 of 9
-Status: Awaiting decision (15-09 Task 1 — workflow fixes)
+Status: Executing 15-09 Task 2 (timeline fixes)
 Last activity: 2026-10-10 — 15-08 approved by user (installer installs per-user, launches, transcribes, no stragglers)
 
 Progress: [██████████████████░░] 88% (Phase 15 Desktop App Port remaining)
@@ -286,6 +286,7 @@ Recent decisions affecting current work:
 
 - Phase 04.1 inserted after Phase 4: Multi-Speaker Diarization and Speaker Lanes (URGENT) — auto-detect speakers via pyannote.audio, propagate speaker labels through types/grouping/store/composition, add speaker lanes to editor UI with manual override
 - Phase 15 added (2026-07-02): Desktop App Port — package app as desktop application (shell tech likely Electron, settled in discuss-phase); depends on Phase 12 (UI refresh first, user decision 2026-07-02); includes remaining small webapp workflow fixes
+- Phase 16 added (2026-10-10): Font Style Studio — dedicated page for designing reusable font/text styles applied to the video; split out of the 15-09 (D-14) fix list as too large for the reserved budget
 
 ### Pending Todos
 
