@@ -1,7 +1,44 @@
 /* ---- Mini Timeline: lane-based speech overview ---- */
 
 .mini-timeline {
+  position: relative; /* positioning context for the off-screen playhead indicator */
   padding: 0;
+}
+
+/* ---- Off-screen playhead indicator (pinned to the lane-area edge) ----
+   Only the pill receives pointer events; lanes underneath stay clickable. */
+.mini-timeline__offscreen-playhead {
+  position: absolute;
+  top: 3px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  padding: 0 5px;
+  border: 1px solid var(--color-accent-green);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--color-accent-green);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.mini-timeline__offscreen-playhead:hover {
+  background: var(--color-accent-green);
+  color: #000;
+}
+
+.mini-timeline__offscreen-playhead--left {
+  left: calc(70px + 4px); /* just right of the lane label column */
+}
+
+.mini-timeline__offscreen-playhead--right {
+  right: 4px;
 }
 
 /* ---- Waveform row (above lanes, click to seek) ---- */
@@ -101,34 +138,46 @@
 }
 
 /* ---- Drag handles ---- */
+/* Lane-level siblings of the blocks (see MiniTimeline.tsx): an invisible ~12px
+   hit zone straddling the phrase edge (left/width inline, from
+   lib/edgeHandleZones.ts), above every block of the lane so a neighbour can't
+   swallow it. The visible affordance is a thin bar at --edge-x. */
 .mini-timeline__handle {
+  position: absolute;
+  top: 3px;
+  height: calc(100% - 6px);
+  cursor: ew-resize;
+  z-index: 3;
+}
+
+.mini-timeline__handle::after {
+  content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 6px;
-  cursor: ew-resize;
-  opacity: 0;
-  transition: opacity var(--transition-fast), background var(--transition-fast);
-  z-index: 1;
+  left: var(--edge-x, 0);
+  width: 3px;
+  background: transparent;
+  pointer-events: none;
+  transition: background var(--transition-fast);
 }
 
-.mini-timeline__handle--left {
-  left: 0;
+.mini-timeline__handle--left::after {
   border-radius: 3px 0 0 3px;
 }
 
-.mini-timeline__handle--right {
-  right: 0;
+/* Bar sits just inside the block's right edge */
+.mini-timeline__handle--right::after {
+  translate: -100% 0;
   border-radius: 0 3px 3px 0;
 }
 
-.mini-timeline__block:hover .mini-timeline__handle {
-  opacity: 1;
+.mini-timeline__handle--block-hover::after {
   background: rgba(255, 255, 255, 0.4);
 }
 
-.mini-timeline__handle:hover {
-  background: rgba(255, 255, 255, 0.7) !important;
+.mini-timeline__handle:hover::after {
+  background: rgba(255, 255, 255, 0.8);
 }
 
 /* ---- Hotkey hints + zoom controls ---- */
@@ -159,6 +208,13 @@
   padding: 0;
   cursor: pointer;
   transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.mini-timeline__zoom-btn--playhead {
+  margin-right: 6px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--color-accent-green);
 }
 
 .mini-timeline__zoom-btn:hover {

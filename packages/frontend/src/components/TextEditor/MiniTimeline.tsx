@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SessionPhrase } from '../../store/subtitleStore.ts'
+import {
+  clampViewStart,
+  zoomAnchoredViewStart,
+  centeredViewStart,
+  offscreenSide,
+  isTypingTarget,
+  JUMP_TO_PLAYHEAD_KEY,
+} from '../../lib/timelineZoom.ts'
+import { computeEdgeHandleZones } from '../../lib/edgeHandleZones.ts'
 import './MiniTimeline.css'
 
 const SPEAKER_COLORS = ['#4A90D9', '#E67E22', '#27AE60', '#9B59B6', '#E74C3C', '#1ABC9C', '#F39C12', '#95A5A6']
@@ -33,6 +42,12 @@ interface MiniTimelineProps {
   onReassignSpeaker?: (phraseIndex: number, speakerId: string) => void
   onHoverPhrase?: (phraseIndex: number | null) => void
   onEditSpeaker?: (speakerId: string) => void
+}
+
+function formatPlayheadTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toFixed(1).padStart(4, '0')}`
 }
 
 const MIN_VISIBLE_LANES = 3
@@ -88,13 +103,73 @@ export function MiniTimeline({
     }
   }, [currentTime, zoomLevel, clampedViewStart, viewEnd, visibleDuration, totalDuration])
 
-  // Keep refs in sync so wheel handler always sees latest values
+  // Keep refs in sync so wheel handler always sees latest values. applyZoom /
+  // the pan handler also write these synchronously so consecutive wheel ticks
+  // that arrive before a re-render compose from the latest window.
   const zoomRef = useRef(zoomLevel)
   const visibleDurationRef = useRef(visibleDuration)
   const totalDurationRef = useRef(totalDuration)
+  const viewStartRef = useRef(clampedViewStart)
+  const currentTimeRef = useRef(currentTime)
   zoomRef.current = zoomLevel
   visibleDurationRef.current = visibleDuration
   totalDurationRef.current = totalDuration
+  viewStartRef.current = clampedViewStart
+  currentTimeRef.current = currentTime
+
+  /**
+   * Single zoom entry point (Ctrl/Cmd+Wheel and the -/+ buttons). Anchors on
+   * the playhead: a visible playhead keeps its fractional on-screen position;
+   * an off-screen playhead gets the zoomed window centered on it.
+   */
+  const applyZoom = useCallback((computeNextZoom: (currentZoom: number) => number) => {
+    const td = totalDurationRef.current
+    if (td <= 0) return
+    const oldZoom = zoomRef.current
+    const newZoom = Math.min(MAX_ZOOM, Math.max(1, computeNextZoom(oldZoom)))
+    const newVisible = td / newZoom
+    const newViewStart = zoomAnchoredViewStart({
+      viewStart: viewStartRef.current,
+      visibleDuration: td / oldZoom,
+      newVisibleDuration: newVisible,
+      totalDuration: td,
+      playheadTime: currentTimeRef.current,
+    })
+    zoomRef.current = newZoom
+    visibleDurationRef.current = newVisible
+    viewStartRef.current = newViewStart
+    setZoomLevel(newZoom)
+    setViewStart(newViewStart)
+  }, [])
+
+  const applyZoomRef = useRef(applyZoom)
+  applyZoomRef.current = applyZoom
+
+  // Center the visible window on the playhead (jump button, shortcut, and the
+  // off-screen indicator). No-op at zoom 1 where everything is visible.
+  const centerOnPlayhead = useCallback(() => {
+    const td = totalDurationRef.current
+    if (zoomRef.current <= 1 || td <= 0) return
+    const next = centeredViewStart(currentTimeRef.current, visibleDurationRef.current, td)
+    viewStartRef.current = next
+    setViewStart(next)
+  }, [])
+
+  // Jump-to-playhead shortcut. MiniTimeline is only mounted on the Text stage,
+  // so this never double-fires with TimingEditor's identical shortcut. Ignored
+  // while typing (the transcript editor is contentEditable) and for modified
+  // combos (Ctrl/Cmd+C copy etc.).
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== JUMP_TO_PLAYHEAD_KEY && e.key !== JUMP_TO_PLAYHEAD_KEY.toUpperCase()) return
+      if (e.altKey || e.ctrlKey || e.metaKey) return
+      if (isTypingTarget(e.target)) return
+      e.preventDefault()
+      centerOnPlayhead()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [centerOnPlayhead])
 
   // Ctrl+Wheel zoom + pan
   useEffect(() => {
@@ -105,7 +180,7 @@ export function MiniTimeline({
         e.preventDefault()
         e.stopPropagation()
         const factor = e.deltaY > 0 ? 0.85 : 1.18
-        setZoomLevel(z => Math.min(MAX_ZOOM, Math.max(1, z * factor)))
+        applyZoomRef.current(z => z * factor)
       } else if (zoomRef.current > 1) {
         // Pan when zoomed — stop parent scroll container from intercepting
         e.preventDefault()
@@ -114,7 +189,9 @@ export function MiniTimeline({
         const vd = visibleDurationRef.current
         const td = totalDurationRef.current
         const panSec = (e.deltaY / 300) * vd
-        setViewStart(vs => Math.max(0, Math.min(td - vd, vs + panSec)))
+        const next = clampViewStart(viewStartRef.current + panSec, vd, td)
+        viewStartRef.current = next
+        setViewStart(next)
       }
     }
     // Use capture phase so we intercept before the parent scroll container
@@ -233,6 +310,10 @@ export function MiniTimeline({
     }
   }, [onReassignSpeaker])
 
+  // Hovered block (reveals its edge-handle bars, which are lane-level siblings
+  // and so can't use a `.block:hover .handle` selector).
+  const [hoveredBlock, setHoveredBlock] = useState<number | null>(null)
+
   // Track waveform row width for responsive canvas (matches lane-area width)
   const [canvasWidth, setCanvasWidth] = useState(300)
   const waveformHasData = !!(waveform && waveform.samples.length > 0)
@@ -321,6 +402,26 @@ export function MiniTimeline({
     return [...laneMap.values()].filter(l => l.phrases.length > 0 || l.speakerId.startsWith('CUSTOM_'))
   }, [phrases, speakerNames])
 
+  // Measured lane-area pixel width, needed to lay edge-handle hit zones out in
+  // pixels (blocks themselves are positioned in percent). Observes the always-
+  // mounted container and re-reads a lane area, so lane remounts and the
+  // lane-scrollbar appearing/disappearing are both picked up.
+  const [laneAreaWidth, setLaneAreaWidth] = useState(0)
+  const laneCountForMeasure = lanes.length
+  const isRendered = totalDuration > 0
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const measure = () => {
+      const area = container.querySelector<HTMLElement>('.mini-timeline__lane-area')
+      setLaneAreaWidth(area ? area.getBoundingClientRect().width : 0)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [laneCountForMeasure, isRendered])
+
   const pxToTime = useCallback((clientX: number, targetEl?: HTMLElement): number => {
     const el = targetEl ?? containerRef.current
     if (!el || visibleDuration <= 0) return 0
@@ -360,6 +461,8 @@ export function MiniTimeline({
   if (totalDuration <= 0) return null
 
   const playheadPct = timeToPct(currentTime)
+  // Derived from props/state already driving renders — no extra render loop.
+  const playheadOffscreen = zoomLevel > 1 ? offscreenSide(currentTime, clampedViewStart, visibleDuration) : null
   const needsScroll = lanes.length > MIN_VISIBLE_LANES
   const maxHeight = MIN_VISIBLE_LANES * LANE_HEIGHT
 
@@ -368,6 +471,20 @@ export function MiniTimeline({
 
   return (
     <div className="mini-timeline" ref={containerRef}>
+      {/* Off-screen playhead indicator: pinned to the lane-area edge, click to jump */}
+      {playheadOffscreen && (
+        <button
+          type="button"
+          className={`mini-timeline__offscreen-playhead mini-timeline__offscreen-playhead--${playheadOffscreen}`}
+          onClick={centerOnPlayhead}
+          title={`Playhead is off-screen — click to jump to it (${JUMP_TO_PLAYHEAD_KEY.toUpperCase()})`}
+          aria-label="Jump to playhead"
+        >
+          {playheadOffscreen === 'left' && <span aria-hidden="true">◀</span>}
+          <span>{formatPlayheadTime(currentTime)}</span>
+          {playheadOffscreen === 'right' && <span aria-hidden="true">▶</span>}
+        </button>
+      )}
       {/* Waveform row — click here to seek */}
       {waveform && waveform.samples.length > 0 && (
         <div
@@ -398,6 +515,18 @@ export function MiniTimeline({
         {lanes.map((lane) => {
           const color = getSpeakerColor(lane.speakerId)
           const label = speakerNames[lane.speakerId] ?? lane.speakerId
+          // Per-phrase geometry (percent of the lane area), shared by blocks and edge handles.
+          const laneGeometry = lane.phrases
+            .filter(({ phrase }) => phrase.words.length > 0)
+            .map(({ phrase, phraseIndex }) => {
+              const start = phrase.words[0].start
+              const end = phrase.words[phrase.words.length - 1].end
+              const leftPct = timeToPct(start)
+              const realWidthPct = ((end - start) / visibleDuration) * 100
+              const isDragging = shiftDrag?.phraseIndex === phraseIndex
+              const visualLeft = isDragging && shiftDrag ? leftPct + shiftDrag.offsetPct : leftPct
+              return { phrase, phraseIndex, start, visualLeft, realWidthPct }
+            })
 
           return (
             <div
@@ -424,15 +553,9 @@ export function MiniTimeline({
                   style={{ left: `${playheadPct}%` }}
                 />
 
-                {lane.phrases.map(({ phrase, phraseIndex }) => {
-                  if (phrase.words.length === 0) return null
-                  const start = phrase.words[0].start
-                  const end = phrase.words[phrase.words.length - 1].end
-                  const leftPct = timeToPct(start)
-                  const widthPct = ((end - start) / visibleDuration) * 100
+                {laneGeometry.map(({ phrase, phraseIndex, start, visualLeft, realWidthPct }) => {
                   const isActive = phraseIndex === activePhraseIndex
                   const isDragging = shiftDrag?.phraseIndex === phraseIndex
-                  const visualLeft = isDragging ? leftPct + shiftDrag.offsetPct : leftPct
 
                   return (
                     <div
@@ -440,28 +563,54 @@ export function MiniTimeline({
                       className={`mini-timeline__block${isActive ? ' mini-timeline__block--active' : ''}${isDragging ? ' mini-timeline__block--dragging' : ''}`}
                       style={{
                         left: `${visualLeft}%`,
-                        width: `${Math.max(widthPct, 0.3)}%`,
+                        width: `${Math.max(realWidthPct, 0.3)}%`,
                         backgroundColor: color,
                         cursor: onShiftPhrase ? 'grab' : undefined,
                       }}
                       title={phrase.words.map(w => w.word).join(' ').slice(0, 50)}
                       onMouseDown={(e) => handleBlockMouseDown(e, phraseIndex, start)}
-                      onMouseEnter={() => onHoverPhrase?.(phraseIndex)}
-                      onMouseLeave={() => onHoverPhrase?.(null)}
+                      onMouseEnter={() => { setHoveredBlock(phraseIndex); onHoverPhrase?.(phraseIndex) }}
+                      onMouseLeave={() => { setHoveredBlock(null); onHoverPhrase?.(null) }}
                       draggable={!!onReassignSpeaker}
                       onDragStart={(e) => handleDragStart(e, phraseIndex)}
-                    >
-                      <div
-                        className="mini-timeline__handle mini-timeline__handle--left"
-                        onMouseDown={(e) => handleEdgeDrag(e, 'start', phraseIndex)}
-                      />
-                      <div
-                        className="mini-timeline__handle mini-timeline__handle--right"
-                        onMouseDown={(e) => handleEdgeDrag(e, 'end', phraseIndex)}
-                      />
-                    </div>
+                    />
                   )
                 })}
+                {/* Edge-drag grab zones: lane-level siblings above the blocks,
+                    ~12px straddling each edge and split at the seam between
+                    adjacent phrases (lib/edgeHandleZones.ts). Needs the measured
+                    lane-area width to lay out in pixels. */}
+                {laneAreaWidth > 0 && (() => {
+                  const zones = computeEdgeHandleZones(
+                    laneGeometry.map((g) => {
+                      const startPx = (g.visualLeft / 100) * laneAreaWidth
+                      return { start: startPx, end: startPx + (g.realWidthPct / 100) * laneAreaWidth }
+                    }),
+                  )
+                  return laneGeometry.flatMap((g, i) => {
+                    const startPx = (g.visualLeft / 100) * laneAreaWidth
+                    const endPx = startPx + (g.realWidthPct / 100) * laneAreaWidth
+                    return (['start', 'end'] as const).map((edge) => {
+                      const zone = edge === 'start' ? zones[i].start : zones[i].end
+                      // Skip handles entirely outside the visible window
+                      if (zone.right < 0 || zone.left > laneAreaWidth) return null
+                      const edgeX = edge === 'start' ? startPx : endPx
+                      return (
+                        <div
+                          key={`${g.phraseIndex}-${edge}`}
+                          className={`mini-timeline__handle mini-timeline__handle--${edge === 'start' ? 'left' : 'right'}${hoveredBlock === g.phraseIndex ? ' mini-timeline__handle--block-hover' : ''}`}
+                          style={{
+                            left: zone.left,
+                            width: Math.max(0, zone.right - zone.left),
+                            '--edge-x': `${edgeX - zone.left}px`,
+                          } as React.CSSProperties}
+                          onMouseDown={(e) => handleEdgeDrag(e, edge, g.phraseIndex)}
+                          title={edge === 'start' ? 'Drag to adjust phrase start' : 'Drag to adjust phrase end'}
+                        />
+                      )
+                    })
+                  })
+                })()}
               </div>
             </div>
           )
@@ -478,8 +627,14 @@ export function MiniTimeline({
         {zoomLevel > 1 && <span>{Math.round(zoomLevel)}x</span>}
         <div className="mini-timeline__zoom-group">
           <button
+            className="mini-timeline__zoom-btn mini-timeline__zoom-btn--playhead"
+            onClick={centerOnPlayhead}
+            title={`Jump to playhead (${JUMP_TO_PLAYHEAD_KEY.toUpperCase()})`}
+            aria-label="Jump to playhead"
+          >⌖</button>
+          <button
             className="mini-timeline__zoom-btn"
-            onClick={() => setZoomLevel(z => Math.max(1, z * 0.75))}
+            onClick={() => applyZoom(z => z * 0.75)}
             title="Zoom out"
           >-</button>
           <button
@@ -489,7 +644,7 @@ export function MiniTimeline({
           >Fit</button>
           <button
             className="mini-timeline__zoom-btn"
-            onClick={() => setZoomLevel(z => Math.min(MAX_ZOOM, z * 1.33))}
+            onClick={() => applyZoom(z => z * 1.33)}
             title="Zoom in"
           >+</button>
         </div>
