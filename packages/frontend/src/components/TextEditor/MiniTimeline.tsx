@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SessionPhrase } from '../../store/subtitleStore.ts'
+import { clampViewStart, zoomAnchoredViewStart } from '../../lib/timelineZoom.ts'
 import './MiniTimeline.css'
 
 const SPEAKER_COLORS = ['#4A90D9', '#E67E22', '#27AE60', '#9B59B6', '#E74C3C', '#1ABC9C', '#F39C12', '#95A5A6']
@@ -88,13 +89,47 @@ export function MiniTimeline({
     }
   }, [currentTime, zoomLevel, clampedViewStart, viewEnd, visibleDuration, totalDuration])
 
-  // Keep refs in sync so wheel handler always sees latest values
+  // Keep refs in sync so wheel handler always sees latest values. applyZoom /
+  // the pan handler also write these synchronously so consecutive wheel ticks
+  // that arrive before a re-render compose from the latest window.
   const zoomRef = useRef(zoomLevel)
   const visibleDurationRef = useRef(visibleDuration)
   const totalDurationRef = useRef(totalDuration)
+  const viewStartRef = useRef(clampedViewStart)
+  const currentTimeRef = useRef(currentTime)
   zoomRef.current = zoomLevel
   visibleDurationRef.current = visibleDuration
   totalDurationRef.current = totalDuration
+  viewStartRef.current = clampedViewStart
+  currentTimeRef.current = currentTime
+
+  /**
+   * Single zoom entry point (Ctrl/Cmd+Wheel and the -/+ buttons). Anchors on
+   * the playhead: a visible playhead keeps its fractional on-screen position;
+   * an off-screen playhead gets the zoomed window centered on it.
+   */
+  const applyZoom = useCallback((computeNextZoom: (currentZoom: number) => number) => {
+    const td = totalDurationRef.current
+    if (td <= 0) return
+    const oldZoom = zoomRef.current
+    const newZoom = Math.min(MAX_ZOOM, Math.max(1, computeNextZoom(oldZoom)))
+    const newVisible = td / newZoom
+    const newViewStart = zoomAnchoredViewStart({
+      viewStart: viewStartRef.current,
+      visibleDuration: td / oldZoom,
+      newVisibleDuration: newVisible,
+      totalDuration: td,
+      playheadTime: currentTimeRef.current,
+    })
+    zoomRef.current = newZoom
+    visibleDurationRef.current = newVisible
+    viewStartRef.current = newViewStart
+    setZoomLevel(newZoom)
+    setViewStart(newViewStart)
+  }, [])
+
+  const applyZoomRef = useRef(applyZoom)
+  applyZoomRef.current = applyZoom
 
   // Ctrl+Wheel zoom + pan
   useEffect(() => {
@@ -105,7 +140,7 @@ export function MiniTimeline({
         e.preventDefault()
         e.stopPropagation()
         const factor = e.deltaY > 0 ? 0.85 : 1.18
-        setZoomLevel(z => Math.min(MAX_ZOOM, Math.max(1, z * factor)))
+        applyZoomRef.current(z => z * factor)
       } else if (zoomRef.current > 1) {
         // Pan when zoomed — stop parent scroll container from intercepting
         e.preventDefault()
@@ -114,7 +149,9 @@ export function MiniTimeline({
         const vd = visibleDurationRef.current
         const td = totalDurationRef.current
         const panSec = (e.deltaY / 300) * vd
-        setViewStart(vs => Math.max(0, Math.min(td - vd, vs + panSec)))
+        const next = clampViewStart(viewStartRef.current + panSec, vd, td)
+        viewStartRef.current = next
+        setViewStart(next)
       }
     }
     // Use capture phase so we intercept before the parent scroll container
@@ -479,7 +516,7 @@ export function MiniTimeline({
         <div className="mini-timeline__zoom-group">
           <button
             className="mini-timeline__zoom-btn"
-            onClick={() => setZoomLevel(z => Math.max(1, z * 0.75))}
+            onClick={() => applyZoom(z => z * 0.75)}
             title="Zoom out"
           >-</button>
           <button
@@ -489,7 +526,7 @@ export function MiniTimeline({
           >Fit</button>
           <button
             className="mini-timeline__zoom-btn"
-            onClick={() => setZoomLevel(z => Math.min(MAX_ZOOM, z * 1.33))}
+            onClick={() => applyZoom(z => z * 1.33)}
             title="Zoom in"
           >+</button>
         </div>

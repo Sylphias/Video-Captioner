@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { useWaveform } from '../../hooks/useWaveform.ts'
 import { findAdjacentSameSpeakerPhrase } from '../../lib/grouping.ts'
+import { zoomAnchoredViewStart } from '../../lib/timelineZoom.ts'
 import { WaveformCanvas } from './WaveformCanvas.tsx'
 import type { SessionPhrase } from '../../store/subtitleStore.ts'
 import type { DiarizeState } from '../../hooks/useDiarize.ts'
@@ -24,6 +25,10 @@ const MIN_PPS = 20
 const MAX_PPS = 500
 const LANE_HEIGHT = 44
 const RULER_HEIGHT = 24
+// Mirrors --lane-header-width in TimingEditor.css: the sticky speaker headers
+// cover this much of the scroll viewport, so the visible track area is
+// clientWidth - LANE_HEADER_WIDTH wide and starts at time scrollLeft / pps.
+const LANE_HEADER_WIDTH = 160
 // Mirrors the MIN_DURATION clamp inside subtitleStore.setPhraseTiming so the
 // edge-drag live preview matches what the store will accept on commit.
 const MIN_PHRASE_DURATION = 0.05
@@ -133,9 +138,76 @@ export function TimingEditor({
   const shiftDragRef = useRef<{ startX: number; phraseIndex: number } | null>(null)
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const getCurrentTimeRef = useRef(getCurrentTime)
+  getCurrentTimeRef.current = getCurrentTime
 
-  // Zoom state: pixels per second
+  // Zoom state: pixels per second. ppsRef is the synchronous source of truth
+  // (updated inside applyZoom before setPps) so consecutive wheel ticks that
+  // land before React re-renders compose from the latest zoom, not a stale one.
   const [pps, setPps] = useState(DEFAULT_PPS)
+  const ppsRef = useRef(DEFAULT_PPS)
+  // scrollLeft to apply once the timeline has been laid out at the new pps
+  // (the track width is totalDuration * pps, so the scroll must wait for the
+  // width to grow). Also read back as the "current" scroll by a follow-up
+  // zoom tick that arrives before the layout effect has run.
+  const pendingScrollLeftRef = useRef<number | null>(null)
+
+  // Determine the total timeline duration (from waveform or last word end)
+  const totalDuration = waveform?.duration ?? (() => {
+    if (!session || session.words.length === 0) return 60
+    return Math.ceil(session.words[session.words.length - 1].end) + 2
+  })()
+  const totalDurationRef = useRef(totalDuration)
+  totalDurationRef.current = totalDuration
+
+  /**
+   * Single deterministic zoom entry point (Ctrl/Cmd+Wheel, -/+ buttons, reset).
+   * Anchors on the playhead: a visible playhead keeps its on-screen position;
+   * an off-screen playhead gets the zoomed viewport centered on it.
+   */
+  const applyZoom = useCallback((computeNextPps: (currentPps: number) => number) => {
+    const oldPps = ppsRef.current
+    const newPps = Math.min(MAX_PPS, Math.max(MIN_PPS, computeNextPps(oldPps)))
+    const el = scrollContainerRef.current
+    if (!el) {
+      ppsRef.current = newPps
+      setPps(newPps)
+      return
+    }
+    const trackViewportWidth = Math.max(1, el.clientWidth - LANE_HEADER_WIDTH)
+    const currentScrollLeft = pendingScrollLeftRef.current ?? el.scrollLeft
+    const playheadTime = getCurrentTimeRef.current?.() ?? 0
+    const newViewStart = zoomAnchoredViewStart({
+      viewStart: currentScrollLeft / oldPps,
+      visibleDuration: trackViewportWidth / oldPps,
+      newVisibleDuration: trackViewportWidth / newPps,
+      totalDuration: totalDurationRef.current,
+      playheadTime,
+    })
+    const targetScrollLeft = newViewStart * newPps
+    ppsRef.current = newPps
+    if (newPps === oldPps) {
+      // No re-render will happen (same state) — scroll immediately. Still
+      // useful at the zoom limits: brings an off-screen playhead into view.
+      pendingScrollLeftRef.current = null
+      el.scrollLeft = targetScrollLeft
+      return
+    }
+    pendingScrollLeftRef.current = targetScrollLeft
+    setPps(newPps)
+  }, [])
+
+  // Apply the anchored scroll after the DOM has been laid out at the new pps.
+  useLayoutEffect(() => {
+    const el = scrollContainerRef.current
+    const target = pendingScrollLeftRef.current
+    if (!el || target === null) return
+    pendingScrollLeftRef.current = null
+    el.scrollLeft = target
+  }, [pps])
+
+  const applyZoomRef = useRef(applyZoom)
+  applyZoomRef.current = applyZoom
 
   // Ctrl+Wheel zoom + regular scroll to pan horizontally
   useEffect(() => {
@@ -143,23 +215,11 @@ export function TimingEditor({
     if (!el) return
     function handleWheel(e: WheelEvent) {
       if (e.ctrlKey || e.metaKey) {
-        // Zoom toward cursor position
+        // Zoom anchored on the playhead
         e.preventDefault()
         e.stopPropagation()
-
-        const rect = el!.getBoundingClientRect()
-        const cursorX = e.clientX - rect.left + el!.scrollLeft
-        const cursorTimeSec = cursorX / ppsRef.current
-
         const factor = e.deltaY > 0 ? 0.85 : 1.18
-        const newPps = Math.min(MAX_PPS, Math.max(MIN_PPS, ppsRef.current * factor))
-        setPps(newPps)
-
-        // Keep the time under the cursor at the same screen position
-        requestAnimationFrame(() => {
-          const newCursorX = cursorTimeSec * newPps
-          el!.scrollLeft = newCursorX - (e.clientX - rect.left)
-        })
+        applyZoomRef.current((p) => p * factor)
       } else {
         // Vertical scroll → horizontal pan
         e.preventDefault()
@@ -169,9 +229,6 @@ export function TimingEditor({
     el.addEventListener('wheel', handleWheel, { passive: false })
     return () => el.removeEventListener('wheel', handleWheel)
   }, [])
-
-  const ppsRef = useRef(pps)
-  ppsRef.current = pps
 
   // Playhead: poll current video time via rAF
   const [playheadX, setPlayheadX] = useState<number>(0)
@@ -188,12 +245,6 @@ export function TimingEditor({
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
   }, [getCurrentTime])
-
-  // Determine the total timeline duration (from waveform or last word end)
-  const totalDuration = waveform?.duration ?? (() => {
-    if (!session || session.words.length === 0) return 60
-    return Math.ceil(session.words[session.words.length - 1].end) + 2
-  })()
 
   const timelineWidth = Math.ceil(totalDuration * pps)
 
@@ -916,17 +967,17 @@ export function TimingEditor({
         <div className="timing-editor__zoom-group">
           <button
             className="timing-editor__zoom-btn"
-            onClick={() => setPps((p) => Math.max(MIN_PPS, p * 0.75))}
+            onClick={() => applyZoom((p) => p * 0.75)}
             title="Zoom out"
           >-</button>
           <button
             className="timing-editor__zoom-btn"
-            onClick={() => setPps(DEFAULT_PPS)}
+            onClick={() => applyZoom(() => DEFAULT_PPS)}
             title="Reset zoom"
           >Fit</button>
           <button
             className="timing-editor__zoom-btn"
-            onClick={() => setPps((p) => Math.min(MAX_PPS, p * 1.33))}
+            onClick={() => applyZoom((p) => p * 1.33)}
             title="Zoom in"
           >+</button>
           <span className="timing-editor__zoom-level">{Math.round(pps / DEFAULT_PPS * 100)}%</span>
