@@ -10,6 +10,7 @@ import {
   JUMP_TO_PLAYHEAD_KEY,
 } from '../../lib/timelineZoom.ts'
 import type { OffscreenSide } from '../../lib/timelineZoom.ts'
+import { computeEdgeHandleZones } from '../../lib/edgeHandleZones.ts'
 import { WaveformCanvas } from './WaveformCanvas.tsx'
 import type { SessionPhrase } from '../../store/subtitleStore.ts'
 import type { DiarizeState } from '../../hooks/useDiarize.ts'
@@ -753,6 +754,45 @@ export function TimingEditor({
               const isDragOver = dragOverLane === lane.speakerId
               const isDeleting = deletingLane === lane.speakerId
 
+              // Per-phrase pixel geometry, shared by the blocks and their edge handles.
+              const laneGeometry = lane.phrases
+                .filter(({ phrase }) => phrase.words.length > 0)
+                .map(({ phrase, phraseIndex }) => {
+                  // Live edge-drag preview: visually stretch this block (and
+                  // rescale its word markers) without touching the store; the
+                  // single store commit happens on mouseup.
+                  const isEdgeDragging = edgeDrag?.phraseIndex === phraseIndex
+                  const edgePreview = isEdgeDragging && edgeDrag
+                    ? clampEdgeDrag(phraseIndex, edgeDrag.edge, edgeDrag.deltaSec)
+                    : null
+                  const blockStart = edgePreview?.start ?? phrase.words[0].start
+                  const blockEnd = edgePreview?.end ?? phrase.words[phrase.words.length - 1].end
+                  const left = blockStart * pps
+                  const wordsWidth = (blockEnd - blockStart) * pps
+                  // Apply visual offset during timing shift drag
+                  const isDragging = shiftDrag?.phraseIndex === phraseIndex
+                  const visualLeft = isDragging && shiftDrag ? left + shiftDrag.offsetPx : left
+                  const isEditing = editingPhraseIndex === phraseIndex
+                  return { phrase, phraseIndex, isEdgeDragging, isDragging, isEditing, visualLeft, wordsWidth }
+                })
+              // Edge handles sit on the words start/end (not the end of the
+              // linger tail) and are laid out lane-wide so adjacent phrases
+              // resolve at the seam instead of overlapping.
+              const handleGeometry = laneGeometry.filter((g) => !g.isEditing)
+              const handleZones = computeEdgeHandleZones(
+                handleGeometry.map((g) => ({ start: g.visualLeft, end: g.visualLeft + g.wordsWidth })),
+              )
+              const laneHandleItems = handleGeometry.flatMap((g, i) =>
+                (['start', 'end'] as const).map((edge) => ({
+                  phraseIndex: g.phraseIndex,
+                  isEdgeDragging: g.isEdgeDragging,
+                  edge,
+                  startX: g.visualLeft,
+                  endX: g.visualLeft + g.wordsWidth,
+                  zones: handleZones[i],
+                })),
+              )
+
               return (
                 <div
                   key={lane.speakerId}
@@ -881,37 +921,18 @@ export function TimingEditor({
                     onClick={(e) => handleLaneTrackClick(e, lane.speakerId)}
                   >
                     {/* Phrase blocks in this lane */}
-                    {lane.phrases.map(({ phrase, phraseIndex }) => {
-                      if (phrase.words.length === 0) return null
-
+                    {laneGeometry.map(({ phrase, phraseIndex, isEdgeDragging, isDragging, isEditing, visualLeft, wordsWidth }) => {
                       const firstWord = phrase.words[0]
                       const lastWord = phrase.words[phrase.words.length - 1]
                       const lingerSec = phrase.lingerDuration ?? globalLingerDuration
 
-                      // Live edge-drag preview: visually stretch this block (and
-                      // rescale its word markers) without touching the store; the
-                      // single store commit happens on mouseup.
-                      const isEdgeDragging = edgeDrag?.phraseIndex === phraseIndex
-                      const edgePreview = isEdgeDragging
-                        ? clampEdgeDrag(phraseIndex, edgeDrag.edge, edgeDrag.deltaSec)
-                        : null
-                      const blockStart = edgePreview?.start ?? firstWord.start
-                      const blockEnd = edgePreview?.end ?? lastWord.end
-
-                      const left = blockStart * pps
-                      const wordsWidth = (blockEnd - blockStart) * pps
                       const lingerWidth = lingerSec * pps
                       const width = Math.max(4, wordsWidth + lingerWidth)
                       const origWordsDuration = lastWord.end - firstWord.start
 
                       const isSelected = selectedPhraseIndex === phraseIndex
-                      const isEditing = editingPhraseIndex === phraseIndex
                       const phraseText = phrase.words.map((w) => w.word).join(' ')
                       const blockBg = `var(--speaker-color-${colorIdx}, rgba(0, 230, 150, 0.4))`
-
-                      // Apply visual offset during timing shift drag
-                      const isDragging = shiftDrag?.phraseIndex === phraseIndex
-                      const visualLeft = isDragging ? left + shiftDrag.offsetPx : left
 
                       return (
                         <div
@@ -951,25 +972,6 @@ export function TimingEditor({
                               }}
                             />
                           ))}
-                          {/* Edge-drag grab zones: resize phrase start/end */}
-                          {!isEditing && (
-                            <>
-                              <span
-                                className="timing-editor__phrase-edge-handle timing-editor__phrase-edge-handle--start"
-                                onMouseDown={(e) => handleEdgeDragStart(e, phraseIndex, 'start')}
-                                onClick={(e) => e.stopPropagation()}
-                                onDoubleClick={(e) => e.stopPropagation()}
-                                title="Drag to adjust phrase start"
-                              />
-                              <span
-                                className="timing-editor__phrase-edge-handle timing-editor__phrase-edge-handle--end"
-                                onMouseDown={(e) => handleEdgeDragStart(e, phraseIndex, 'end')}
-                                onClick={(e) => e.stopPropagation()}
-                                onDoubleClick={(e) => e.stopPropagation()}
-                                title="Drag to adjust phrase end"
-                              />
-                            </>
-                          )}
                           {isEditing ? (
                             <InlinePhraseInput
                               initialText={phraseText}
@@ -1013,6 +1015,31 @@ export function TimingEditor({
                             ×
                           </button>
                         </div>
+                      )
+                    })}
+                    {/* Edge-drag grab zones (resize phrase start/end). Rendered as
+                        lane-level siblings above every block so a neighbouring
+                        block body or linger tail can't swallow them; zones sit on
+                        the true start/end (words) edges and are split at the seam
+                        between adjacent phrases — see lib/edgeHandleZones.ts. */}
+                    {laneHandleItems.map(({ phraseIndex, isEdgeDragging, edge, startX, endX, zones }) => {
+                      const zone = edge === 'start' ? zones.start : zones.end
+                      const edgeX = edge === 'start' ? startX : endX
+                      const isActive = isEdgeDragging && edgeDrag?.edge === edge
+                      return (
+                        <span
+                          key={`${phraseIndex}-${edge}`}
+                          className={`timing-editor__phrase-edge-handle timing-editor__phrase-edge-handle--${edge}${isActive ? ' timing-editor__phrase-edge-handle--active' : ''}`}
+                          style={{
+                            left: zone.left,
+                            width: Math.max(0, zone.right - zone.left),
+                            '--edge-x': `${edgeX - zone.left}px`,
+                          } as React.CSSProperties}
+                          onMouseDown={(e) => handleEdgeDragStart(e, phraseIndex, edge)}
+                          onClick={(e) => e.stopPropagation()}
+                          onDoubleClick={(e) => e.stopPropagation()}
+                          title={edge === 'start' ? 'Drag to adjust phrase start' : 'Drag to adjust phrase end'}
+                        />
                       )
                     })}
                   </div>

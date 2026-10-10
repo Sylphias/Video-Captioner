@@ -138,34 +138,46 @@
 }
 
 /* ---- Drag handles ---- */
+/* Lane-level siblings of the blocks (see MiniTimeline.tsx): an invisible ~12px
+   hit zone straddling the phrase edge (left/width inline, from
+   lib/edgeHandleZones.ts), above every block of the lane so a neighbour can't
+   swallow it. The visible affordance is a thin bar at --edge-x. */
 .mini-timeline__handle {
+  position: absolute;
+  top: 3px;
+  height: calc(100% - 6px);
+  cursor: ew-resize;
+  z-index: 3;
+}
+
+.mini-timeline__handle::after {
+  content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 6px;
-  cursor: ew-resize;
-  opacity: 0;
-  transition: opacity var(--transition-fast), background var(--transition-fast);
-  z-index: 1;
+  left: var(--edge-x, 0);
+  width: 3px;
+  background: transparent;
+  pointer-events: none;
+  transition: background var(--transition-fast);
 }
 
-.mini-timeline__handle--left {
-  left: 0;
+.mini-timeline__handle--left::after {
   border-radius: 3px 0 0 3px;
 }
 
-.mini-timeline__handle--right {
-  right: 0;
+/* Bar sits just inside the block's right edge */
+.mini-timeline__handle--right::after {
+  translate: -100% 0;
   border-radius: 0 3px 3px 0;
 }
 
-.mini-timeline__block:hover .mini-timeline__handle {
-  opacity: 1;
+.mini-timeline__handle--block-hover::after {
   background: rgba(255, 255, 255, 0.4);
 }
 
-.mini-timeline__handle:hover {
-  background: rgba(255, 255, 255, 0.7) !important;
+.mini-timeline__handle:hover::after {
+  background: rgba(255, 255, 255, 0.8);
 }
 
 /* ---- Hotkey hints + zoom controls ---- */

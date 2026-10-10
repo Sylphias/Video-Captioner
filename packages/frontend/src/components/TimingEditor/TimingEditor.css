@@ -429,6 +429,9 @@
   position: relative;
   overflow: visible;
   cursor: crosshair;
+  /* Own stacking context: phrase blocks / edge handles (z-index up to 12)
+     stay inside the track and below the sticky lane header (z-index 5). */
+  isolation: isolate;
 }
 
 /* ── Phrase blocks ──────────────────────────────────────────────────────── */
@@ -467,35 +470,47 @@
 
 /* ── Phrase edge-drag handles (resize start/end) ────────────────────────── */
 
+/* Lane-level siblings of the phrase blocks (see TimingEditor.tsx). The element
+   is an invisible ~12px hit zone straddling the phrase's words start/end edge
+   (left/width set inline from lib/edgeHandleZones.ts); the visible affordance
+   is a thin bar drawn at --edge-x on hover / while dragging. z-index keeps the
+   zones above every block (incl. selected z-index 10) of the lane; the lane
+   track is an isolated stacking context so they never overlay the sticky
+   lane headers. */
 .timing-editor__phrase-edge-handle {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 6px;
+  top: 4px;
+  height: 36px;
   cursor: ew-resize;
-  z-index: 3;
+  z-index: 12;
 }
 
-.timing-editor__phrase-edge-handle--start {
-  left: 0;
-  border-radius: 4px 0 0 4px;
+.timing-editor__phrase-edge-handle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: var(--edge-x, 0);
+  width: 3px;
+  border-radius: 2px;
+  background: transparent;
+  pointer-events: none;
+  transition: background 0.1s;
 }
 
-.timing-editor__phrase-edge-handle--end {
-  right: 0;
-  border-radius: 0 4px 4px 0;
+/* Bar sits just inside the block edge */
+.timing-editor__phrase-edge-handle--end::after {
+  translate: -100% 0;
 }
 
-.timing-editor__phrase-edge-handle:hover {
-  background: rgba(255, 255, 255, 0.35);
+.timing-editor__phrase-edge-handle:hover::after,
+.timing-editor__phrase-edge-handle--active::after {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
 .timing-editor__phrase-block--edge-dragging {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-.timing-editor__phrase-block--edge-dragging .timing-editor__phrase-edge-handle {
-  background: rgba(255, 255, 255, 0.35);
 }
 
 /* ── Linger tail (semi-transparent extension after last word) ───────────── */
