@@ -34,6 +34,27 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+/**
+ * Build the editing session from a transcript already on disk (job recovered after a restart
+ * before the project ever saved state). Returns false when it can't be loaded.
+ */
+async function restoreTranscriptFromDisk(
+  jobId: string,
+  job: import('@eigen/shared-types').Job,
+): Promise<boolean> {
+  if (!job.metadata) return false
+  try {
+    const res = await fetch(`/api/jobs/${jobId}/transcript`)
+    if (!res.ok) return false
+    const transcript = await res.json() as import('@eigen/shared-types').Transcript
+    if (!Array.isArray(transcript.words)) return false
+    useSubtitleStore.getState().setJob(jobId, transcript, job.metadata)
+    return true
+  } catch {
+    return false
+  }
+}
+
 interface SubtitlesPageProps {
   projectId?: string
   onBack?: () => void
@@ -499,7 +520,17 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
             const jobRes = await fetch(`/api/jobs/${project.jobId}`)
             if (jobRes.ok) {
               const jobData = await jobRes.json() as import('@eigen/shared-types').Job
-              hydrateUpload(project.jobId, jobData)
+              if (cancelled) return
+              if (jobData.status === 'transcribed') {
+                // Backend recovered the job from disk with its transcript.json but the project
+                // never saved edits: open the transcript in the editor. If it can't be read,
+                // 'ready' falls through to auto-transcribe.
+                await restoreTranscriptFromDisk(project.jobId, jobData)
+                if (cancelled) return
+                hydrateUpload(project.jobId, { ...jobData, status: 'ready' })
+              } else {
+                hydrateUpload(project.jobId, jobData)
+              }
             } else {
               // Job not in memory (server restarted) — set as ready with no metadata
               // The video files exist on disk; metadata will be re-probed on transcribe

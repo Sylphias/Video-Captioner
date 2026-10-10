@@ -6,12 +6,15 @@ import { access, readFile, stat } from 'node:fs/promises'
 
 import { killTranscription } from './transcribe.ts'
 import { killDiarization } from './diarize.ts'
+import { getOrRehydrateJob } from '../services/jobRecovery.ts'
 
 async function jobRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/jobs/:jobId — get job info (non-SSE, one-shot)
   fastify.get('/api/jobs/:jobId', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
-    const job = fastify.jobs.get(jobId)
+    // Not in memory after a restart/crash: rebuild from the job folder so the editor hydrates
+    // with the real state ('ready' / 'transcribed') instead of guessing
+    const job = await getOrRehydrateJob(fastify, jobId)
     if (!job) {
       return reply.code(404).send({ error: 'Job not found' })
     }
@@ -22,6 +25,9 @@ async function jobRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/jobs/:jobId/status — Server-Sent Events stream of job progress
   fastify.get('/api/jobs/:jobId/status', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
+
+    // Recover a job lost to a restart before polling (the poll loop reports a missing job)
+    await getOrRehydrateJob(fastify, jobId)
 
     // Write SSE headers manually (most reliable approach per plan research notes)
     reply.raw.writeHead(200, {

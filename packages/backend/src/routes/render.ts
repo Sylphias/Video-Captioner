@@ -6,7 +6,8 @@ import { access } from 'node:fs/promises'
 import type { TranscriptPhrase, AnimationPreset } from '@eigen/shared-types'
 import type { StyleProps, SpeakerStyleOverride, CompositionPhrase } from '@eigen/remotion-composition'
 
-import { createJob, updateJob } from '../services/jobStore.ts'
+import { updateJob } from '../services/jobStore.ts'
+import { getOrRehydrateJob } from '../services/jobRecovery.ts'
 import { probeVideo } from '../services/ffmpeg.ts'
 import { dispatchRender } from '../services/render.ts'
 
@@ -28,26 +29,14 @@ async function renderRoutes(fastify: FastifyInstance): Promise<void> {
     const animationPreset = body.animationPreset
     const phraseLaneOverrides = body.phraseLaneOverrides
 
-    let job = fastify.jobs.get(jobId)
-
+    // Job not in memory (server restarted) — recovered from disk when the video exists
+    const job = await getOrRehydrateJob(fastify, jobId)
     // Job folder may live under an older media root (resolver probes every known root)
     const jobDir = fastify.jobDirs.resolve(jobId)
-    if (!jobDir) {
+    if (!job || !jobDir) {
       return reply.code(404).send({ error: 'Job not found' })
     }
     const normalizedPath = path.join(jobDir, 'normalized.mp4')
-
-    // Job not in memory (server restarted) — re-hydrate from disk if video exists
-    if (!job) {
-      try {
-        await access(normalizedPath)
-        const metadata = await probeVideo(normalizedPath)
-        job = { ...createJob(jobId, ''), status: 'ready', progress: 100, metadata }
-        fastify.jobs.set(jobId, job)
-      } catch {
-        return reply.code(404).send({ error: 'Job not found' })
-      }
-    }
 
     // Allow render from: transcribed (normal flow), rendered (re-render),
     // or ready (server restarted — job re-hydrated from disk, session loaded on frontend)
@@ -92,13 +81,15 @@ async function renderRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/jobs/:jobId/download — serve the rendered MP4 for download
   fastify.get('/api/jobs/:jobId/download', async (req, reply) => {
     const { jobId } = req.params as { jobId: string }
-    const job = fastify.jobs.get(jobId)
+    // Recovered jobs carry outputPath when a previous session's output.mp4 is on disk
+    const job = await getOrRehydrateJob(fastify, jobId)
 
     if (!job) {
       return reply.code(404).send({ error: 'Job not found' })
     }
 
-    if (job.status !== 'rendered' || !job.outputPath) {
+    // A render in progress or one that just failed may have left a partial file behind
+    if (!job.outputPath || job.status === 'rendering' || job.status === 'failed') {
       return reply.code(404).send({ error: 'Render not complete' })
     }
 

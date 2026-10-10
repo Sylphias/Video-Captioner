@@ -4,6 +4,7 @@ import type { ChildProcess } from 'node:child_process'
 import path from 'node:path'
 
 import { updateJob } from '../services/jobStore.ts'
+import { getOrRehydrateJob } from '../services/jobRecovery.ts'
 import { runTranscription } from '../services/transcription.ts'
 import { watchModelDownload, whisperModelCached } from '../services/modelCache.ts'
 
@@ -30,7 +31,8 @@ async function transcribeRoutes(fastify: FastifyInstance): Promise<void> {
     const { jobId } = req.params as { jobId: string }
     const { numSpeakers } = (req.body as { numSpeakers?: number }) ?? {}
 
-    const job = fastify.jobs.get(jobId)
+    // Recover jobs lost to a restart/crash (e.g. killed mid-transcription) from disk
+    const job = await getOrRehydrateJob(fastify, jobId)
 
     if (!job) {
       return reply.code(404).send({ error: 'Job not found' })

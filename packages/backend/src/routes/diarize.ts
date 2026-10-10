@@ -4,6 +4,7 @@ import type { ChildProcess } from 'node:child_process'
 import path from 'node:path'
 
 import { updateJob } from '../services/jobStore.ts'
+import { getOrRehydrateJob } from '../services/jobRecovery.ts'
 import { runDiarization } from '../services/diarization.ts'
 
 // Module-level subprocess tracking (not serializable — kept separate from job store)
@@ -27,7 +28,8 @@ async function diarizeRoutes(fastify: FastifyInstance): Promise<void> {
     const { jobId } = req.params as { jobId: string }
     const { numSpeakers } = (req.body as { numSpeakers?: number }) ?? {}
 
-    const job = fastify.jobs.get(jobId)
+    // Recover jobs lost to a restart from disk ('transcribed' when transcript.json exists)
+    const job = await getOrRehydrateJob(fastify, jobId)
 
     if (!job) {
       return reply.code(404).send({ error: 'Job not found' })
