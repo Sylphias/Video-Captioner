@@ -14,6 +14,23 @@ export function unregisterChild(pid: number): void {
   livePids.delete(pid)
 }
 
+/**
+ * Final shutdown step: tree-kill this process itself, taking down every descendant —
+ * including untracked ones (ffmpeg thumbnail/waveform/encode, Remotion's headless browser
+ * and compositor). Windows does not reap children when their parent dies, so without this an
+ * Electron crash mid-render would orphan them. Terminates the current process; callers must
+ * treat it as the exit.
+ */
+export function killOwnTree(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    try {
+      treeKill(process.pid, 'SIGKILL', () => resolve())
+    } catch {
+      resolve()
+    }
+  })
+}
+
 export function killAll(signal: string = 'SIGKILL'): Promise<void> {
   const pids = [...livePids]
   livePids.clear()

@@ -23,7 +23,7 @@ import projectsRoutes from './routes/projects.ts'
 import setupRoutes from './routes/setup.ts'
 import settingsRoutes from './routes/settings.ts'
 import { initBundle, terminateActiveRenders } from './services/render.ts'
-import { killAll } from './services/childRegistry.ts'
+import { killAll, killOwnTree } from './services/childRegistry.ts'
 
 // ESM __dirname equivalent
 const __filename = fileURLToPath(import.meta.url)
@@ -115,6 +115,8 @@ async function shutdown(reason: string): Promise<void> {
     terminateActiveRenders()
     await killAll('SIGKILL')
     await fastify.close()
+    // Catch-all for descendants not in childRegistry (ffmpeg, Remotion browser/compositor)
+    await killOwnTree()
   } catch (err) {
     fastify.log.error(err)
   }
