@@ -62,7 +62,12 @@ async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /api/projects — list all projects (no stateJson — too large for list)
   fastify.get('/api/projects', async (_req, reply) => {
     const rows = getAllStmt.all()
-    return reply.send(rows.map(rowToProject))
+    // mediaAvailable: whether any known media root still holds the job's normalized.mp4
+    // (a few cached fs checks per project; lets the list flag projects whose media is gone)
+    return reply.send(rows.map((row) => ({
+      ...rowToProject(row),
+      mediaAvailable: fastify.jobDirs.hasMedia(row.job_id),
+    })))
   })
 
   // POST /api/projects — create a new project record
@@ -105,7 +110,7 @@ async function projectsRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(404).send({ error: 'Project not found' })
     }
 
-    return reply.send(rowToProject(row))
+    return reply.send({ ...rowToProject(row), mediaAvailable: fastify.jobDirs.hasMedia(row.job_id) })
   })
 
   // PUT /api/projects/:id — update name and/or stateJson

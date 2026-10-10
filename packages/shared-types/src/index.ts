@@ -184,4 +184,6 @@ export interface ProjectRecord {
   createdAt: number             // epoch ms
   updatedAt: number             // epoch ms
   duration: number | null       // video duration in seconds (from VideoMetadata, for card display)
+  /** False when no known media root holds the job's video (GET list / GET by id only). */
+  mediaAvailable?: boolean
 }

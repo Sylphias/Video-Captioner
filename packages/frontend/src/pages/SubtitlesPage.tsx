@@ -20,6 +20,7 @@ import { srtToTranscript } from '../lib/srtAlignment.ts'
 import { TranscriptionOptionsDialog } from '../components/TranscriptionOptionsDialog.tsx'
 import { LaneSidePanel } from '../components/LaneSidePanel.tsx'
 import { GlobalStyleSidePanel, type RightPanelMode } from '../components/GlobalStyleSidePanel.tsx'
+import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog.tsx'
 import './SubtitlesPage.css'
 
 // Toast state for stage transition notifications
@@ -60,7 +61,7 @@ interface SubtitlesPageProps {
   onBack?: () => void
 }
 
-export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps) {
+export function SubtitlesPage({ projectId, onBack }: SubtitlesPageProps) {
   const { state: uploadState, upload, reset: resetUpload, hydrate: hydrateUpload } = useUpload()
   const { state: transcribeState, transcribe, reset: resetTranscribe } = useTranscribe()
   const { state: diarizeState, diarize, reset: resetDiarize } = useDiarize()
@@ -490,8 +491,13 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   // Load project state from backend when projectId is provided
   const [projectLoaded, setProjectLoaded] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  // The project's video can't be found in any known media folder
+  const [mediaMissing, setMediaMissing] = useState(false)
+  const [confirmDeleteMissing, setConfirmDeleteMissing] = useState(false)
 
   useEffect(() => {
+    setMediaMissing(false)
+    setConfirmDeleteMissing(false)
     if (!projectId) {
       setProjectLoaded(true) // No project to load — proceed with fresh state
       return
@@ -506,9 +512,19 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
       try {
         const res = await fetch(`/api/projects/${projectId}`)
         if (!res.ok) return
-        const project = await res.json() as { stateJson: string | null, jobId: string, name: string }
+        const project = await res.json() as {
+          stateJson: string | null, jobId: string, name: string, mediaAvailable?: boolean
+        }
 
         if (cancelled) return
+
+        // No known media folder holds this project's video: show the media-missing screen
+        // instead of opening an editor (or auto-transcribing) that can only fail.
+        if (project.mediaAvailable === false) {
+          setMediaMissing(true)
+          setProjectLoaded(true)
+          return
+        }
 
         if (project.stateJson) {
           const blob = JSON.parse(project.stateJson) as ProjectStateBlob
@@ -531,9 +547,11 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
               } else {
                 hydrateUpload(project.jobId, jobData)
               }
+            } else if (jobRes.status === 404) {
+              // The backend recovers jobs from disk, so 404 means the media is truly gone
+              setMediaMissing(true)
             } else {
-              // Job not in memory (server restarted) — set as ready with no metadata
-              // The video files exist on disk; metadata will be re-probed on transcribe
+              // Unexpected backend error — assume the files exist and let transcribe re-probe
               hydrateUpload(project.jobId, {
                 id: project.jobId,
                 status: 'ready',
@@ -610,6 +628,51 @@ export function SubtitlesPage({ projectId, onBack: _onBack }: SubtitlesPageProps
   }, [saveNow])
 
   if (!projectLoaded) return null
+
+  // State: media missing — the project row exists but its video is gone from every known folder
+  if (mediaMissing && projectId) {
+    const deleteProject = async () => {
+      try {
+        await fetch(`/api/projects/${projectId}`, { method: 'DELETE' })
+      } catch {
+        // fall through — the list refetches on return either way
+      }
+      setConfirmDeleteMissing(false)
+      onBack?.()
+    }
+
+    return (
+      <div className="subtitles-page subtitles-page--centered">
+        <div className="subtitles-page__error-card">
+          <p className="subtitles-page__error-message">Media missing</p>
+          <p className="subtitles-page__missing-detail">
+            The video files for this project can't be found. They may have been moved or deleted,
+            or the drive they were saved on isn't connected.
+          </p>
+          <div className="subtitles-page__missing-actions">
+            {onBack && (
+              <button className="subtitles-page__retry-btn" onClick={onBack}>
+                Back to projects
+              </button>
+            )}
+            <button
+              className="subtitles-page__retry-btn subtitles-page__retry-btn--danger"
+              onClick={() => setConfirmDeleteMissing(true)}
+            >
+              Delete project
+            </button>
+          </div>
+        </div>
+        {confirmDeleteMissing && (
+          <DeleteConfirmDialog
+            projectName=""
+            onConfirm={() => { void deleteProject() }}
+            onCancel={() => setConfirmDeleteMissing(false)}
+          />
+        )}
+      </div>
+    )
+  }
 
   // Check if the Zustand store already has a loaded session (from loadProjectBlob).
   // If so, skip the upload/transcribe flow and go straight to the editor.

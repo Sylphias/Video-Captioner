@@ -203,6 +203,29 @@
   color: var(--color-text-primary);
 }
 
+/* ---- Media missing ---- */
+.subtitles-page__missing-detail {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.subtitles-page__missing-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.subtitles-page__retry-btn--danger {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.subtitles-page__retry-btn--danger:hover {
+  border-color: var(--color-error);
+  color: var(--color-error);
+  background: rgba(224, 84, 84, 0.1);
+}
+
 /* ---- Ready card ---- */
 .subtitles-page__ready-card {
   display: flex;
