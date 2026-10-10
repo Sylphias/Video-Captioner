@@ -3,7 +3,6 @@ import type { FastifyInstance } from 'fastify'
 import type { ChildProcess } from 'node:child_process'
 import path from 'node:path'
 
-import { MEDIA_ROOT } from '../index.ts'
 import { updateJob } from '../services/jobStore.ts'
 import { runTranscription } from '../services/transcription.ts'
 import { watchModelDownload, whisperModelCached } from '../services/modelCache.ts'
@@ -48,6 +47,12 @@ async function transcribeRoutes(fastify: FastifyInstance): Promise<void> {
         .send({ error: `Job is currently in '${job.status}' state and cannot be transcribed` })
     }
 
+    // Job folder may live under an older media root (resolver probes every known root)
+    const jobDir = fastify.jobDirs.resolve(jobId)
+    if (!jobDir) {
+      return reply.code(404).send({ error: 'Job media not found' })
+    }
+
     // Update job status immediately before firing background work
     updateJob(fastify.jobs, jobId, { status: 'transcribing', progress: 0 })
 
@@ -55,7 +60,6 @@ async function transcribeRoutes(fastify: FastifyInstance): Promise<void> {
     reply.code(202).send({ jobId, status: 'transcribing' })
 
     // Fire-and-forget: background transcription pipeline
-    const jobDir = path.join(MEDIA_ROOT, jobId)
     void runTranscriptionPipeline(fastify, jobId, jobDir, numSpeakers)
   })
 }

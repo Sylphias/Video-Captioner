@@ -11,6 +11,7 @@ import animationPresetsPlugin from './services/animationPresets.ts'
 import lanePresetsPlugin from './services/lanePresets.ts'
 import projectStorePlugin from './services/projectStore.ts'
 import appConfigPlugin from './services/appConfig.ts'
+import jobDirsPlugin from './services/jobDirsPlugin.ts'
 import uploadRoutes from './routes/upload.ts'
 import jobRoutes from './routes/jobs.ts'
 import transcribeRoutes from './routes/transcribe.ts'
@@ -54,6 +55,8 @@ await fastify.register(animationPresetsPlugin)
 await fastify.register(lanePresetsPlugin)
 await fastify.register(projectStorePlugin)
 await fastify.register(appConfigPlugin)
+// Job-folder resolver across media roots (needs projectsDb + appConfig)
+await fastify.register(jobDirsPlugin)
 
 // Register route plugins after store is decorated
 await fastify.register(uploadRoutes)

@@ -3,7 +3,6 @@ import type { FastifyInstance } from 'fastify'
 import path from 'node:path'
 import { access } from 'node:fs/promises'
 
-import { MEDIA_ROOT } from '../index.ts'
 import { extractWaveform } from '../services/waveform.ts'
 import { probeVideo } from '../services/ffmpeg.ts'
 
@@ -18,7 +17,12 @@ async function waveformRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(409).send({ error: 'Video not yet normalized' })
     }
 
-    const normalizedPath = path.join(MEDIA_ROOT, jobId, 'normalized.mp4')
+    // Job folder may live under an older media root (resolver probes every known root)
+    const jobDir = fastify.jobDirs.resolve(jobId)
+    if (!jobDir) {
+      return reply.code(404).send({ error: 'Video file not found' })
+    }
+    const normalizedPath = path.join(jobDir, 'normalized.mp4')
 
     // Verify file exists on disk (works after server restart)
     try {

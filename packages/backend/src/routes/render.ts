@@ -6,7 +6,6 @@ import { access } from 'node:fs/promises'
 import type { TranscriptPhrase, AnimationPreset } from '@eigen/shared-types'
 import type { StyleProps, SpeakerStyleOverride, CompositionPhrase } from '@eigen/remotion-composition'
 
-import { MEDIA_ROOT } from '../index.ts'
 import { createJob, updateJob } from '../services/jobStore.ts'
 import { probeVideo } from '../services/ffmpeg.ts'
 import { dispatchRender } from '../services/render.ts'
@@ -31,9 +30,15 @@ async function renderRoutes(fastify: FastifyInstance): Promise<void> {
 
     let job = fastify.jobs.get(jobId)
 
+    // Job folder may live under an older media root (resolver probes every known root)
+    const jobDir = fastify.jobDirs.resolve(jobId)
+    if (!jobDir) {
+      return reply.code(404).send({ error: 'Job not found' })
+    }
+    const normalizedPath = path.join(jobDir, 'normalized.mp4')
+
     // Job not in memory (server restarted) — re-hydrate from disk if video exists
     if (!job) {
-      const normalizedPath = path.join(MEDIA_ROOT, jobId, 'normalized.mp4')
       try {
         await access(normalizedPath)
         const metadata = await probeVideo(normalizedPath)
@@ -55,7 +60,6 @@ async function renderRoutes(fastify: FastifyInstance): Promise<void> {
     // Re-probe metadata if missing (e.g. server restart hydrated job without metadata)
     if (!job.metadata) {
       try {
-        const normalizedPath = path.join(MEDIA_ROOT, jobId, 'normalized.mp4')
         job.metadata = await probeVideo(normalizedPath)
         fastify.jobs.set(jobId, job)
       } catch {
@@ -63,7 +67,8 @@ async function renderRoutes(fastify: FastifyInstance): Promise<void> {
       }
     }
 
-    const outputPath = path.join(MEDIA_ROOT, jobId, 'output.mp4')
+    // Render next to the source media, in whichever root the job lives
+    const outputPath = path.join(jobDir, 'output.mp4')
 
     // Update job to rendering state before dispatching
     updateJob(fastify.jobs, jobId, { status: 'rendering', progress: 0, outputPath })
