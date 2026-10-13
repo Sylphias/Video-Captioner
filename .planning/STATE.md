@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 16
 current_phase_name: font-style-studio
 status: executing
-stopped_at: Completed 16-04-PLAN.md
-last_updated: "2026-10-13T13:04:31.450Z"
+stopped_at: Completed 16-05-PLAN.md
+last_updated: "2026-10-13T13:07:39.147Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 16 execution started
 progress:
   total_phases: 18
   completed_phases: 16
   total_plans: 62
-  completed_plans: 60
+  completed_plans: 61
 state_head: c6431a44d088d5570ae07efa1e685657e87c8588
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 16 (font-style-studio) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-10-13 — Phase 16 execution started
 
-Progress: [██████████] 97% (Phase 15 Desktop App Port remaining)
+Progress: [██████████] 98% (Phase 15 Desktop App Port remaining)
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Progress: [██████████] 97% (Phase 15 Desktop App Port remain
 | Phase 16 P02 | 15min | 3 tasks | 8 files |
 | Phase 16 P03 | 20min | 2 tasks | 3 files |
 | Phase 16 P04 | 25min | 3 tasks | 9 files |
+| Phase 16 P05 | 15min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -291,6 +292,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 16-02: Own text_styles.db + fastify.textStylesDb; TEXT_STYLE_KEYS duplicated in backend src with drift test; validation rejects rather than clamps
 - [Phase ?]: 16-03: Layout controls render after look controls in Global panel; StyleControls is a fieldset with disabled mode; shadow row wraps to avoid panel overflow
 - [Phase ?]: 16-04: Style Studio auto-save 700 ms via serialised debounced saver; rename/delete confirm inline (no native dialogs); Studio passes allowCustomFont=false and disables controls for built-ins
+- [Phase ?]: 16-05: Style picker is a stateless action menu; styles are copied into the project, never linked
+- [Phase ?]: 16-05: Override panels get Apply style + widened sliders (200/30) but no shadow controls
 
 ### Roadmap Evolution
 
@@ -326,8 +329,8 @@ Recent decisions affecting current work:
 
 **Resume file:** None
 
-Last session: 2026-10-13T13:04:31.427Z
-Stopped at: Completed 16-04-PLAN.md
+Last session: 2026-10-13T13:07:39.124Z
+Stopped at: Completed 16-05-PLAN.md
 
 Next planned work:
 
