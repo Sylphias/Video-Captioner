@@ -64,3 +64,7 @@ Captured 2026-10-14 as input to discuss-phase. Source: codebase sweep of `packag
 - The desktop splash redefines its own copies of the tokens (`splash.css`).
 - Speaker colours are defined twice: `--speaker-color-0..7` and `utils/speakerColors.ts`.
 - `TranscriptView.tsx` and `TranscriptEditor/*` are unused; they are candidates for deletion.
+
+## Design canvas
+
+First-pass mockups of every screen (13 artboards, Eigen Dark): https://claude.ai/artifact/BktZ9kfnNi9YrpRtqWnS44 (private; created 2026-10-14). Review there with comments, then plan.
