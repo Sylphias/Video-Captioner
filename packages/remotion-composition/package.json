@@ -11,6 +11,9 @@
       "import": "./dist/index.js"
     }
   },
+  "scripts": {
+    "test": "vitest run"
+  },
   "dependencies": {
     "@eigen/shared-types": "*",
     "@remotion/google-fonts": "4.0.379",
