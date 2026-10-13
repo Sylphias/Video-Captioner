@@ -13,6 +13,12 @@ Captured 2026-10-14 as input to discuss-phase. Source: codebase sweep of `packag
 - Keep **context panels at the sides** as today: lanes on the left; phrase/speaker style on the right.
 - Known bug to fix: the Global Styling panel overflows horizontally. The 240px column leaves about 190 usable px, but the colour pickers and hex rows are fixed at 200px.
 
+## Decisions (user, 2026-10-14)
+
+- **Theme: dark by default**, because it is better for video editing. Use the Eigen style tile's dark-mode palette (bg #262626, surface #333333, ink/border #F5F5F2, primary #E63946, destructive #FF5A63) with the bright accents.
+- **Global Styling: a draggable floating panel with its own live caption preview**, so the font can be seen while it is styled. It has sub-tabs separating **Font/Look** (StyleControls) from **Timing & Layout** (words per phrase, max chars, vertical position, lane gap, linger/delay).
+- **Scope: every screen** (S1–S10, plus modals and popovers) in this phase.
+
 ## Screens
 
 | # | Screen | File(s) | Regions |
