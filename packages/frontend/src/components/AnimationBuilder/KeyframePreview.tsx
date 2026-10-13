@@ -39,6 +39,7 @@ const PREVIEW_STYLE: StyleProps = {
   shadowOffsetX: 0,
   shadowOffsetY: 2,
   shadowBlur: 4,
+  shadowType: 'drop',
   letterSpacing: 0,
   wordSpacing: 0,
   verticalPosition: 75,

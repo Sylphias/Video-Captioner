@@ -1,6 +1,6 @@
 import type { Transcript, VideoMetadata } from '@eigen/shared-types'
 import type { StyleProps, SpeakerStyleOverride } from '@eigen/remotion-composition'
-import { useSubtitleStore, type SessionWord, type SessionPhrase } from '../store/subtitleStore.ts'
+import { useSubtitleStore, DEFAULT_STYLE, type SessionWord, type SessionPhrase } from '../store/subtitleStore.ts'
 import { useUndoStore } from '../store/undoMiddleware.ts'
 
 /**
@@ -99,7 +99,8 @@ export function loadProjectBlob(blob: ProjectStateBlob): void {
           manualSplitWordIndices: new Set<number>(blob.session.manualSplitWordIndices),
         }
       : null,
-    style: structuredClone(blob.style) as unknown as StyleProps,
+    // Merge defaults under the stored style so blobs saved before newer fields (e.g. shadowType) load as Drop
+    style: { ...DEFAULT_STYLE, ...(structuredClone(blob.style) as unknown as Partial<StyleProps>) },
     maxWordsPerPhrase: blob.maxWordsPerPhrase ?? 5,
     maxCharsPerPhrase: blob.maxCharsPerPhrase ?? null,
     speakerNames: { ...blob.speakerNames },
