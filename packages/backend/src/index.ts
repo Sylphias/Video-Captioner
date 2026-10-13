@@ -9,6 +9,7 @@ import multipartPlugin from './plugins/multipart.ts'
 import jobStorePlugin from './services/jobStore.ts'
 import animationPresetsPlugin from './services/animationPresets.ts'
 import lanePresetsPlugin from './services/lanePresets.ts'
+import textStylesPlugin from './services/textStyles.ts'
 import projectStorePlugin from './services/projectStore.ts'
 import appConfigPlugin from './services/appConfig.ts'
 import jobDirsPlugin from './services/jobDirsPlugin.ts'
@@ -20,6 +21,7 @@ import renderRoutes from './routes/render.ts'
 import waveformRoutes from './routes/waveform.ts'
 import presetsRoutes from './routes/presets.ts'
 import lanePresetsRoutes from './routes/lanePresets.ts'
+import stylesRoutes from './routes/styles.ts'
 import projectsRoutes from './routes/projects.ts'
 import setupRoutes from './routes/setup.ts'
 import settingsRoutes from './routes/settings.ts'
@@ -47,12 +49,13 @@ const fastify = Fastify({
   bodyLimit: 10 * 1024 * 1024 * 1024, // 10GB — video processing tool, no upload limit
 })
 
-// Register plugins in order: cors → multipart → jobStore → animationPresets → lanePresets → routes
+// Register plugins in order: cors → multipart → jobStore → animationPresets → lanePresets → textStyles → routes
 await fastify.register(corsPlugin)
 await fastify.register(multipartPlugin)
 await fastify.register(jobStorePlugin)
 await fastify.register(animationPresetsPlugin)
 await fastify.register(lanePresetsPlugin)
+await fastify.register(textStylesPlugin)
 await fastify.register(projectStorePlugin)
 await fastify.register(appConfigPlugin)
 // Job-folder resolver across media roots (needs projectsDb + appConfig)
@@ -67,6 +70,7 @@ await fastify.register(renderRoutes)
 await fastify.register(waveformRoutes)
 await fastify.register(presetsRoutes)
 await fastify.register(lanePresetsRoutes)
+await fastify.register(stylesRoutes)
 await fastify.register(projectsRoutes)
 await fastify.register(setupRoutes)
 await fastify.register(settingsRoutes)
