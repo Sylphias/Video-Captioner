@@ -88,7 +88,7 @@ describe('buildTextShadow extrude mode', () => {
   it('caps at MAX_EXTRUDE_STEPS entries', () => {
     const parts = ex(500, 500).split(',')
     expect(parts).toHaveLength(MAX_EXTRUDE_STEPS)
-    expect(MAX_EXTRUDE_STEPS).toBe(64)
+    expect(MAX_EXTRUDE_STEPS).toBe(100)
     expect(parts[parts.length - 1]).toBe('500.00px 500.00px 0 #000000')
   })
 

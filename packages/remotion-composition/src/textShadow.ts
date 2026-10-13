@@ -1,7 +1,7 @@
 import type { ShadowType } from './types'
 
 /** Hard cap on extrude layers so a huge stored offset can never emit an unbounded text-shadow list. */
-export const MAX_EXTRUDE_STEPS = 64
+export const MAX_EXTRUDE_STEPS = 100
 
 /** Subset of style fields the text-shadow builders read. StyleProps and LookStyleProps both satisfy it. */
 export interface TextShadowInput {

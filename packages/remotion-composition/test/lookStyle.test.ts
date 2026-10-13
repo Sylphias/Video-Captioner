@@ -55,13 +55,13 @@ describe('pickLookProps', () => {
 
 describe('shadowTypePatch', () => {
   it('seeds visible depth when switching to extrude with small offsets', () => {
-    expect(EXTRUDE_SEED_OFFSET).toBe(8)
+    expect(EXTRUDE_SEED_OFFSET).toEqual({ x: 20, y: 40 })
     expect(EXTRUDE_SEED_THRESHOLD).toBe(3)
     expect(shadowTypePatch({ shadowOffsetX: 0, shadowOffsetY: 2 }, 'extrude')).toEqual({
-      shadowType: 'extrude', shadowOffsetX: 8, shadowOffsetY: 8,
+      shadowType: 'extrude', shadowOffsetX: 20, shadowOffsetY: 40,
     })
     expect(shadowTypePatch({ shadowOffsetX: 2.9, shadowOffsetY: -2.9 }, 'extrude')).toEqual({
-      shadowType: 'extrude', shadowOffsetX: 8, shadowOffsetY: 8,
+      shadowType: 'extrude', shadowOffsetX: 20, shadowOffsetY: 40,
     })
   })
 
