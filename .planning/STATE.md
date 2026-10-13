@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 16
 current_phase_name: Font Style Studio
 status: planning
-stopped_at: Phase 15 complete (2026-10-10) — Phase 16 Font Style Studio ready for discuss/plan
-last_updated: "2026-10-10T15:01:01.938Z"
+stopped_at: Phase 16 context gathered
+last_updated: "2026-10-13T10:54:35.608Z"
 last_activity: 2026-10-10
 last_activity_desc: 15-08 approved (install+launch+transcribe on Windows); 15-09 started
 progress:
@@ -314,10 +314,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/16-font-style-studio/16-CONTEXT.md
 
-Last session: 2026-10-08T05:53:18.461Z
-Stopped at: Completed 15-05-PLAN.md
+Last session: 2026-10-13T10:54:34.994Z
+Stopped at: Phase 16 context gathered
 
 Next planned work:
 
