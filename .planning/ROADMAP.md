@@ -388,7 +388,7 @@ Plans:
 **Goal:** A dedicated page for designing reusable font/text styles (family, weight, outline, shadow, etc.) that can be applied to the captioned video — requested by the user 2026-10-10 during 15-09 fix-list triage (too large for the 15-09 fix budget)
 **Requirements**: TBD
 **Depends on:** Phase 15
-**Plans:** 6 plans
+**Plans:** 1/6 plans executed
 
 **Seed ideas (carry into discuss-phase):**
 
@@ -400,7 +400,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 16-01-PLAN.md — Tracer: Extrude shadow mode end to end (shadowType, buildTextShadow, SubtitleOverlay, Global panel toggle), look-style contract (LOOK_STYLE_KEYS), legacy-safe defaults
+- [x] 16-01-PLAN.md — Tracer: Extrude shadow mode end to end (shadowType, buildTextShadow, SubtitleOverlay, Global panel toggle), look-style contract (LOOK_STYLE_KEYS), legacy-safe defaults
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -421,6 +421,7 @@ Plans:
 **Goal:** Redesign milestone: run the app's UI through Claude Design to upgrade the visual design and fix usability issues across the editor.
 
 **Known issues to fix:**
+
 - Global Styling side panel overflows horizontally: labels clipped on the left, colour pickers cut off on the right, and a horizontal scrollbar appears, so panel items are hard to see (reported during Phase 16 tracer verification, 2026-10-13).
 
 **Requirements**: TBD

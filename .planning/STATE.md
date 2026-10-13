@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 16
-current_phase_name: Font Style Studio
+current_phase_name: font-style-studio
 status: executing
-stopped_at: Phase 16 context gathered
-last_updated: "2026-10-13T11:57:10.770Z"
-last_activity: 2026-10-10
-last_activity_desc: 15-08 approved (install+launch+transcribe on Windows); 15-09 started
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-10-13T12:52:49.659Z"
+last_activity: 2026-10-13
+last_activity_desc: Phase 16 execution started
 progress:
-  total_phases: 17
+  total_phases: 18
   completed_phases: 16
   total_plans: 62
-  completed_plans: 56
+  completed_plans: 57
 state_head: c6431a44d088d5570ae07efa1e685657e87c8588
 ---
 
@@ -24,16 +24,16 @@ state_head: c6431a44d088d5570ae07efa1e685657e87c8588
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Users can upload a video and get back a rendered video with accurate, dynamically-highlighted subtitles — with full control over transcript editing, word grouping, and visual styling.
-**Current focus:** Phase 15 — Desktop App Port
+**Current focus:** Phase 16 — font-style-studio
 
 ## Current Position
 
-Phase: 16 — Font Style Studio
-Plan: Not started
+Phase: 16 (font-style-studio) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-10-10 — Phase 15 complete, transitioned to Phase 16
+Last activity: 2026-10-13 — Phase 16 execution started
 
-Progress: [██████████████████░░] 88% (Phase 15 Desktop App Port remaining)
+Progress: [█████████░] 92% (Phase 15 Desktop App Port remaining)
 
 ## Performance Metrics
 
@@ -82,6 +82,7 @@ Progress: [██████████████████░░] 88% (Ph
 | Phase 15 P03 | 8 min | 2 tasks | 4 files |
 | Phase 15 P02 | 10 min | 4 tasks | 15 files |
 | Phase 15 P05 | 12 min | 3 tasks | 11 files |
+| Phase 16 P01 | 35min | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -282,12 +283,15 @@ Recent decisions affecting current work:
 - [Phase 15]: 15-02: VENV_PYTHON default is platform-aware (win32 Scripts/python.exe, else bin/python3) so WSL dev keeps working
 - [Phase 15]: 15-02: Per-job media paths use MEDIA_ROOT; SQLite DBs stay on DATA_ROOT; render workers terminated via terminateActiveRenders() in shutdown
 - [Phase 15]: 15-05: Preload is plain CJS (preload.cjs) because sandboxed renderers cannot load TS; win32 shutdown tree-kills immediately; dev backend may use EIGEN_DEV_NODE (better-sqlite3 ABI) — Sandbox/Windows semantics and native-module ABI found during execution
+- [Phase ?]: 16-01: MAX_EXTRUDE_STEPS=100; extrude auto-seed offsets 20/40 (user-requested)
+- [Phase ?]: 16-01: loadProjectBlob merges DEFAULT_STYLE under stored style so legacy projects load as Drop
 
 ### Roadmap Evolution
 
 - Phase 04.1 inserted after Phase 4: Multi-Speaker Diarization and Speaker Lanes (URGENT) — auto-detect speakers via pyannote.audio, propagate speaker labels through types/grouping/store/composition, add speaker lanes to editor UI with manual override
 - Phase 15 added (2026-07-02): Desktop App Port — package app as desktop application (shell tech likely Electron, settled in discuss-phase); depends on Phase 12 (UI refresh first, user decision 2026-07-02); includes remaining small webapp workflow fixes
 - Phase 16 added (2026-10-10): Font Style Studio — dedicated page for designing reusable font/text styles applied to the video; split out of the 15-09 (D-14) fix list as too large for the reserved budget
+- Phase 17 added (2026-10-13): UI Redesign — redesign milestone run through Claude Design to upgrade UI and fix usability issues; includes Global Styling panel horizontal overflow (seen in Phase 16 tracer check); depends on Phase 16
 
 ### Pending Todos
 
@@ -314,10 +318,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/16-font-style-studio/16-CONTEXT.md
+**Resume file:** None
 
-Last session: 2026-10-13T10:54:34.994Z
-Stopped at: Phase 16 context gathered
+Last session: 2026-10-13T12:52:49.637Z
+Stopped at: Completed 16-01-PLAN.md
 
 Next planned work:
 
