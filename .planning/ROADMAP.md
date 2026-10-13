@@ -415,3 +415,18 @@ Plans:
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [ ] 16-06-PLAN.md — Phase gate + live API smoke + human UAT against the 3D reference image
+
+### Phase 17: UI Redesign
+
+**Goal:** Redesign milestone: run the app's UI through Claude Design to upgrade the visual design and fix usability issues across the editor.
+
+**Known issues to fix:**
+- Global Styling side panel overflows horizontally: labels clipped on the left, colour pickers cut off on the right, and a horizontal scrollbar appears, so panel items are hard to see (reported during Phase 16 tracer verification, 2026-10-13).
+
+**Requirements**: TBD
+**Depends on:** Phase 16
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 17 to break down)
