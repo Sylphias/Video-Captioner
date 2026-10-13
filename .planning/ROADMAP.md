@@ -388,7 +388,7 @@ Plans:
 **Goal:** A dedicated page for designing reusable font/text styles (family, weight, outline, shadow, etc.) that can be applied to the captioned video — requested by the user 2026-10-10 during 15-09 fix-list triage (too large for the 15-09 fix budget)
 **Requirements**: TBD
 **Depends on:** Phase 15
-**Plans:** 1/6 plans executed
+**Plans:** 2/6 plans executed
 
 **Seed ideas (carry into discuss-phase):**
 
@@ -404,7 +404,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 16-02-PLAN.md — Global text-style library: SQLite store with 6 read-only built-ins, /api/styles CRUD with validation, useTextStyles client hook
+- [x] 16-02-PLAN.md — Global text-style library: SQLite store with 6 read-only built-ins, /api/styles CRUD with validation, useTextStyles client hook
 - [ ] 16-03-PLAN.md — Shared StyleControls (value/onChange) with full Drop/Extrude controls; Global panel rebuilt on it
 
 **Wave 3** *(blocked on Wave 2 completion)*

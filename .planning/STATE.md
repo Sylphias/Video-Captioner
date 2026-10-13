@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 16
 current_phase_name: font-style-studio
 status: executing
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-10-13T12:52:49.659Z"
+stopped_at: Completed 16-02-PLAN.md
+last_updated: "2026-10-13T12:56:19.755Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 16 execution started
 progress:
   total_phases: 18
   completed_phases: 16
   total_plans: 62
-  completed_plans: 57
+  completed_plans: 58
 state_head: c6431a44d088d5570ae07efa1e685657e87c8588
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 16 (font-style-studio) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-10-13 — Phase 16 execution started
 
-Progress: [█████████░] 92% (Phase 15 Desktop App Port remaining)
+Progress: [█████████░] 94% (Phase 15 Desktop App Port remaining)
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ Progress: [█████████░] 92% (Phase 15 Desktop App Port remain
 | Phase 15 P02 | 10 min | 4 tasks | 15 files |
 | Phase 15 P05 | 12 min | 3 tasks | 11 files |
 | Phase 16 P01 | 35min | 3 tasks | 16 files |
+| Phase 16 P02 | 15min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -285,6 +286,7 @@ Recent decisions affecting current work:
 - [Phase 15]: 15-05: Preload is plain CJS (preload.cjs) because sandboxed renderers cannot load TS; win32 shutdown tree-kills immediately; dev backend may use EIGEN_DEV_NODE (better-sqlite3 ABI) — Sandbox/Windows semantics and native-module ABI found during execution
 - [Phase ?]: 16-01: MAX_EXTRUDE_STEPS=100; extrude auto-seed offsets 20/40 (user-requested)
 - [Phase ?]: 16-01: loadProjectBlob merges DEFAULT_STYLE under stored style so legacy projects load as Drop
+- [Phase ?]: 16-02: Own text_styles.db + fastify.textStylesDb; TEXT_STYLE_KEYS duplicated in backend src with drift test; validation rejects rather than clamps
 
 ### Roadmap Evolution
 
@@ -320,8 +322,8 @@ Recent decisions affecting current work:
 
 **Resume file:** None
 
-Last session: 2026-10-13T12:52:49.637Z
-Stopped at: Completed 16-01-PLAN.md
+Last session: 2026-10-13T12:56:19.734Z
+Stopped at: Completed 16-02-PLAN.md
 
 Next planned work:
 
