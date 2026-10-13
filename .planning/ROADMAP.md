@@ -388,7 +388,7 @@ Plans:
 **Goal:** A dedicated page for designing reusable font/text styles (family, weight, outline, shadow, etc.) that can be applied to the captioned video — requested by the user 2026-10-10 during 15-09 fix-list triage (too large for the 15-09 fix budget)
 **Requirements**: TBD
 **Depends on:** Phase 15
-**Plans:** 3/6 plans executed
+**Plans:** 4/6 plans executed
 
 **Seed ideas (carry into discuss-phase):**
 
@@ -409,7 +409,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 16-04-PLAN.md — Style Studio tab: library list, static backdrop preview, debounced auto-save, New/Rename/Duplicate/Delete
+- [x] 16-04-PLAN.md — Style Studio tab: library list, static backdrop preview, debounced auto-save, New/Rename/Duplicate/Delete
 - [ ] 16-05-PLAN.md — Editor "Apply style…" pickers (global/speaker/phrase, drawn in-style) and "Save as style"
 
 **Wave 4** *(blocked on Wave 3 completion)*
