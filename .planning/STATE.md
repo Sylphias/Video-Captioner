@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 16
 current_phase_name: font-style-studio
 status: executing
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-10-13T12:56:19.755Z"
+stopped_at: Completed 16-03-PLAN.md
+last_updated: "2026-10-13T12:59:23.768Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 16 execution started
 progress:
   total_phases: 18
   completed_phases: 16
   total_plans: 62
-  completed_plans: 58
+  completed_plans: 59
 state_head: c6431a44d088d5570ae07efa1e685657e87c8588
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 16 (font-style-studio) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Last activity: 2026-10-13 — Phase 16 execution started
 
-Progress: [█████████░] 94% (Phase 15 Desktop App Port remaining)
+Progress: [██████████] 95% (Phase 15 Desktop App Port remaining)
 
 ## Performance Metrics
 
@@ -84,6 +84,7 @@ Progress: [█████████░] 94% (Phase 15 Desktop App Port remain
 | Phase 15 P05 | 12 min | 3 tasks | 11 files |
 | Phase 16 P01 | 35min | 3 tasks | 16 files |
 | Phase 16 P02 | 15min | 3 tasks | 8 files |
+| Phase 16 P03 | 20min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -287,6 +288,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 16-01: MAX_EXTRUDE_STEPS=100; extrude auto-seed offsets 20/40 (user-requested)
 - [Phase ?]: 16-01: loadProjectBlob merges DEFAULT_STYLE under stored style so legacy projects load as Drop
 - [Phase ?]: 16-02: Own text_styles.db + fastify.textStylesDb; TEXT_STYLE_KEYS duplicated in backend src with drift test; validation rejects rather than clamps
+- [Phase ?]: 16-03: Layout controls render after look controls in Global panel; StyleControls is a fieldset with disabled mode; shadow row wraps to avoid panel overflow
 
 ### Roadmap Evolution
 
@@ -322,8 +324,8 @@ Recent decisions affecting current work:
 
 **Resume file:** None
 
-Last session: 2026-10-13T12:56:19.734Z
-Stopped at: Completed 16-02-PLAN.md
+Last session: 2026-10-13T12:59:23.747Z
+Stopped at: Completed 16-03-PLAN.md
 
 Next planned work:
 
