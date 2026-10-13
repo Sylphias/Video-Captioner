@@ -301,6 +301,7 @@ Recent decisions affecting current work:
 - Phase 15 added (2026-07-02): Desktop App Port — package app as desktop application (shell tech likely Electron, settled in discuss-phase); depends on Phase 12 (UI refresh first, user decision 2026-07-02); includes remaining small webapp workflow fixes
 - Phase 16 added (2026-10-10): Font Style Studio — dedicated page for designing reusable font/text styles applied to the video; split out of the 15-09 (D-14) fix list as too large for the reserved budget
 - Phase 17 added (2026-10-13): UI Redesign — redesign milestone run through Claude Design to upgrade UI and fix usability issues; includes Global Styling panel horizontal overflow (seen in Phase 16 tracer check); depends on Phase 16
+- Phase 18 added (2026-10-14): Animation Studio — adjust caption animations in a Style-Studio-like workspace; scope vs existing Animation Builder TBD in discuss-phase
 
 ### Pending Todos
 

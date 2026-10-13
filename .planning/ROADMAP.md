@@ -431,3 +431,14 @@ Plans:
 Plans:
 
 - [ ] TBD (run /gsd-plan-phase 17 to break down)
+
+### Phase 18: Animation Studio
+
+**Goal:** Extend the Style Studio approach to animations: let the user adjust caption animations in a dedicated studio-style workspace with live preview (user request 2026-10-14, after approving the Style Studio). Exact scope (relationship to the existing Animation Builder, presets vs per-project tweaks) to be settled in discuss-phase.
+**Requirements**: TBD
+**Depends on:** Phase 17
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 18 to break down)
