@@ -3,6 +3,8 @@ import { HexColorPicker, HexColorInput } from 'react-colorful'
 import { FONT_NAMES, getFontFamily } from '@eigen/remotion-composition'
 import type { SpeakerStyleOverride } from '@eigen/remotion-composition'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
+import { StylePicker } from '../StylePicker/StylePicker.tsx'
+import { applyLookStyle } from '../../lib/applyStyle.ts'
 import './SpeakerStylePanel.css'
 
 const SPEAKER_COLORS = [
@@ -71,6 +73,16 @@ function SpeakerSection({ speakerId, displayName, override, onSet, onClear, defa
 
       {open && (
         <div className="speaker-section__body">
+          {/* Apply a library style (copies its look into this speaker's overrides) */}
+          <div className="speaker-section__control-row">
+            <label className="speaker-section__field-label">Apply style</label>
+            <StylePicker onApply={(props) => applyLookStyle({ level: 'speaker', speakerId }, props)} />
+            <p className="speaker-section__hint">
+              Copies the style's whole look, including its shadow, into this speaker's overrides.
+            </p>
+          </div>
+
+
           {/* Font family override */}
           <div className="speaker-section__control-row">
             <label className="speaker-section__toggle-label">
@@ -130,7 +142,7 @@ function SpeakerSection({ speakerId, displayName, override, onSet, onClear, defa
                 type="range"
                 className="speaker-section__slider"
                 min={16}
-                max={96}
+                max={200}
                 step={2}
                 value={override.fontSize ?? 48}
                 onChange={(e) => setField('fontSize', Number(e.target.value))}
@@ -232,7 +244,7 @@ function SpeakerSection({ speakerId, displayName, override, onSet, onClear, defa
                 type="range"
                 className="speaker-section__slider"
                 min={0}
-                max={4}
+                max={30}
                 step={0.5}
                 value={override.strokeWidth ?? 2}
                 onChange={(e) => setField('strokeWidth', Number(e.target.value))}

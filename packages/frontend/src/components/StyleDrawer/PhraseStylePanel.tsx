@@ -2,6 +2,8 @@ import { HexColorPicker, HexColorInput } from 'react-colorful'
 import { FONT_NAMES, getFontFamily } from '@eigen/remotion-composition'
 import { useSubtitleStore, type PhraseStyleOverride } from '../../store/subtitleStore.ts'
 import { useAnimationPresets } from '../../hooks/useAnimationPresets.ts'
+import { StylePicker } from '../StylePicker/StylePicker.tsx'
+import { applyLookStyle } from '../../lib/applyStyle.ts'
 import '../StylePanel/SpeakerStylePanel.css'
 
 type StyleField = keyof PhraseStyleOverride
@@ -55,6 +57,16 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
 
       <div className="speaker-section">
         <div className="speaker-section__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+          {/* Apply a library style (copies its look into this phrase's overrides) */}
+          <div className="speaker-section__control-row">
+            <label className="speaker-section__field-label">Apply style</label>
+            <StylePicker onApply={(props) => applyLookStyle({ level: 'phrase', phraseIndex }, props)} />
+            <p className="speaker-section__hint">
+              Copies the style's whole look, including its shadow, into this phrase's overrides.
+            </p>
+          </div>
+
+
           {/* Animation preset override */}
           <div className="speaker-section__control-row">
             <label className="speaker-section__field-label">Animation Preset</label>
@@ -138,7 +150,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 type="range"
                 className="speaker-section__slider"
                 min={16}
-                max={96}
+                max={200}
                 step={2}
                 value={override.fontSize ?? globalStyle.fontSize}
                 onChange={(e) => setField('fontSize', Number(e.target.value))}
@@ -240,7 +252,7 @@ export function PhraseStylePanel({ phraseIndex }: PhraseStylePanelProps) {
                 type="range"
                 className="speaker-section__slider"
                 min={0}
-                max={4}
+                max={30}
                 step={0.5}
                 value={override.strokeWidth ?? globalStyle.strokeWidth}
                 onChange={(e) => setField('strokeWidth', Number(e.target.value))}
