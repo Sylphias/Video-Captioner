@@ -4,8 +4,11 @@ import { useTextStyles } from '../../hooks/useTextStyles'
 import { StyleControls } from '../StylePanel/StyleControls'
 import { AutoSaveIndicator } from '../AutoSaveIndicator'
 import type { SaveStatus } from '../AutoSaveIndicator'
-import { createDebouncedSaver, resolveSelection, STUDIO_AUTOSAVE_DELAY_MS } from '../../lib/styleLibrary'
+import { createDebouncedSaver, resolveSelection, nextStyleName, STUDIO_AUTOSAVE_DELAY_MS } from '../../lib/styleLibrary'
+import { DEFAULT_STYLE } from '../../store/subtitleStore'
+import { pickLookProps } from '@eigen/remotion-composition'
 import { StylePreview } from './StylePreview'
+import { StyleLibraryList } from './StyleLibraryList'
 import './StyleStudioPage.css'
 
 interface Draft {
@@ -14,7 +17,7 @@ interface Draft {
 }
 
 export function StyleStudioPage() {
-  const { styles, loading, error, updateStyle, duplicateStyle } = useTextStyles()
+  const { styles, loading, error, createStyle, updateStyle, deleteStyle, duplicateStyle } = useTextStyles()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
@@ -71,15 +74,39 @@ export function StyleStudioPage() {
     saverRef.current.schedule(draft.id, next)
   }
 
-  const handleDuplicateBuiltin = async () => {
-    if (!selected) return
+  const runAction = async <T,>(fn: () => Promise<T>, fallback: string): Promise<T | null> => {
     try {
       setActionError(null)
-      const copy = await duplicateStyle(selected.id)
-      setSelectedId(copy.id)
+      return await fn()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Duplicate failed')
+      setActionError(err instanceof Error ? err.message : fallback)
+      return null
     }
+  }
+
+  const handleDuplicate = async (id: string) => {
+    await saverRef.current.flush()
+    const copy = await runAction(() => duplicateStyle(id), 'Duplicate failed')
+    if (copy) setSelectedId(copy.id)
+  }
+
+  const handleCreate = async (): Promise<string | null> => {
+    const created = await runAction(
+      () => createStyle({ name: nextStyleName(styles.map((s) => s.name)), props: pickLookProps(DEFAULT_STYLE) }),
+      'Create failed',
+    )
+    if (!created) return null
+    handleSelect(created.id)
+    return created.id
+  }
+
+  const handleRename = async (id: string, name: string) => {
+    await runAction(() => updateStyle(id, { name }), 'Rename failed')
+  }
+
+  const handleDelete = async (id: string) => {
+    saverRef.current.cancel(id)
+    await runAction(() => deleteStyle(id), 'Delete failed')
   }
 
   const activeDraft = selected && draft && draft.id === selected.id ? draft : null
@@ -87,23 +114,18 @@ export function StyleStudioPage() {
   return (
     <div className="style-studio-page">
       <aside className="style-studio-page__library">
-        <h2 className="style-studio-page__heading">Styles</h2>
-        {loading && styles.length === 0 && <p className="style-studio-page__note">Loading styles…</p>}
-        {error && <p className="style-studio-page__note style-studio-page__note--error">Couldn't load styles: {error}</p>}
-        <ul className="style-studio-page__list">
-          {styles.map((s) => (
-            <li key={s.id}>
-              <button
-                type="button"
-                className={'style-studio-page__row' + (s.id === selectedId ? ' style-studio-page__row--selected' : '')}
-                onClick={() => handleSelect(s.id)}
-              >
-                <span className="style-studio-page__row-name">{s.name}</span>
-                {s.isBuiltin && <span className="style-studio-page__badge">Built-in</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
+        {actionError && <p className="style-studio-page__banner style-studio-page__banner--error">{actionError}</p>}
+        <StyleLibraryList
+          styles={styles}
+          selectedId={selectedId}
+          loading={loading}
+          error={error}
+          onSelect={handleSelect}
+          onCreate={handleCreate}
+          onRename={handleRename}
+          onDuplicate={handleDuplicate}
+          onDelete={handleDelete}
+        />
       </aside>
       <section className="style-studio-page__preview">
         {activeDraft ? (
@@ -119,11 +141,10 @@ export function StyleStudioPage() {
               <span className="style-studio-page__style-name">{selected.name}</span>
               <AutoSaveIndicator status={saveStatus} />
             </div>
-            {actionError && <p className="style-studio-page__banner style-studio-page__banner--error">{actionError}</p>}
             {selected.isBuiltin && (
               <div className="style-studio-page__banner">
                 <span>Built-in style (read-only). Duplicate it to make an editable copy.</span>
-                <button type="button" className="style-studio-page__banner-btn" onClick={() => void handleDuplicateBuiltin()}>
+                <button type="button" className="style-studio-page__banner-btn" onClick={() => void handleDuplicate(selected.id)}>
                   Duplicate
                 </button>
               </div>

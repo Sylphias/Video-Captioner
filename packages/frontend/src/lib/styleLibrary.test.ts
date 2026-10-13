@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { createDebouncedSaver, resolveSelection, STUDIO_AUTOSAVE_DELAY_MS } from './styleLibrary.ts'
+import { createDebouncedSaver, resolveSelection, nextStyleName, STUDIO_AUTOSAVE_DELAY_MS } from './styleLibrary.ts'
 import type { SaveStatus } from '../components/AutoSaveIndicator.tsx'
 
 describe('createDebouncedSaver', () => {
@@ -111,5 +111,14 @@ describe('resolveSelection', () => {
     expect(resolveSelection(list, 'gone')).toBe('x')
     expect(resolveSelection(list, null)).toBe('x')
     expect(resolveSelection([], 'y')).toBeNull()
+  })
+})
+
+describe('nextStyleName', () => {
+  it('returns the first unused "New style N" name', () => {
+    expect(nextStyleName([])).toBe('New style')
+    expect(nextStyleName(['New style'])).toBe('New style 2')
+    expect(nextStyleName(['New style', 'New style 2'])).toBe('New style 3')
+    expect(nextStyleName(['new style'])).toBe('New style')
   })
 })

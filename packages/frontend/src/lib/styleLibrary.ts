@@ -91,3 +91,14 @@ export function createDebouncedSaver<T>(
     },
   }
 }
+
+/**
+ * First unused name of the form `base`, `base 2`, `base 3`, ... (exact, case-sensitive match).
+ */
+export function nextStyleName(existingNames: ReadonlyArray<string>, base = 'New style'): string {
+  const taken = new Set(existingNames)
+  if (!taken.has(base)) return base
+  let n = 2
+  while (taken.has(`${base} ${n}`)) n++
+  return `${base} ${n}`
+}
