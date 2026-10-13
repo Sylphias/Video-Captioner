@@ -12,7 +12,7 @@ Users can upload a video and get back a rendered video with accurate, dynamicall
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Reusable text-style library with a dedicated Style Studio (font, weight, colours, outline, Drop/Extrude 3D shadow), applied to projects globally, per speaker or per phrase, with "Save as style" — Validated in Phase 16: Font Style Studio
 
 ### Active
 
@@ -63,4 +63,4 @@ Users can upload a video and get back a rendered video with accurate, dynamicall
 | M4 Mac Mini only (no Windows) | Simplifies transcription setup — single platform target | — Pending |
 
 ---
-*Last updated: 2026-02-25 after requirements definition*
+*Last updated: 2026-10-14 after Phase 16 (Font Style Studio)*
