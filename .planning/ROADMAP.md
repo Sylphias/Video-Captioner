@@ -388,7 +388,7 @@ Plans:
 **Goal:** A dedicated page for designing reusable font/text styles (family, weight, outline, shadow, etc.) that can be applied to the captioned video — requested by the user 2026-10-10 during 15-09 fix-list triage (too large for the 15-09 fix budget)
 **Requirements**: TBD
 **Depends on:** Phase 15
-**Plans:** 0 plans
+**Plans:** 6 plans
 
 **Seed ideas (carry into discuss-phase):**
 
@@ -399,4 +399,9 @@ Plans:
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 16 to break down)
+- [ ] 16-01-PLAN.md — Tracer: Extrude shadow mode end to end (shadowType, buildTextShadow, SubtitleOverlay, Global panel toggle), look-style contract (LOOK_STYLE_KEYS), legacy-safe defaults
+- [ ] 16-02-PLAN.md — Global text-style library: SQLite store with 6 read-only built-ins, /api/styles CRUD with validation, useTextStyles client hook
+- [ ] 16-03-PLAN.md — Shared StyleControls (value/onChange) with full Drop/Extrude controls; Global panel rebuilt on it
+- [ ] 16-04-PLAN.md — Style Studio tab: library list, static backdrop preview, debounced auto-save, New/Rename/Duplicate/Delete
+- [ ] 16-05-PLAN.md — Editor "Apply style…" pickers (global/speaker/phrase, drawn in-style) and "Save as style"
+- [ ] 16-06-PLAN.md — Phase gate + live API smoke + human UAT against the 3D reference image
