@@ -390,6 +390,13 @@ Plans:
 **Depends on:** Phase 15
 **Plans:** 0 plans
 
+**Seed ideas (carry into discuss-phase):**
+
+- **3D extruded shadow style** (requested 2026-10-13). Reference: `phases/16-font-style-studio/ref-3d-extrude-shadow.png`. The look: heavy block sans, a thin black outline, a fill matching the background (or white), and a solid hard-edged black extrusion running diagonally down-right.
+  - Feasibility (checked in code): the outline already works via `strokeWidth`, and Archivo Black / Anton are close fonts. The missing piece is the extrusion. Today's shadow is a single blurred `text-shadow` (`SubtitleOverlay.tsx`, `dropShadow`).
+  - Suggested implementation: a `shadowType: 'drop' | 'extrude'` style field. In extrude mode, stack 1px-step `text-shadow`s with no blur from (1,1) to (shadowOffsetX, shadowOffsetY) in `shadowColor`, after the stroke shadows. This reuses the existing X/Y/color controls. The same component drives preview and render, so they stay in sync.
+  - Ship as a reusable '3D Shadow' style preset in the studio.
+
 Plans:
 
 - [ ] TBD (run /gsd-plan-phase 16 to break down)
