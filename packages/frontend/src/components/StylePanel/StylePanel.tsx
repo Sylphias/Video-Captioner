@@ -3,6 +3,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { pickLookProps } from '@eigen/remotion-composition'
 import { useSubtitleStore } from '../../store/subtitleStore.ts'
 import { StyleControls, ScrubInput } from './StyleControls.tsx'
+import { StylePicker } from '../StylePicker/StylePicker.tsx'
+import { applyLookStyle } from '../../lib/applyStyle.ts'
 import './StylePanel.css'
 
 /**
@@ -66,6 +68,11 @@ export function StylePanel() {
 
   return (
     <div className="style-panel">
+      {/* Library: copy a saved style's look into this project (D-09/D-10) */}
+      <div className="style-panel__library-row">
+        <StylePicker onApply={(props) => applyLookStyle({ level: 'global' }, props)} />
+      </div>
+
       {/* Look controls (shared with the Style Studio). One onChange = one setStyle = one undo step. */}
       <StyleControls value={look} onChange={setStyle} />
 
