@@ -1,5 +1,7 @@
 import type { AnimationPreset, TranscriptPhrase } from '@eigen/shared-types'
 
+export type ShadowType = 'drop' | 'extrude'
+
 export interface StyleProps {
   highlightColor: string   // e.g. '#FFFF00'
   baseColor: string        // e.g. '#FFFFFF'
@@ -12,6 +14,7 @@ export interface StyleProps {
   shadowOffsetX: number    // px — horizontal shadow offset
   shadowOffsetY: number    // px — vertical shadow offset
   shadowBlur: number       // px — shadow blur radius (0 = sharp)
+  shadowType?: ShadowType  // 'drop' = blurred offset shadow (default; undefined means drop); 'extrude' = solid stacked 3D block, blur ignored
   letterSpacing: number    // px — kerning between letters (CSS letter-spacing)
   wordSpacing: number      // px — extra spacing between words (CSS word-spacing)
   verticalPosition: number // 0-100 percentage from top of frame

@@ -85,7 +85,7 @@ interface SubtitleStore {
   setSpeakerHighlightDisabled: (speakerId: string, disabled: boolean) => void
 }
 
-const DEFAULT_STYLE: StyleProps = {
+export const DEFAULT_STYLE: StyleProps = {
   highlightColor: '#FFFF00',
   baseColor: '#FFFFFF',
   fontSize: 90,
@@ -97,6 +97,7 @@ const DEFAULT_STYLE: StyleProps = {
   shadowOffsetX: 0,
   shadowOffsetY: 2,
   shadowBlur: 4,
+  shadowType: 'drop',
   letterSpacing: 0,
   wordSpacing: 0,
   verticalPosition: 80,

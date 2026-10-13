@@ -4,6 +4,7 @@ import type { TranscriptWord, HighlightKeyframeConfig, KeyframeTrack } from '@ei
 import type { AnimationPreset } from '@eigen/shared-types'
 import { isLegacyKeyframeTracks } from '@eigen/shared-types'
 import type { StyleProps, SpeakerStyleOverride, CompositionPhrase } from './types'
+import { buildTextShadow } from './textShadow'
 import { computeAnimationStyles, computeWordAnimationStyles, computeKeyframeStyles, mergeStyles } from './animations'
 
 const SPEAKER_COLORS = ['#4A90D9', '#E67E22', '#27AE60', '#9B59B6', '#E74C3C', '#1ABC9C', '#F39C12', '#95A5A6']
@@ -35,24 +36,6 @@ export function findActiveWordIndex(words: TranscriptWord[], currentTimeSec: num
   }
 
   return result
-}
-
-/**
- * Generate text-shadow CSS for a stroke/outline effect.
- * Uses evenly-spaced shadow offsets around a circle — doesn't bleed into
- * letter counters (holes in o, e, a, etc.) unlike -webkit-text-stroke.
- */
-function generateStrokeShadow(width: number, color: string): string {
-  if (width <= 0) return ''
-  const STEPS = 16
-  const shadows: string[] = []
-  for (let i = 0; i < STEPS; i++) {
-    const angle = (2 * Math.PI * i) / STEPS
-    const x = (Math.cos(angle) * width).toFixed(1)
-    const y = (Math.sin(angle) * width).toFixed(1)
-    shadows.push(`${x}px ${y}px 0 ${color}`)
-  }
-  return shadows.join(',')
 }
 
 /** Default vertical offset (in percentage points) between simultaneous phrases */
@@ -337,8 +320,6 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
         const phraseLingerSec = activePhrase.lingerDuration ?? style.lingerDuration ?? 1.0
         const phraseEnd = activePhrase.words[activePhrase.words.length - 1].end + phraseLingerSec
 
-        const hasStroke = effectiveStyle.strokeWidth > 0
-
         // Compute phrase-scope animation styles (if applicable)
         const phraseAnimStyles: React.CSSProperties = (effectivePreset && effectivePreset.scope === 'phrase')
           ? computeAnimationStyles(phraseStart, phraseEnd, effectivePreset, frame, fps, width, height)
@@ -437,12 +418,8 @@ export function SubtitleOverlay({ phrases, style, speakerStyles, animationPreset
           ? `calc(0.25em + ${extraHalf}px)`
           : '0.25em'
 
-        // Pre-compute stroke shadow (shared across all words in phrase)
-        const strokeShadow = hasStroke
-          ? generateStrokeShadow(effectiveStyle.strokeWidth * 2, effectiveStyle.strokeColor)
-          : ''
-        const dropShadow = `${effectiveStyle.shadowOffsetX ?? 0}px ${effectiveStyle.shadowOffsetY ?? 2}px ${effectiveStyle.shadowBlur ?? 4}px ${effectiveStyle.shadowColor ?? '#000000'}`
-        const combinedShadow = strokeShadow ? `${strokeShadow},${dropShadow}` : dropShadow
+        // Pre-compute text shadow (stroke ring + drop or extrude), shared across all words in phrase
+        const combinedShadow = buildTextShadow(effectiveStyle)
 
         return (
           <div

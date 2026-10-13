@@ -287,6 +287,7 @@ export function StylePanel() {
   const shadowOffsetX = useSubtitleStore((s) => s.style.shadowOffsetX)
   const shadowOffsetY = useSubtitleStore((s) => s.style.shadowOffsetY)
   const shadowBlur = useSubtitleStore((s) => s.style.shadowBlur)
+  const shadowType = useSubtitleStore((s) => s.style.shadowType ?? 'drop')
   const letterSpacing = useSubtitleStore((s) => s.style.letterSpacing)
   const wordSpacing = useSubtitleStore((s) => s.style.wordSpacing)
   const verticalPosition = useSubtitleStore((s) => s.style.verticalPosition)
@@ -437,6 +438,24 @@ export function StylePanel() {
       {/* Text shadow */}
       <div className="style-panel__section">
         <label className="style-panel__label">Shadow</label>
+        <div className="style-panel__weight-options">
+          <button
+            type="button"
+            className={`style-panel__weight-btn${shadowType === 'drop' ? ' style-panel__weight-btn--active' : ''}`}
+            aria-pressed={shadowType === 'drop'}
+            onClick={() => setStyle({ shadowType: 'drop' })}
+          >
+            Drop
+          </button>
+          <button
+            type="button"
+            className={`style-panel__weight-btn${shadowType === 'extrude' ? ' style-panel__weight-btn--active' : ''}`}
+            aria-pressed={shadowType === 'extrude'}
+            onClick={() => setStyle({ shadowType: 'extrude' })}
+          >
+            Extrude
+          </button>
+        </div>
         <div className="style-panel__inline-row">
           <label className="style-panel__mini-label">X</label>
           <ScrubInput
