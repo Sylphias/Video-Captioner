@@ -112,3 +112,36 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.style-studio-page__banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.style-studio-page__banner--error {
+  color: #e57373;
+}
+
+.style-studio-page__banner-btn {
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.style-studio-page__banner-btn:hover {
+  border-color: var(--color-accent-green);
+}
