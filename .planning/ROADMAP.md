@@ -388,7 +388,7 @@ Plans:
 **Goal:** A dedicated page for designing reusable font/text styles (family, weight, outline, shadow, etc.) that can be applied to the captioned video — requested by the user 2026-10-10 during 15-09 fix-list triage (too large for the 15-09 fix budget)
 **Requirements**: TBD
 **Depends on:** Phase 15
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans executed
 
 **Seed ideas (carry into discuss-phase):**
 
@@ -414,7 +414,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 16-06-PLAN.md — Phase gate + live API smoke + human UAT against the 3D reference image
+- [x] 16-06-PLAN.md — Phase gate + live API smoke + human UAT against the 3D reference image
 
 ### Phase 17: UI Redesign
 
