@@ -3,6 +3,7 @@ import { Header } from './components/Header'
 import { SubtitlesPage } from './pages/SubtitlesPage'
 import { ProjectsPage } from './pages/ProjectsPage'
 import { AnimationBuilderPage } from './components/AnimationBuilder/AnimationBuilderPage'
+import { StyleStudioPage } from './components/StyleStudio/StyleStudioPage'
 import { FirstRunSetup } from './components/FirstRunSetup'
 import { useSetup } from './hooks/useSetup'
 import './App.css'
@@ -10,6 +11,7 @@ import './App.css'
 const TABS = [
   { id: 'projects', label: 'Projects' },
   { id: 'animation-builder', label: 'Animation Builder' },
+  { id: 'style-studio', label: 'Style Studio' },
 ]
 
 export default function App() {
@@ -75,6 +77,7 @@ export default function App() {
           />
         )}
         {activeTab === 'animation-builder' && <AnimationBuilderPage />}
+        {activeTab === 'style-studio' && <StyleStudioPage />}
       </main>
     </div>
   )

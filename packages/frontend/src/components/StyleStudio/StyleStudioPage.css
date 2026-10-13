@@ -1,0 +1,114 @@
+.style-studio-page {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 340px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.style-studio-page__library,
+.style-studio-page__preview,
+.style-studio-page__controls {
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.style-studio-page__library {
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+
+.style-studio-page__preview {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.style-studio-page__controls {
+  border-left: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+
+.style-studio-page__heading {
+  margin: 0;
+  padding: 12px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.style-studio-page__note {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.style-studio-page__note--error {
+  color: #e57373;
+}
+
+.style-studio-page__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.style-studio-page__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.style-studio-page__row:hover {
+  background: var(--color-bg-hover);
+}
+
+.style-studio-page__row--selected {
+  background: var(--color-bg-hover);
+  border-left-color: var(--color-accent-green);
+}
+
+.style-studio-page__row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.style-studio-page__badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+.style-studio-page__controls-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.style-studio-page__style-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
