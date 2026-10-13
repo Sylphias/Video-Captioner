@@ -398,10 +398,20 @@ Plans:
   - Ship as a reusable '3D Shadow' style preset in the studio.
 
 Plans:
+**Wave 1**
 
 - [ ] 16-01-PLAN.md — Tracer: Extrude shadow mode end to end (shadowType, buildTextShadow, SubtitleOverlay, Global panel toggle), look-style contract (LOOK_STYLE_KEYS), legacy-safe defaults
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 16-02-PLAN.md — Global text-style library: SQLite store with 6 read-only built-ins, /api/styles CRUD with validation, useTextStyles client hook
 - [ ] 16-03-PLAN.md — Shared StyleControls (value/onChange) with full Drop/Extrude controls; Global panel rebuilt on it
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 16-04-PLAN.md — Style Studio tab: library list, static backdrop preview, debounced auto-save, New/Rename/Duplicate/Delete
 - [ ] 16-05-PLAN.md — Editor "Apply style…" pickers (global/speaker/phrase, drawn in-style) and "Save as style"
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 16-06-PLAN.md — Phase gate + live API smoke + human UAT against the 3D reference image
